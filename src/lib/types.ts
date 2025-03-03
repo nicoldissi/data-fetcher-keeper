@@ -2,8 +2,11 @@
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
-  power: number;          // Current power consumption in Watts
-  total_energy: number;   // Total energy in Watt-hours
+  power: number;          // Current power consumption in Watts (grid)
+  production_power: number; // Solar production power in Watts
+  total_energy: number;   // Total energy consumed in Watt-hours
+  production_energy: number; // Total energy produced in Watt-hours
+  grid_returned: number;  // Total energy returned to grid in Watt-hours
   voltage: number;        // Current voltage (V)
   current: number;        // Current amperage (A)
   pf: number;             // Power factor

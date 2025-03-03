@@ -9,7 +9,7 @@ import { ShellyConfigForm } from './ShellyConfigForm';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Settings } from 'lucide-react';
+import { Settings, Sun } from 'lucide-react';
 import { isShellyConfigValid } from '@/lib/api';
 
 export function ShellyDashboard() {
@@ -62,21 +62,33 @@ export function ShellyDashboard() {
           />
           
           <div className="space-y-2 md:col-span-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="glass-panel p-4 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Current Power</p>
+                <p className="text-xs text-gray-500 mb-1">Grid Power</p>
                 <h3 className="text-2xl font-semibold">{currentData?.power.toFixed(1) || '0'} W</h3>
               </div>
+              <div className="glass-panel p-4 rounded-lg flex items-center">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Production</p>
+                  <h3 className="text-2xl font-semibold text-green-600">
+                    {currentData?.production_power.toFixed(1) || '0'} W
+                  </h3>
+                </div>
+                <div className="ml-2">
+                  <Sun className="h-6 w-6 text-yellow-500" />
+                </div>
+              </div>
               <div className="glass-panel p-4 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Total Energy</p>
+                <p className="text-xs text-gray-500 mb-1">Total Consumption</p>
                 <h3 className="text-2xl font-semibold">
                   {currentData ? (currentData.total_energy / 1000).toFixed(3) : '0'} kWh
                 </h3>
               </div>
               <div className="glass-panel p-4 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Stored Readings</p>
-                <h3 className="text-2xl font-semibold">{stats.totalStored}</h3>
-                <p className="text-xs text-gray-500 mt-1">of {stats.totalFetches} fetches</p>
+                <p className="text-xs text-gray-500 mb-1">Total Production</p>
+                <h3 className="text-2xl font-semibold text-green-600">
+                  {currentData ? (currentData.production_energy / 1000).toFixed(3) : '0'} kWh
+                </h3>
               </div>
             </div>
           </div>

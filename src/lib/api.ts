@@ -1,11 +1,16 @@
-
 import { ShellyEMData, ShellyEMResponse, ShellyConfig } from './types';
+import { createClient } from '@supabase/supabase-js';
 
 // Default empty config - will be populated by user input
 let shellyConfig: ShellyConfig = {
   deviceId: '',
   apiKey: ''
 };
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Updates the Shelly device configuration
@@ -62,7 +67,10 @@ export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
     return {
       timestamp: Date.now(),
       power: 0,
+      production_power: 0,
       total_energy: 0,
+      production_energy: 0,
+      grid_returned: 0,
       voltage: 0,
       current: 0,
       pf: 0,
@@ -87,20 +95,27 @@ export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
       throw new Error('Invalid data format received from Shelly API');
     }
     
-    // For simplicity, we'll use the first meter data (channel 0)
-    // You can modify this to return both channels if needed
-    const emeter = jsonData.data.device_status.emeters[0];
+    // Channel 0: Grid consumption/injection
+    const gridMeter = jsonData.data.device_status.emeters[0];
+    // Channel 1: Solar production
+    const productionMeter = jsonData.data.device_status.emeters.length > 1 
+      ? jsonData.data.device_status.emeters[1] 
+      : { power: 0, total: 0, is_valid: false, pf: 0, voltage: gridMeter.voltage, total_returned: 0 };
+    
     const temperature = jsonData.data.device_status.temperature?.tC || 0;
     
     return {
       timestamp: Date.now(),
-      power: emeter.power,
-      total_energy: emeter.total,
-      voltage: emeter.voltage,
-      current: Math.abs(emeter.power / emeter.voltage), // Calculate current as P/V
-      pf: emeter.pf,
+      power: gridMeter.power, // Grid power (negative means injection to grid)
+      production_power: productionMeter.power, // Solar production power
+      total_energy: gridMeter.total, // Total energy consumed from grid
+      production_energy: productionMeter.total, // Total energy produced by solar
+      grid_returned: gridMeter.total_returned, // Total energy returned to grid
+      voltage: gridMeter.voltage,
+      current: Math.abs(gridMeter.power / gridMeter.voltage), // Calculate current as P/V
+      pf: gridMeter.pf,
       temperature: temperature,
-      is_valid: jsonData.data.online && emeter.is_valid,
+      is_valid: jsonData.data.online && gridMeter.is_valid,
       channel: 0
     };
   } catch (error) {
@@ -110,7 +125,10 @@ export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
     return {
       timestamp: Date.now(),
       power: 0,
+      production_power: 0,
       total_energy: 0,
+      production_energy: 0,
+      grid_returned: 0,
       voltage: 0,
       current: 0,
       pf: 0,
@@ -121,11 +139,36 @@ export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
   }
 };
 
-// This function will be updated to store data in Supabase
+/**
+ * Stores energy data in Supabase
+ * @param data ShellyEM data to store
+ * @returns Success indicator
+ */
 export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
   try {
-    console.log('Would store data in Supabase:', data);
-    // When Supabase is connected, this will be replaced with actual storage logic
+    const { error } = await supabase
+      .from('energy_data')
+      .insert([
+        {
+          timestamp: new Date(data.timestamp).toISOString(),
+          power: data.power,
+          production_power: data.production_power,
+          total_energy: data.total_energy,
+          production_energy: data.production_energy,
+          grid_returned: data.grid_returned,
+          voltage: data.voltage,
+          current: data.current,
+          temperature: data.temperature,
+          pf: data.pf
+        }
+      ]);
+    
+    if (error) {
+      console.error('Error storing data in Supabase:', error);
+      return false;
+    }
+    
+    console.log('Data stored in Supabase successfully');
     return true;
   } catch (error) {
     console.error('Failed to store data:', error);
@@ -133,7 +176,12 @@ export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
   }
 };
 
-// Determines if a reading is different enough from the previous one to be stored
+/**
+ * Determines if a reading is different enough from the previous one to be stored
+ * @param previous Previous ShellyEMData object
+ * @param current Current ShellyEMData object
+ * @returns True if data is different
+ */
 export const isDataDifferent = (previous: ShellyEMData | null, current: ShellyEMData): boolean => {
   if (!previous) return true;
   
