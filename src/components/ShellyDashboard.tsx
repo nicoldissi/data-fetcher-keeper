@@ -1,20 +1,37 @@
 
+import { useState, useEffect } from 'react';
 import { useShellyData } from '@/hooks/useShellyData';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
 import { EnergyChart } from './EnergyChart';
 import { DataTable } from './DataTable';
+import { ShellyConfigForm } from './ShellyConfigForm';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Settings } from 'lucide-react';
+import { isShellyConfigValid } from '@/lib/api';
 
 export function ShellyDashboard() {
+  const [showConfig, setShowConfig] = useState<boolean>(!isShellyConfigValid());
   const { currentData, isLoading, error, lastStored, history, stats } = useShellyData();
   
   const lastUpdated = currentData 
     ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true }) 
     : 'Never';
+
+  const handleConfigClick = () => {
+    setShowConfig(true);
+  };
+  
+  if (showConfig) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Energy Monitor</h1>
+        <ShellyConfigForm onConfigured={() => setShowConfig(false)} />
+      </div>
+    );
+  }
   
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,7 +45,7 @@ export function ShellyDashboard() {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleConfigClick}>
               <Settings className="h-4 w-4" />
               <span>Settings</span>
             </Button>

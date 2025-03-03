@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
-import { fetchShellyEMData, storeEnergyData, isDataDifferent } from '@/lib/api';
+import { fetchShellyEMData, storeEnergyData, isDataDifferent, loadShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 
 export function useShellyData(pollingInterval = 5000) {
@@ -9,6 +9,7 @@ export function useShellyData(pollingInterval = 5000) {
   const [error, setError] = useState<string | null>(null);
   const [lastStored, setLastStored] = useState<ShellyEMData | null>(null);
   const [history, setHistory] = useState<ShellyEMData[]>([]);
+  const [isConfigValid, setIsConfigValid] = useState<boolean>(isShellyConfigValid());
   
   // Keep the previous data to compare against
   const previousDataRef = useRef<ShellyEMData | null>(null);
@@ -17,11 +18,27 @@ export function useShellyData(pollingInterval = 5000) {
   const [totalFetches, setTotalFetches] = useState(0);
   const [totalStored, setTotalStored] = useState(0);
 
+  // Load configuration on mount
+  useEffect(() => {
+    loadShellyConfig();
+    setIsConfigValid(isShellyConfigValid());
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
     let intervalId: number;
 
     const fetchData = async () => {
+      // Skip fetching if configuration is not valid
+      if (!isShellyConfigValid()) {
+        setIsConfigValid(false);
+        setError('Shelly device not configured');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsConfigValid(true);
+      
       try {
         setIsLoading(true);
         const data = await fetchShellyEMData();
@@ -86,6 +103,7 @@ export function useShellyData(pollingInterval = 5000) {
     error,
     lastStored,
     history,
+    isConfigValid,
     stats: {
       totalFetches,
       totalStored

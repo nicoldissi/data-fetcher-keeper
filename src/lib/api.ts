@@ -1,18 +1,78 @@
 
-import { ShellyEMData, ShellyEMResponse } from './types';
+import { ShellyEMData, ShellyEMResponse, ShellyConfig } from './types';
 
-// The URL of your Shelly EM device - this should be updated by the user
-const SHELLY_EM_URL = 'http://shellyem.local/status';
+// Default empty config - will be populated by user input
+let shellyConfig: ShellyConfig = {
+  deviceId: '',
+  apiKey: ''
+};
 
 /**
- * Fetches data from a Shelly EM device
+ * Updates the Shelly device configuration
+ * @param config New Shelly configuration
+ */
+export const updateShellyConfig = (config: ShellyConfig) => {
+  shellyConfig = config;
+  localStorage.setItem('shellyConfig', JSON.stringify(config));
+  console.log('Shelly configuration updated:', config);
+};
+
+/**
+ * Loads Shelly configuration from localStorage
+ * @returns True if configuration was loaded successfully
+ */
+export const loadShellyConfig = (): boolean => {
+  const savedConfig = localStorage.getItem('shellyConfig');
+  if (savedConfig) {
+    try {
+      shellyConfig = JSON.parse(savedConfig);
+      console.log('Loaded Shelly configuration:', shellyConfig);
+      return true;
+    } catch (e) {
+      console.error('Failed to parse saved Shelly configuration:', e);
+      return false;
+    }
+  }
+  return false;
+};
+
+/**
+ * Checks if Shelly configuration is valid
+ * @returns True if configuration has deviceId and apiKey
+ */
+export const isShellyConfigValid = (): boolean => {
+  return !!(shellyConfig.deviceId && shellyConfig.apiKey);
+};
+
+/**
+ * Gets the Shelly cloud API URL
+ * @returns URL for the Shelly cloud API
+ */
+const getShellyCloudUrl = (): string => {
+  return `https://shelly-11-eu.shelly.cloud/device/status?id=${shellyConfig.deviceId}&auth_key=${shellyConfig.apiKey}`;
+};
+
+/**
+ * Fetches data from a Shelly EM device via cloud API
  * @returns Processed Shelly EM data
  */
 export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
+  if (!isShellyConfigValid()) {
+    console.error('Shelly configuration is not valid');
+    return {
+      timestamp: Date.now(),
+      power: 0,
+      total_energy: 0,
+      voltage: 0,
+      current: 0,
+      pf: 0,
+      temperature: 0,
+      is_valid: false
+    };
+  }
+
   try {
-    // In a real environment, you might need to handle CORS issues
-    // You might need to setup a proxy server or use a CORS proxy
-    const response = await fetch(SHELLY_EM_URL);
+    const response = await fetch(getShellyCloudUrl());
     
     if (!response.ok) {
       throw new Error(`Error fetching Shelly EM data: ${response.statusText}`);

@@ -24,3 +24,8 @@ export interface ShellyEMResponse {
   };
   online: boolean;
 }
+
+export interface ShellyConfig {
+  deviceId: string;
+  apiKey: string;
+}
