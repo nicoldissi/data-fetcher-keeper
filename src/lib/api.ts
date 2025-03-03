@@ -1,3 +1,4 @@
+
 import { ShellyEMData, ShellyEMResponse, ShellyConfig } from './types';
 import { createClient } from '@supabase/supabase-js';
 
