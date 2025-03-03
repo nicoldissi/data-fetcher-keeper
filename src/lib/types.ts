@@ -9,20 +9,28 @@ export interface ShellyEMData {
   pf: number;             // Power factor
   temperature: number;    // Device temperature
   is_valid: boolean;      // Whether the reading is valid
+  channel: number;        // Which channel (0 or 1) the data comes from
 }
 
 export interface ShellyEMResponse {
-  emeter: {
-    power: number;
-    total: number;
-    voltage: number;
-    current: number;
-    pf: number;
+  isok: boolean;
+  data: {
+    online: boolean;
+    device_status: {
+      temperature?: {
+        tC: number;
+      };
+      emeters: Array<{
+        power: number;
+        reactive: number;
+        voltage: number;
+        total: number;
+        pf: number;
+        is_valid: boolean;
+        total_returned: number;
+      }>;
+    };
   };
-  temperature: {
-    tC: number;
-  };
-  online: boolean;
 }
 
 export interface ShellyConfig {

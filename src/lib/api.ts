@@ -54,7 +54,7 @@ const getShellyCloudUrl = (): string => {
 
 /**
  * Fetches data from a Shelly EM device via cloud API
- * @returns Processed Shelly EM data
+ * @returns Processed Shelly EM data array for both channels
  */
 export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
   if (!isShellyConfigValid()) {
@@ -67,28 +67,41 @@ export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
       current: 0,
       pf: 0,
       temperature: 0,
-      is_valid: false
+      is_valid: false,
+      channel: 0
     };
   }
 
   try {
+    console.log('Fetching data from Shelly API:', getShellyCloudUrl());
     const response = await fetch(getShellyCloudUrl());
     
     if (!response.ok) {
       throw new Error(`Error fetching Shelly EM data: ${response.statusText}`);
     }
     
-    const data: ShellyEMResponse = await response.json();
+    const jsonData = await response.json() as ShellyEMResponse;
+    console.log('Received data from Shelly API:', jsonData);
+    
+    if (!jsonData.isok || !jsonData.data || !jsonData.data.device_status || !jsonData.data.device_status.emeters) {
+      throw new Error('Invalid data format received from Shelly API');
+    }
+    
+    // For simplicity, we'll use the first meter data (channel 0)
+    // You can modify this to return both channels if needed
+    const emeter = jsonData.data.device_status.emeters[0];
+    const temperature = jsonData.data.device_status.temperature?.tC || 0;
     
     return {
       timestamp: Date.now(),
-      power: data.emeter.power,
-      total_energy: data.emeter.total,
-      voltage: data.emeter.voltage,
-      current: data.emeter.current,
-      pf: data.emeter.pf,
-      temperature: data.temperature.tC,
-      is_valid: data.online
+      power: emeter.power,
+      total_energy: emeter.total,
+      voltage: emeter.voltage,
+      current: Math.abs(emeter.power / emeter.voltage), // Calculate current as P/V
+      pf: emeter.pf,
+      temperature: temperature,
+      is_valid: jsonData.data.online && emeter.is_valid,
+      channel: 0
     };
   } catch (error) {
     console.error('Failed to fetch Shelly EM data:', error);
@@ -102,13 +115,13 @@ export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
       current: 0,
       pf: 0,
       temperature: 0,
-      is_valid: false
+      is_valid: false,
+      channel: 0
     };
   }
 };
 
-// This is a placeholder function for storing data in Supabase
-// It will be replaced with actual Supabase integration when connected
+// This function will be updated to store data in Supabase
 export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
   try {
     console.log('Would store data in Supabase:', data);
