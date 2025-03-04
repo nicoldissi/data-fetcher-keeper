@@ -18,6 +18,7 @@ export type Database = {
           id: number
           production: number
           production_total: number
+          shelly_config_id: string | null
           timestamp: string
         }
         Insert: {
@@ -28,6 +29,7 @@ export type Database = {
           id?: number
           production: number
           production_total?: number
+          shelly_config_id?: string | null
           timestamp: string
         }
         Update: {
@@ -38,7 +40,49 @@ export type Database = {
           id?: number
           production?: number
           production_total?: number
+          shelly_config_id?: string | null
           timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energy_data_shelly_config_id_fkey"
+            columns: ["shelly_config_id"]
+            isOneToOne: false
+            referencedRelation: "shelly_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelly_configs: {
+        Row: {
+          apikey: string
+          created_at: string
+          deviceid: string
+          id: string
+          name: string | null
+          serverurl: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apikey: string
+          created_at?: string
+          deviceid: string
+          id?: string
+          name?: string | null
+          serverurl?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apikey?: string
+          created_at?: string
+          deviceid?: string
+          id?: string
+          name?: string | null
+          serverurl?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

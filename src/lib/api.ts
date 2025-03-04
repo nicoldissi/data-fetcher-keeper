@@ -1,20 +1,22 @@
 
-import { ShellyConfig, ShellyEMData } from './types';
+import { ShellyConfig, ShellyEMData, ShellyEMResponse } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
 const SHELLY_CONFIG_KEY = 'shelly_config';
 
-export const updateShellyConfig = (config: ShellyConfig): void => {
+// Legacy localStorage functions
+export const updateLocalShellyConfig = (config: ShellyConfig): void => {
   localStorage.setItem(SHELLY_CONFIG_KEY, JSON.stringify(config));
 };
 
 const DEFAULT_CONFIG: ShellyConfig = {
   serverUrl: 'https://shelly-11-eu.shelly.cloud',
   deviceId: 'ecfabcc7ebe9',
-  apiKey: 'MmIzYzJ1aWQ9E5B47CE0F300842AD58AEC918783E62DADA00AC1D88E8C28721C5CE356A11CA021A43DAE7AE96ED'
+  apiKey: 'MmIzYzJ1aWQ9E5B47CE0F300842AD58AEC918783E62DADA00AC1D88E8C28721C5CE356A11CA021A43DAE7AE96ED',
+  name: 'Default Device'
 };
 
-export const getShellyConfig = (): ShellyConfig => {
+export const getLocalShellyConfig = (): ShellyConfig => {
   const config = localStorage.getItem(SHELLY_CONFIG_KEY);
   if (!config) return DEFAULT_CONFIG;
   
@@ -25,18 +27,176 @@ export const getShellyConfig = (): ShellyConfig => {
   }
 };
 
-export const isShellyConfigValid = (): boolean => {
-  const config = getShellyConfig();
-  return config !== null && config.deviceId !== '' && config.serverUrl !== '';
+// New Supabase functions
+export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [DEFAULT_CONFIG];
+
+    const { data, error } = await supabase
+      .from('shelly_configs')
+      .select('*')
+      .eq('user_id', user.id);
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      // If no configs found, return default
+      return [DEFAULT_CONFIG];
+    }
+    
+    return data as ShellyConfig[];
+  } catch (error) {
+    console.error("Error fetching Shelly configs:", error);
+    return [DEFAULT_CONFIG];
+  }
 };
 
-export const getShellyCloudUrl = (): string | null => {
-  const config = getShellyConfig();
+export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
+  // If no ID provided, try to get from localStorage first (for backward compatibility)
+  if (!id) {
+    const localConfig = getLocalShellyConfig();
+    if (localConfig.deviceId !== DEFAULT_CONFIG.deviceId) {
+      return localConfig;
+    }
+  }
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return DEFAULT_CONFIG;
+
+    // If ID provided, get specific config, otherwise get first config
+    const query = supabase
+      .from('shelly_configs')
+      .select('*')
+      .eq('user_id', user.id);
+    
+    if (id) {
+      query.eq('id', id);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: true }).limit(1);
+    
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      // If no configs found, return default
+      return DEFAULT_CONFIG;
+    }
+    
+    return data[0] as ShellyConfig;
+  } catch (error) {
+    console.error("Error fetching Shelly config:", error);
+    return DEFAULT_CONFIG;
+  }
+};
+
+export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyConfig | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      // Fallback to localStorage if not authenticated
+      updateLocalShellyConfig(config);
+      return config;
+    }
+
+    // Set the user_id for the config
+    const configWithUser = {
+      ...config,
+      user_id: user.id
+    };
+
+    // Rename the fields to match the database column names if necessary
+    // For example, if the database uses snake_case instead of camelCase:
+    const dbConfig = {
+      ...configWithUser,
+      device_id: config.deviceId,
+      api_key: config.apiKey,
+      server_url: config.serverUrl
+    };
+
+    // Check if config already has an ID (update) or not (insert)
+    if (config.id) {
+      // Update existing config
+      const { data, error } = await supabase
+        .from('shelly_configs')
+        .update(dbConfig)
+        .eq('id', config.id)
+        .eq('user_id', user.id)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      // Convert back to camelCase for the frontend
+      const camelCaseData = {
+        ...data,
+        deviceId: data.device_id,
+        apiKey: data.api_key,
+        serverUrl: data.server_url
+      };
+      
+      return camelCaseData;
+    } else {
+      // Insert new config
+      const { data, error } = await supabase
+        .from('shelly_configs')
+        .insert(dbConfig)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      // Convert back to camelCase for the frontend
+      const camelCaseData = {
+        ...data,
+        deviceId: data.device_id,
+        apiKey: data.api_key,
+        serverUrl: data.server_url
+      };
+      
+      return camelCaseData;
+    }
+  } catch (error) {
+    console.error("Error updating Shelly config:", error);
+    // Fallback to localStorage on error
+    updateLocalShellyConfig(config);
+    return null;
+  }
+};
+
+export const deleteShellyConfig = async (id: string): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { error } = await supabase
+      .from('shelly_configs')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting Shelly config:", error);
+    return false;
+  }
+};
+
+export const isShellyConfigValid = async (id?: string): Promise<boolean> => {
+  const config = await getShellyConfig(id);
+  return config.deviceId !== '' && config.serverUrl !== '' && config.apiKey !== '';
+};
+
+export const getShellyCloudUrl = async (id?: string): Promise<string | null> => {
+  const config = await getShellyConfig(id);
   if (!config) return null;
   return `${config.serverUrl}/device/status?id=${config.deviceId}&auth_key=${config.apiKey}`;
 };
 
-export const fetchShellyData = async (): Promise<ShellyEMData | null> => {  const url = getShellyCloudUrl();
+export const fetchShellyData = async (configId?: string): Promise<ShellyEMData | null> => {  
+  const url = await getShellyCloudUrl(configId);
   if (!url) {
     console.error('Shelly Cloud URL is not configured');
     throw new Error('Shelly Cloud URL is not configured');
@@ -79,6 +239,7 @@ export const fetchShellyData = async (): Promise<ShellyEMData | null> => {  cons
     const shellyData: ShellyEMData = {
       timestamp,
       power: gridMeter.power,
+      reactive: gridMeter.reactive,
       production_power: productionMeter ? productionMeter.power : 0,
       total_energy: gridMeter.total,
       production_energy: productionMeter ? productionMeter.total : 0,
@@ -99,8 +260,11 @@ export const fetchShellyData = async (): Promise<ShellyEMData | null> => {  cons
   }
 };
 
-export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
+export const storeEnergyData = async (data: ShellyEMData, configId?: string): Promise<boolean> => {
   try {
+    // Get the corresponding Shelly config to add its ID to the stored data
+    const config = await getShellyConfig(configId);
+    
     // Get the last stored record to compare values
     const { data: lastRecord, error: fetchError } = await supabase
       .from('energy_data')
@@ -153,7 +317,8 @@ export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
           production: data.production_power,
           grid_total: data.total_energy,
           grid_total_returned: data.grid_returned,
-          production_total: data.production_energy
+          production_total: data.production_energy,
+          shelly_config_id: config.id // Store the config ID to associate data with device
         }
       ]);
     

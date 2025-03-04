@@ -17,26 +17,63 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     // Récupère les valeurs de puissance
     const gridFlow = data.power
     const solarFlow = data.production_power
-    const homeConsumption = Math.abs(gridFlow) + solarFlow
+    const homeConsumption = gridFlow + solarFlow
 
     // Sélectionne les chemins
-    const gridPath = svgRef.current.querySelector('#gridPath') as SVGPathElement | null
-    const solarPath = svgRef.current.querySelector('#solarPath') as SVGPathElement | null
-    const homePath = svgRef.current.querySelector('#homePath') as SVGPathElement | null
+    const gridToHomePath = svgRef.current.querySelector('#gridToHomePath') as SVGPathElement | null
+    const gridFromHomePath = svgRef.current.querySelector('#gridFromHomePath') as SVGPathElement | null
+    const solarToHomePath = svgRef.current.querySelector('#solarToHomePath') as SVGPathElement | null
+    const solarToGridPath = svgRef.current.querySelector('#solarToGridPath') as SVGPathElement | null
 
-    if (gridPath && solarPath && homePath) {
+    if (gridToHomePath && gridFromHomePath && solarToHomePath && solarToGridPath) {
       // Fonction utilitaire pour ajuster la durée d'animation
       const getAnimationDuration = (power: number) => {
         const absValue = Math.abs(power)
         return Math.max(2, Math.min(10, 20000 / (absValue + 100)))
       }
 
-      gridPath.style.animation = `flowAnimation ${getAnimationDuration(gridFlow)}s linear infinite`
-      solarPath.style.animation = `flowAnimation ${getAnimationDuration(solarFlow)}s linear infinite`
-      homePath.style.animation = `flowAnimation ${getAnimationDuration(homeConsumption)}s linear infinite`
+      // Détermine les scénarios de flux d'énergie
+      const isPVProducingMoreThanConsumption = solarFlow > homeConsumption
+      const isGridSupplyingHome = gridFlow > 0
+      const isGridReceivingExcess = gridFlow < 0
 
-      // Couleur du tracé selon le sens du flux du Grid
-      gridPath.setAttribute('stroke', gridFlow >= 0 ? '#ef4444' : '#10b981')
+      // Gestion des chemins et animations en fonction des scénarios
+      
+      // 1. Flux du réseau vers la maison (consommation depuis le réseau)
+      if (isGridSupplyingHome && !isPVProducingMoreThanConsumption) {
+        gridToHomePath.style.display = 'block'
+        gridToHomePath.style.animation = `flowAnimation ${getAnimationDuration(gridFlow)}s linear infinite`
+        gridToHomePath.setAttribute('stroke', '#ef4444') // Rouge pour consommation depuis le réseau
+      } else {
+        gridToHomePath.style.display = 'none'
+      }
+
+      // 2. Flux de la maison vers le réseau (injection vers le réseau)
+      if (isGridReceivingExcess && !isPVProducingMoreThanConsumption) {
+        gridFromHomePath.style.display = 'block'
+        gridFromHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
+        gridFromHomePath.setAttribute('stroke', '#10b981') // Vert pour injection vers le réseau
+      } else {
+        gridFromHomePath.style.display = 'none'
+      }
+
+      // 3. Flux du PV vers la maison (toujours présent si production)
+      if (solarFlow > 6) {
+        solarToHomePath.style.display = 'block'
+        solarToHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.min(solarFlow, homeConsumption))}s linear infinite`
+        solarToHomePath.setAttribute('stroke', '#10b981') // Vert pour production solaire
+      } else {
+        solarToHomePath.style.display = 'none'
+      }
+
+      // 4. Flux du PV vers le réseau (excédent de production)
+      if (isPVProducingMoreThanConsumption && solarFlow > 6) {
+        solarToGridPath.style.display = 'block'
+        solarToGridPath.style.animation = `flowAnimation ${getAnimationDuration(solarFlow - homeConsumption)}s linear infinite`
+        solarToGridPath.setAttribute('stroke', '#10b981') // Vert pour production solaire
+      } else {
+        solarToGridPath.style.display = 'none'
+      }
     }
   }, [data])
 
@@ -85,11 +122,11 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
                 }
                 .flow-path {
                   stroke-width: 3;
-                  /* On retire la flèche : plus de marker-end */
                   stroke-dasharray: 10, 5;
                   stroke-linecap: round;
                   stroke-linejoin: round;
                   fill: none;
+                  marker-end: url(#arrowhead);
                 }
 
                 .node-circle {
@@ -117,7 +154,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
               <circle className="node-circle" cx="0" cy="0" r="40" stroke="#94a3b8" />
               <text className="node-text" fill="#64748b">Réseau</text>
               <text className="power-text" y="20" fill="#64748b">
-                {data ? `${Math.abs(data.power).toFixed(1)} W` : '0 W'}
+                {data ? `${data.power.toFixed(1)} W` : '0 W'}
               </text>
             </g>
 
@@ -137,30 +174,41 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
               <circle className="node-circle" cx="0" cy="0" r="40" stroke="#6366f1" />
               <text className="node-text" fill="#4f46e5">Maison</text>
               <text className="power-text" y="20" fill="#4f46e5">
-                {data ? `${(Math.abs(data.power) + data.production_power).toFixed(1)} W` : '0 W'}
+                {data ? `${(data.power + data.production_power).toFixed(1)} W` : '0 W'}
               </text>
             </g>
 
-            {/* Flow Paths (légèrement courbés pour un aspect plus esthétique) */}
+            {/* Flow Paths avec différentes directions selon les scénarios */}
+            {/* 1. Du réseau vers la maison (consommation) */}
             <path
-              id="gridPath"
+              id="gridToHomePath"
               className="flow-path"
               d="M 90,200 C 170,200 230,200 310,200"
               stroke="#ef4444"
             />
+            
+            {/* 2. De la maison vers le réseau (injection) */}
             <path
-              id="solarPath"
+              id="gridFromHomePath"
               className="flow-path"
-              d="M 200,90
-                 C 200,130 200,170 200,200
-                 C 230,200 270,200 310,200"
-              stroke="#f59e0b"
+              d="M 310,200 C 230,200 170,200 90,200"
+              stroke="#10b981"
             />
+            
+            {/* 3. Du PV vers la maison (consommation directe) */}
             <path
-              id="homePath"
+              id="solarToHomePath"
               className="flow-path"
-              d="M 310,200 C 310,200 310,200 310,200"
-              stroke="#6366f1"
+              d="M 200,90 M 200,90 C 200,130 250,170 280,180 C 300,190 320,200 310,200"
+              stroke="#10b981"
+            />
+            
+            {/* 4. Du PV vers le réseau (excédent) */}
+            <path
+              id="solarToGridPath"
+              className="flow-path"
+              d="M 200,90 C 200,130 150,170 120,180 C 100,190 80,200 90,200"
+              stroke="#10b981"
             />
           </svg>
         </div>

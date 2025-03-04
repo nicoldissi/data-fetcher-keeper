@@ -1,40 +1,13 @@
 services:
-  # Web service for the React application
   - type: web
-    name: data-fetcher-keeper
-    env: node
+    name: shelly-monitor
+    env: static
     buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    staticPublishPath: ./dist
     envVars:
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
-      - key: VITE_SHELLY_SERVER_URL
-        sync: false
-      - key: VITE_SHELLY_DEVICE_ID
-        sync: false
-      - key: VITE_SHELLY_API_KEY
-        sync: false
-    autoDeploy: true
-    
-  # Worker service for continuous data collection
-  - type: worker
-    name: data-fetcher-keeper-worker
-    env: node
-    buildCommand: npm install
-    startCommand: node worker/dataCollector.js
-    envVars:
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
-      - key: VITE_SHELLY_SERVER_URL
-        sync: false
-      - key: VITE_SHELLY_DEVICE_ID
-        sync: false
-      - key: VITE_SHELLY_API_KEY
-        sync: false
-      - key: POLLING_INTERVAL
-        value: 300000  # 5 minutes in milliseconds
-    autoDeploy: true
+      - key: NODE_VERSION
+        value: 18
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

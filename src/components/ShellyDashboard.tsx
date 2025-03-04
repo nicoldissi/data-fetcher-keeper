@@ -13,8 +13,9 @@ import { Settings } from 'lucide-react';
 import { isShellyConfigValid } from '@/lib/api';
 import { DailyTotals } from './DailyTotals';
 import { EnergyFlowChartDark } from './EnergyFlowChartDark';
-import { EnergyFlowChart } from './EnergyFlowChart';
 import { SelfConsumptionCard } from './SelfConsumptionCard';
+import { PowerTriangleCard } from './PowerTriangleCard';
+import { UserMenu } from './UserMenu';
 
 export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState<boolean>(!isShellyConfigValid());
@@ -48,6 +49,7 @@ export function ShellyDashboard() {
           </div>
           
           <div className="flex items-center space-x-2">
+            <UserMenu />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleConfigClick}>
               <Settings className="h-4 w-4" />
               <span>Paramètres</span>
@@ -58,26 +60,33 @@ export function ShellyDashboard() {
         <Separator className="my-6" />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <DeviceStatus 
-            data={currentData} 
-            lastUpdated={lastUpdated} 
-            className="md:col-span-1"
-          />
+          <div className="md:col-span-1 space-y-6">
+            <DeviceStatus 
+              data={currentData} 
+              lastUpdated={lastUpdated} 
+            />
+            
+            {currentData && (
+              <div className="grid grid-cols-1 gap-6">
+                <PowerTriangleCard 
+                  title="Power Triangle - Grid" 
+                  activePower={currentData.power}
+                  reactivePower={currentData.reactive}
+                  powerFactor={currentData.pf}
+                  emeterIndex={0} 
+                />
+              </div>
+            )}
+          </div>
           
-          <div className="space-y-2 md:col-span-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2">
-                <EnergyFlowChartDark data={currentData} />
-              </div>
-              <div className="sm:col-span-1 ">
-                <SelfConsumptionCard data={currentData} />
-              </div>
-
-            </div>
+          <div className="md:col-span-2">
+            <EnergyFlowChartDark data={currentData} />
           </div>
         </div>
         
-        <DailyTotals />
+        <div className="mb-6">
+          <DailyTotals data={currentData} />
+        </div>
         
         <Tabs defaultValue="chart" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">

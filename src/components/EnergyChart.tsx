@@ -18,28 +18,40 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
   const { dailyData } = useDailyEnergyTotals();
   
   useEffect(() => {
-    // Transform the daily data for initial chart population
-    const dailyChartData = dailyData.map(item => ({
-      time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      gridPower: item.consumption,
-      productionPower: item.production,
-      netPower: item.consumption,
-      consumption: item.production + item.consumption,
-      timestamp: new Date(item.timestamp).getTime(),
-    }));
+    // Get start of current day
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
   
-    // Transform the real-time data
-    const realtimeChartData = data.map(item => {
-      const localDate = new Date(item.timestamp * 1000);
-      return {
-        time: localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        gridPower: item.power,
-        productionPower: item.production_power,
-        netPower: item.power,
-        consumption: item.production_power + item.power,
-        timestamp: localDate.getTime(),
-      };
-    });
+    // Transform the daily data for initial chart population, filtering for today only
+    const dailyChartData = dailyData
+      .filter(item => new Date(item.timestamp) >= startOfToday)
+      .map(item => {
+        const localDate = new Date(item.timestamp);
+        localDate.setHours(localDate.getHours() + 1);
+        return {
+          time: localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          gridPower: item.consumption,
+          productionPower: item.production,
+          netPower: item.consumption,
+          consumption: item.production + item.consumption,
+          timestamp: localDate.getTime(),
+        };
+      });
+  
+    // Transform the real-time data, filtering for today only
+    const realtimeChartData = data
+      .filter(item => new Date(item.timestamp) >= startOfToday)
+      .map(item => {
+        const localDate = new Date(item.timestamp);
+        return {
+          time: localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          gridPower: item.power,
+          productionPower: item.production_power,
+          netPower: item.power,
+          consumption: item.production_power + item.power,
+          timestamp: localDate.getTime(),
+        };
+      });
   
     // Combine both datasets, removing duplicates based on timestamp
     const combinedData = [...dailyChartData, ...realtimeChartData];
@@ -59,15 +71,15 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
       
       return (
         <div className="bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-md border border-gray-100">
-          <p className="text-sm font-medium">{label}</p>
+          <p className="text-sm font-medium">{new Date(label).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
           <p className="text-sm text-muted-foreground">{timeAgo}</p>
           {payload.map((entry, index) => (
             <p key={`item-${index}`} className="text-sm font-medium" style={{ color: entry.color }}>
-              {entry.name === 'gridPower' ? 'Réseau: ' : 
-               entry.name === 'productionPower' ? 'Production: ' : 
-               entry.name === 'consumption' ? 'Consommation: ' :
-               'Puissance Nette: '}
-              {entry.value} W
+              {entry.dataKey === 'gridPower' ? 'Réseau: ' : 
+               entry.dataKey === 'productionPower' ? 'Production: ' : 
+               entry.dataKey === 'consumption' ? 'Consommation: ' :
+               'Puissance: '}
+              {Number(entry.value).toFixed(1)} W
             </p>
           ))}
         </div>
@@ -118,10 +130,16 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="time" 
+                      dataKey="timestamp" 
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -186,10 +204,16 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="time" 
+                      dataKey="timestamp" 
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -233,10 +257,16 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="time" 
+                      dataKey="timestamp" 
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -280,10 +310,16 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                     <XAxis 
-                      dataKey="time" 
+                      dataKey="timestamp" 
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
                       tickLine={false}
                       axisLine={{ stroke: '#e5e7eb' }}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 

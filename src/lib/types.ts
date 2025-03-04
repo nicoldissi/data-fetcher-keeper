@@ -2,7 +2,8 @@
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
-  power: number;          // Current power consumption in Watts (grid)
+  power: number;
+  reactive:number;          // Current power consumption in Watts (grid)
   production_power: number; // Solar production power in Watts
   total_energy: number;   // Total energy consumed in Watt-hours
   production_energy: number; // Total energy produced in Watt-hours
@@ -41,4 +42,12 @@ export interface ShellyConfig {
   deviceId: string;
   apiKey: string;
   serverUrl: string;
+  name?: string;
+  id?: string;
+  user_id?: string;
+  
+  // Database field mappings (these fields will be present when fetched from DB)
+  device_id?: string;
+  api_key?: string;
+  server_url?: string;
 }
