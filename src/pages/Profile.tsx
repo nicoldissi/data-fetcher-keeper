@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { getShellyConfig, updateShellyConfig } from "@/lib/api";
+import { getShellyConfigs, updateShellyConfig, deleteShellyConfig } from "@/lib/api";
+import { ShellyConfig } from "@/lib/types";
+import { PlusCircle, Trash2, Save } from "lucide-react";
 
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -15,11 +17,11 @@ export default function Profile() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   
-  // Shelly configuration states
-  const [deviceId, setDeviceId] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
-  const [serverUrl, setServerUrl] = useState<string>("");
-  const [savingConfig, setSavingConfig] = useState(false);
+  // Shelly configurations state
+  const [shellyConfigs, setShellyConfigs] = useState<ShellyConfig[]>([]);
+  const [savingConfig, setSavingConfig] = useState<string | null>(null);
+  const [deletingConfig, setDeletingConfig] = useState<string | null>(null);
+  const [newConfig, setNewConfig] = useState<boolean>(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -46,11 +48,13 @@ export default function Profile() {
       }
     );
 
-    // Load Shelly configuration
-    const config = getShellyConfig();
-    setDeviceId(config.deviceId);
-    setApiKey(config.apiKey);
-    setServerUrl(config.serverUrl);
+    // Load Shelly configurations
+    const loadShellyConfigs = async () => {
+      const configs = await getShellyConfigs();
+      setShellyConfigs(configs);
+    };
+    
+    loadShellyConfigs();
 
     return () => {
       subscription.unsubscribe();
@@ -86,14 +90,30 @@ export default function Profile() {
     }
   };
 
-  const handleSaveShellyConfig = () => {
-    setSavingConfig(true);
+  const handleUpdateConfig = async (index: number) => {
+    const config = shellyConfigs[index];
+    setSavingConfig(config.id || "new");
+    
     try {
-      updateShellyConfig({
-        deviceId: deviceId.trim(),
-        apiKey: apiKey.trim(),
-        serverUrl: serverUrl.trim()
+      const updatedConfig = await updateShellyConfig({
+        ...config,
+        deviceId: config.deviceId.trim(),
+        apiKey: config.apiKey.trim(),
+        serverUrl: config.serverUrl.trim(),
+        name: config.name?.trim() || `Appareil ${index + 1}`
       });
+      
+      if (updatedConfig) {
+        // Update the configs list with the new data
+        const newConfigs = [...shellyConfigs];
+        newConfigs[index] = updatedConfig;
+        setShellyConfigs(newConfigs);
+        
+        // If it was a new config, reset the new config flag
+        if (newConfig) {
+          setNewConfig(false);
+        }
+      }
       
       toast({
         title: "Configuration enregistrée",
@@ -107,8 +127,60 @@ export default function Profile() {
         description: "Une erreur est survenue lors de l'enregistrement de la configuration"
       });
     } finally {
-      setSavingConfig(false);
+      setSavingConfig(null);
     }
+  };
+
+  const handleDeleteConfig = async (id: string, index: number) => {
+    setDeletingConfig(id);
+    
+    try {
+      const success = await deleteShellyConfig(id);
+      
+      if (success) {
+        // Remove the config from the list
+        const newConfigs = [...shellyConfigs];
+        newConfigs.splice(index, 1);
+        setShellyConfigs(newConfigs);
+        
+        toast({
+          title: "Configuration supprimée",
+          description: "L'appareil Shelly a été supprimé avec succès"
+        });
+      } else {
+        throw new Error("Failed to delete configuration");
+      }
+    } catch (error) {
+      console.error("Error deleting Shelly config:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression de la configuration"
+      });
+    } finally {
+      setDeletingConfig(null);
+    }
+  };
+
+  const handleAddNewConfig = () => {
+    const newConfigItem: ShellyConfig = {
+      deviceId: "",
+      apiKey: "",
+      serverUrl: "https://shelly-12-eu.shelly.cloud",
+      name: `Appareil ${shellyConfigs.length + 1}`
+    };
+    
+    setShellyConfigs([...shellyConfigs, newConfigItem]);
+    setNewConfig(true);
+  };
+
+  const updateConfigField = (index: number, field: keyof ShellyConfig, value: string) => {
+    const newConfigs = [...shellyConfigs];
+    newConfigs[index] = {
+      ...newConfigs[index],
+      [field]: value
+    };
+    setShellyConfigs(newConfigs);
   };
 
   if (loading) {
@@ -123,7 +195,7 @@ export default function Profile() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Profil utilisateur</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Informations de compte</CardTitle>
@@ -144,52 +216,90 @@ export default function Profile() {
           </CardFooter>
         </Card>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuration Shelly</CardTitle>
-            <CardDescription>
-              Paramètres de connexion à votre appareil Shelly
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="deviceId">ID de l'appareil</Label>
-              <Input
-                id="deviceId"
-                placeholder="shellyem3-XXXXXXXXXXXX"
-                value={deviceId}
-                onChange={(e) => setDeviceId(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">Clé API</Label>
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="MWRiNzA1dWlk1234567890EXAMPLE"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="serverUrl">URL du serveur</Label>
-              <Input
-                id="serverUrl"
-                placeholder="https://shelly-12-eu.shelly.cloud"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={handleSaveShellyConfig} 
-              disabled={savingConfig}
-            >
-              {savingConfig ? "Enregistrement..." : "Enregistrer la configuration"}
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Appareils Shelly</h2>
+            <Button onClick={handleAddNewConfig} variant="outline" className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" /> Ajouter un appareil
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {shellyConfigs.map((config, index) => (
+              <Card key={config.id || `new-${index}`}>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <Input 
+                          className="font-semibold text-lg h-8 w-full"
+                          value={config.name || `Appareil ${index + 1}`}
+                          onChange={(e) => updateConfigField(index, 'name', e.target.value)}
+                          placeholder="Nom de l'appareil"
+                        />
+                      </div>
+                    </CardTitle>
+                  </div>
+                  <CardDescription>
+                    Paramètres de connexion à votre appareil Shelly
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`deviceId-${index}`}>ID de l'appareil</Label>
+                    <Input
+                      id={`deviceId-${index}`}
+                      placeholder="shellyem3-XXXXXXXXXXXX"
+                      value={config.deviceId}
+                      onChange={(e) => updateConfigField(index, 'deviceId', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`apiKey-${index}`}>Clé API</Label>
+                    <Input
+                      id={`apiKey-${index}`}
+                      type="password"
+                      placeholder="MWRiNzA1dWlk1234567890EXAMPLE"
+                      value={config.apiKey}
+                      onChange={(e) => updateConfigField(index, 'apiKey', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`serverUrl-${index}`}>URL du serveur</Label>
+                    <Input
+                      id={`serverUrl-${index}`}
+                      placeholder="https://shelly-12-eu.shelly.cloud"
+                      value={config.serverUrl}
+                      onChange={(e) => updateConfigField(index, 'serverUrl', e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button 
+                    onClick={() => handleUpdateConfig(index)} 
+                    disabled={savingConfig === (config.id || "new")}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {savingConfig === (config.id || "new") ? "Enregistrement..." : "Enregistrer"}
+                  </Button>
+                  
+                  {config.id && (
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => handleDeleteConfig(config.id!, index)}
+                      disabled={deletingConfig === config.id}
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingConfig === config.id ? "Suppression..." : "Supprimer"}
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
         
         <Card>
           <CardHeader>

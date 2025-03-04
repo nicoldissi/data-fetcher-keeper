@@ -42,4 +42,7 @@ export interface ShellyConfig {
   deviceId: string;
   apiKey: string;
   serverUrl: string;
+  name?: string;
+  id?: string;
+  user_id?: string;
 }
