@@ -7,12 +7,19 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { getShellyConfig, updateShellyConfig } from "@/lib/api";
 
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+  
+  // Shelly configuration states
+  const [deviceId, setDeviceId] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [serverUrl, setServerUrl] = useState<string>("");
+  const [savingConfig, setSavingConfig] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -38,6 +45,12 @@ export default function Profile() {
         }
       }
     );
+
+    // Load Shelly configuration
+    const config = getShellyConfig();
+    setDeviceId(config.deviceId);
+    setApiKey(config.apiKey);
+    setServerUrl(config.serverUrl);
 
     return () => {
       subscription.unsubscribe();
@@ -73,6 +86,31 @@ export default function Profile() {
     }
   };
 
+  const handleSaveShellyConfig = () => {
+    setSavingConfig(true);
+    try {
+      updateShellyConfig({
+        deviceId: deviceId.trim(),
+        apiKey: apiKey.trim(),
+        serverUrl: serverUrl.trim()
+      });
+      
+      toast({
+        title: "Configuration enregistrée",
+        description: "Les paramètres de votre appareil Shelly ont été mis à jour"
+      });
+    } catch (error) {
+      console.error("Error saving Shelly config:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement de la configuration"
+      });
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Chargement...</div>;
   }
@@ -102,6 +140,53 @@ export default function Profile() {
           <CardFooter>
             <Button onClick={handleChangePassword} disabled={loading}>
               {loading ? "Traitement..." : "Changer le mot de passe"}
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration Shelly</CardTitle>
+            <CardDescription>
+              Paramètres de connexion à votre appareil Shelly
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="deviceId">ID de l'appareil</Label>
+              <Input
+                id="deviceId"
+                placeholder="shellyem3-XXXXXXXXXXXX"
+                value={deviceId}
+                onChange={(e) => setDeviceId(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">Clé API</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                placeholder="MWRiNzA1dWlk1234567890EXAMPLE"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="serverUrl">URL du serveur</Label>
+              <Input
+                id="serverUrl"
+                placeholder="https://shelly-12-eu.shelly.cloud"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              onClick={handleSaveShellyConfig} 
+              disabled={savingConfig}
+            >
+              {savingConfig ? "Enregistrement..." : "Enregistrer la configuration"}
             </Button>
           </CardFooter>
         </Card>
