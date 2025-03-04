@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useShellyData } from '@/hooks/useShellyData';
+import { getShellyConfig } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
 import { EnergyChart } from './EnergyChart';
@@ -9,7 +10,6 @@ import { ShellyConfigForm } from './ShellyConfigForm';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Settings } from 'lucide-react';
 import { isShellyConfigValid } from '@/lib/api';
 import { DailyTotals } from './DailyTotals';
 import { EnergyFlowChartDark } from './EnergyFlowChartDark';
@@ -19,7 +19,18 @@ import { UserMenu } from './UserMenu';
 
 export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState<boolean>(!isShellyConfigValid());
-  const { currentData, isLoading, error, lastStored, history, stats } = useShellyData();
+  const [activeConfigId, setActiveConfigId] = useState<string | undefined>();
+  const { currentData, isLoading, error, lastStored, history, stats } = useShellyData(activeConfigId);
+
+  useEffect(() => {
+    const loadActiveConfig = async () => {
+      const config = await getShellyConfig();
+      if (config && config.id) {
+        setActiveConfigId(config.id);
+      }
+    };
+    loadActiveConfig();
+  }, []);
   
   const lastUpdated = currentData 
     ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true }) 
@@ -50,10 +61,6 @@ export function ShellyDashboard() {
           
           <div className="flex items-center space-x-2">
             <UserMenu />
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleConfigClick}>
-              <Settings className="h-4 w-4" />
-              <span>Paramètres</span>
-            </Button>
           </div>
         </div>
         
@@ -94,7 +101,7 @@ export function ShellyDashboard() {
             <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
-            <EnergyChart data={history} />
+            <EnergyChart data={history} configId={activeConfigId} />
           </TabsContent>
           <TabsContent value="data" className="mt-6">
             <DataTable data={history} />

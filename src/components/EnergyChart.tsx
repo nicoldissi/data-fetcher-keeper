@@ -11,11 +11,12 @@ import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 interface EnergyChartProps {
   data: ShellyEMData[];
   className?: string;
+  configId?: string;
 }
 
-export function EnergyChart({ data, className }: EnergyChartProps) {
+export function EnergyChart({ data, className, configId }: EnergyChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
-  const { dailyData } = useDailyEnergyTotals();
+  const { dailyData } = useDailyEnergyTotals(configId);
   
   useEffect(() => {
     // Get start of current day
@@ -23,7 +24,7 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
     startOfToday.setHours(0, 0, 0, 0);
   
     // Transform the daily data for initial chart population, filtering for today only
-    const dailyChartData = dailyData
+    const dailyChartData = Array.isArray(dailyData) ? dailyData
       .filter(item => new Date(item.timestamp) >= startOfToday)
       .map(item => {
         const localDate = new Date(item.timestamp);
@@ -36,10 +37,10 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
           consumption: item.production + item.consumption,
           timestamp: localDate.getTime(),
         };
-      });
+      }) : [];
   
     // Transform the real-time data, filtering for today only
-    const realtimeChartData = data
+    const realtimeChartData = Array.isArray(data) ? data
       .filter(item => new Date(item.timestamp) >= startOfToday)
       .map(item => {
         const localDate = new Date(item.timestamp);
@@ -51,7 +52,7 @@ export function EnergyChart({ data, className }: EnergyChartProps) {
           consumption: item.production_power + item.power,
           timestamp: localDate.getTime(),
         };
-      });
+      }) : [];
   
     // Combine both datasets, removing duplicates based on timestamp
     const combinedData = [...dailyChartData, ...realtimeChartData];

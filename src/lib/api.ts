@@ -45,7 +45,15 @@ export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
       return [DEFAULT_CONFIG];
     }
     
-    return data as ShellyConfig[];
+    // Map database fields to frontend expected format
+    const mappedConfigs = data.map(config => ({
+      ...config,
+      deviceId: config.deviceid,
+      apiKey: config.apikey,
+      serverUrl: config.serverurl
+    }));
+    
+    return mappedConfigs as ShellyConfig[];
   } catch (error) {
     console.error("Error fetching Shelly configs:", error);
     return [DEFAULT_CONFIG];
@@ -84,7 +92,16 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
       return DEFAULT_CONFIG;
     }
     
-    return data[0] as ShellyConfig;
+    // Map database fields to frontend expected format
+    const config = data[0];
+    const mappedConfig = {
+      ...config,
+      deviceId: config.deviceid,
+      apiKey: config.apikey,
+      serverUrl: config.serverurl
+    };
+    
+    return mappedConfig as ShellyConfig;
   } catch (error) {
     console.error("Error fetching Shelly config:", error);
     return DEFAULT_CONFIG;
@@ -93,11 +110,30 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
 
 export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyConfig | null> => {
   try {
+    console.log('updateShellyConfig called with:', JSON.stringify(config, null, 2));
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      console.log('No authenticated user, falling back to localStorage');
       // Fallback to localStorage if not authenticated
       updateLocalShellyConfig(config);
       return config;
+    }
+
+    // Ensure required fields are not null or undefined
+    if (!config.deviceId) {
+      console.error('deviceId is missing or empty');
+      throw new Error('deviceId is required');
+    }
+    
+    if (!config.apiKey) {
+      console.error('apiKey is missing or empty');
+      throw new Error('apiKey is required');
+    }
+    
+    if (!config.serverUrl) {
+      console.error('serverUrl is missing or empty');
+      throw new Error('serverUrl is required');
     }
 
     // Set the user_id for the config
@@ -106,17 +142,22 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       user_id: user.id
     };
 
-    // Rename the fields to match the database column names if necessary
-    // For example, if the database uses snake_case instead of camelCase:
+    // Rename the fields to match the database column names
     const dbConfig = {
-      ...configWithUser,
-      device_id: config.deviceId,
-      api_key: config.apiKey,
-      server_url: config.serverUrl
+      id: config.id,
+      user_id: user.id,
+      deviceid: config.deviceId,
+      apikey: config.apiKey,
+      serverurl: config.serverUrl,
+      name: config.name || 'Default Device',
+      device_type: config.deviceType || 'ShellyEM'
     };
+    
+    console.log('Prepared database config:', JSON.stringify(dbConfig, null, 2));
 
     // Check if config already has an ID (update) or not (insert)
     if (config.id) {
+      console.log('Updating existing config with ID:', config.id);
       // Update existing config
       const { data, error } = await supabase
         .from('shelly_configs')
@@ -126,18 +167,25 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
         .select('*')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+      
+      console.log('Update successful, received data:', data);
       
       // Convert back to camelCase for the frontend
       const camelCaseData = {
         ...data,
-        deviceId: data.device_id,
-        apiKey: data.api_key,
-        serverUrl: data.server_url
+        deviceId: data.deviceid,
+        apiKey: data.apikey,
+        serverUrl: data.serverurl,
+        deviceType: data.device_type
       };
       
       return camelCaseData;
     } else {
+      console.log('Inserting new config');
       // Insert new config
       const { data, error } = await supabase
         .from('shelly_configs')
@@ -145,14 +193,20 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
         .select('*')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+      
+      console.log('Insert successful, received data:', data);
       
       // Convert back to camelCase for the frontend
       const camelCaseData = {
         ...data,
-        deviceId: data.device_id,
-        apiKey: data.api_key,
-        serverUrl: data.server_url
+        deviceId: data.deviceid,
+        apiKey: data.apikey,
+        serverUrl: data.serverurl,
+        deviceType: data.device_type
       };
       
       return camelCaseData;
@@ -196,6 +250,7 @@ export const getShellyCloudUrl = async (id?: string): Promise<string | null> => 
 };
 
 export const fetchShellyData = async (configId?: string): Promise<ShellyEMData | null> => {  
+  const config = await getShellyConfig(configId);
   const url = await getShellyCloudUrl(configId);
   if (!url) {
     console.error('Shelly Cloud URL is not configured');
@@ -227,8 +282,35 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
     }
     
     const deviceStatus = jsonResponse.data.device_status;
-    const gridMeter = deviceStatus.emeters[0]; // Grid meter is typically the first emeter
-    const productionMeter = deviceStatus.emeters.length > 1 ? deviceStatus.emeters[1] : null; // Production meter (if exists)
+    const deviceType = config.deviceType || 'ShellyEM';
+    console.log(`Processing data for device type: ${deviceType}`);
+    
+    // Add null checks for emeters array
+    if (!deviceStatus.emeters || !Array.isArray(deviceStatus.emeters) || deviceStatus.emeters.length === 0) {
+      console.error('No emeters data found in device status');
+      throw new Error('No emeters data found in device status');
+    }
+    
+    // Different processing based on device type
+    let gridMeter, productionMeter;
+    
+    if (deviceType === 'ShellyProEM') {
+      // Shelly Pro EM might have a different data structure
+      // This is a placeholder for the specific processing logic
+      console.log('Processing Shelly Pro EM data format');
+      gridMeter = deviceStatus.emeters[0]; // Adjust based on actual Pro EM structure
+      productionMeter = deviceStatus.emeters.length > 1 ? deviceStatus.emeters[1] : null;
+    } else {
+      // Default processing for Shelly EM
+      console.log('Processing standard Shelly EM data format');
+      gridMeter = deviceStatus.emeters[0]; // Grid meter is typically the first emeter
+      productionMeter = deviceStatus.emeters.length > 1 ? deviceStatus.emeters[1] : null; // Production meter (if exists)
+    }
+    
+    if (!gridMeter) {
+      console.error('Grid meter data is missing');
+      throw new Error('Grid meter data is missing');
+    }
     
     // Transform the response into our ShellyEMData format
     // Parse the device's timestamp and preserve local timezone
@@ -238,17 +320,17 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
 
     const shellyData: ShellyEMData = {
       timestamp,
-      power: gridMeter.power,
-      reactive: gridMeter.reactive,
-      production_power: productionMeter ? productionMeter.power : 0,
-      total_energy: gridMeter.total,
-      production_energy: productionMeter ? productionMeter.total : 0,
-      grid_returned: gridMeter.total_returned,
-      voltage: gridMeter.voltage,
+      power: gridMeter.power || 0,
+      reactive: gridMeter.reactive || 0,
+      production_power: productionMeter ? (productionMeter.power || 0) : 0,
+      total_energy: gridMeter.total || 0,
+      production_energy: productionMeter ? (productionMeter.total || 0) : 0,
+      grid_returned: gridMeter.total_returned || 0,
+      voltage: gridMeter.voltage || 0,
       current: 0, // Not directly available in the response
-      pf: gridMeter.pf,
+      pf: gridMeter.pf || 0,
       temperature: deviceStatus.temperature?.tC || 0,
-      is_valid: gridMeter.is_valid,
+      is_valid: gridMeter.is_valid || false,
       channel: 0
     };
     
@@ -308,19 +390,27 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       }
     }
 
+    // Prepare the data object to insert
+    const dataToInsert = {
+      timestamp,
+      consumption: data.power,
+      production: data.production_power,
+      grid_total: data.total_energy,
+      grid_total_returned: data.grid_returned,
+      production_total: data.production_energy
+    };
+    
+    // Only add shelly_config_id if config.id exists
+    if (config.id) {
+      console.log('Associating energy data with Shelly config ID:', config.id);
+      dataToInsert['shelly_config_id'] = config.id;
+    } else {
+      console.log('No Shelly config ID available, storing data without association');
+    }
+
     const { error } = await supabase
       .from('energy_data')
-      .insert([
-        {
-          timestamp,
-          consumption: data.power,
-          production: data.production_power,
-          grid_total: data.total_energy,
-          grid_total_returned: data.grid_returned,
-          production_total: data.production_energy,
-          shelly_config_id: config.id // Store the config ID to associate data with device
-        }
-      ]);
+      .insert([dataToInsert]);
     
     if (error) {
       console.error('Error storing data in Supabase:', error);

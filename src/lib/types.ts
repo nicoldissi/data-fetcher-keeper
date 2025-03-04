@@ -45,9 +45,11 @@ export interface ShellyConfig {
   name?: string;
   id?: string;
   user_id?: string;
+  deviceType?: 'ShellyEM' | 'ShellyProEM';
   
   // Database field mappings (these fields will be present when fetched from DB)
   device_id?: string;
   api_key?: string;
   server_url?: string;
+  device_type?: string;
 }

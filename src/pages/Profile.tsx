@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -94,21 +95,22 @@ export default function Profile() {
     setSavingConfig(config.id || "new");
     
     try {
+      console.log('Updating config:', config); // Debug log
       const updatedConfig = await updateShellyConfig({
-        ...config,
-        deviceId: config.deviceId.trim(),
-        apiKey: config.apiKey.trim(),
-        serverUrl: config.serverUrl.trim(),
-        name: config.name?.trim() || `Appareil ${index + 1}`
+        id: config.id,
+        deviceId: config.deviceId?.trim() || '',
+        apiKey: config.apiKey?.trim() || '',
+        serverUrl: config.serverUrl?.trim() || '',
+        name: config.name?.trim() || `Appareil ${index + 1}`,
+        deviceType: config.deviceType || 'ShellyEM'
       });
       
       if (updatedConfig) {
-        // Update the configs list with the new data
+        console.log('Config updated successfully:', updatedConfig); // Debug log
         const newConfigs = [...shellyConfigs];
         newConfigs[index] = updatedConfig;
         setShellyConfigs(newConfigs);
         
-        // If it was a new config, reset the new config flag
         if (newConfig) {
           setNewConfig(false);
         }
@@ -166,7 +168,8 @@ export default function Profile() {
       deviceId: "",
       apiKey: "",
       serverUrl: "https://shelly-12-eu.shelly.cloud",
-      name: `Appareil ${shellyConfigs.length + 1}`
+      name: `Appareil ${shellyConfigs.length + 1}`,
+      deviceType: "ShellyEM"
     };
     
     setShellyConfigs([...shellyConfigs, newConfigItem]);
@@ -271,6 +274,21 @@ export default function Profile() {
                       value={config.serverUrl}
                       onChange={(e) => updateConfigField(index, 'serverUrl', e.target.value)}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`deviceType-${index}`}>Type d'appareil</Label>
+                    <Select
+                      value={config.deviceType || 'ShellyEM'}
+                      onValueChange={(value) => updateConfigField(index, 'deviceType', value)}
+                    >
+                      <SelectTrigger id={`deviceType-${index}`}>
+                        <SelectValue placeholder="Sélectionnez le type d'appareil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ShellyEM">Shelly EM</SelectItem>
+                        <SelectItem value="ShellyProEM">Shelly Pro EM</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">

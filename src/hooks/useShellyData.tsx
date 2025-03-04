@@ -3,7 +3,7 @@ import { ShellyEMData } from '@/lib/types';
 import { fetchShellyData, storeEnergyData, isShellyConfigValid } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 
-export function useShellyData(pollingInterval = 5000) {
+export function useShellyData(configId?: string, pollingInterval = 5000) {
   const [currentData, setCurrentData] = useState<ShellyEMData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export function useShellyData(pollingInterval = 5000) {
       
       try {
         setIsLoading(true);
-        const data = await fetchShellyData();
+        const data = await fetchShellyData(configId);
         
         if (!isMounted) return;
         
@@ -55,7 +55,7 @@ export function useShellyData(pollingInterval = 5000) {
             data.production_energy !== previousDataRef.current.production_energy ||
             data.timestamp !== previousDataRef.current.timestamp
           )) {
-          const stored = await storeEnergyData(data);
+          const stored = await storeEnergyData(data, configId);
           
           if (stored) {
             setTotalStored(prev => prev + 1);

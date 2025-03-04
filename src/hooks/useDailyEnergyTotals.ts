@@ -17,7 +17,7 @@ interface DailyDataPoint {
   production_total: number;
 }
 
-export function useDailyEnergyTotals() {
+export function useDailyEnergyTotals(configId?: string) {
   const [dailyTotals, setDailyTotals] = useState<DailyTotals>({ consumption: 0, production: 0, injection: 0 });
   const [dailyData, setDailyData] = useState<DailyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,11 +32,18 @@ export function useDailyEnergyTotals() {
         const startOfToday = startOfDay(new Date()).toISOString();
         console.log('Fetching daily energy totals from Supabase since:', startOfToday);
 
-        const { data, error: queryError } = await supabase
+        const query = supabase
           .from('energy_data')
           .select('timestamp, consumption, production, grid_total, grid_total_returned, production_total')
           .gte('timestamp', startOfToday)
           .order('timestamp', { ascending: true });
+
+        // Add shelly_config_id filter if provided
+        if (configId) {
+          query.eq('shelly_config_id', configId);
+        }
+
+        const { data, error: queryError } = await query;
 
         if (queryError) throw new Error(queryError.message);
 
@@ -47,18 +54,31 @@ export function useDailyEnergyTotals() {
           setDailyData(data);
 
           // Get first and last readings of the day
-          const firstReading = data[1];
+          const firstReading = data[0];
           const lastReading = data[data.length - 1];
           
-          // Calculate the differences
-          const totals = {
-            consumption: Math.max(0, (lastReading.grid_total - firstReading.grid_total)), // Convert to kWh
-            injection: Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned)), // Convert to kWh
-            production: Math.max(0, (lastReading.production_total - firstReading.production_total)) // Convert to kWh
-          };
-          console.log('lastReading.grid_total_returned:', lastReading.grid_total_returned, 'firstReading.grid_total_returned', firstReading.grid_total);
-          console.log('Daily energy totals calculated:', totals);
-          setDailyTotals(totals);
+          // Calculate the differences only if we have valid readings
+          if (firstReading && lastReading && 
+              typeof firstReading.grid_total === 'number' && 
+              typeof firstReading.grid_total_returned === 'number' && 
+              typeof firstReading.production_total === 'number' && 
+              typeof lastReading.grid_total === 'number' && 
+              typeof lastReading.grid_total_returned === 'number' && 
+              typeof lastReading.production_total === 'number') {
+            const totals = {
+              consumption: Math.max(0, (lastReading.grid_total - firstReading.grid_total)),
+              injection: Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned)),
+              production: Math.max(0, (lastReading.production_total - firstReading.production_total))
+            };
+            console.log('Daily energy totals calculated:', totals);
+            setDailyTotals(totals);
+          } else {
+            console.warn('Invalid or missing data in readings');
+            setDailyTotals({ consumption: 0, production: 0, injection: 0 });
+          }
+        } else {
+          // Reset totals if no data is available
+          setDailyTotals({ consumption: 0, production: 0, injection: 0 });
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
@@ -73,7 +93,7 @@ export function useDailyEnergyTotals() {
     const interval = setInterval(fetchDailyTotals, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [configId]);
 
   return { dailyTotals, dailyData, loading, error };
 }
