@@ -48,7 +48,7 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
           Taux d'Autoconsommation
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-between p-6 h-[calc(100%-4rem)]">
+      <CardContent className="flex flex-col items-center p-6 h-[calc(100%-4rem)]">
         <div className="w-32 h-32">
           <CircularProgressbar
             value={selfConsumptionRate}
@@ -63,13 +63,10 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
         </div>
         <p className="text-sm text-muted-foreground text-center my-4">
           {selfConsumptionRate >= 80 ? 'Excellente autoconsommation' :
+           selfConsumptionRate >= 70 ? 'Très Bonne autoconsommation' :
            selfConsumptionRate >= 50 ? 'Bonne autoconsommation' :
            'Faible autoconsommation'}
         </p>
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">Consommation Totale</p>
-          <p className="text-2xl font-bold">{totalConsumption} kWh</p>
-        </div>
       </CardContent>
     </Card>
   );

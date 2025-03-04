@@ -27,7 +27,7 @@ export const getShellyConfig = (): ShellyConfig => {
 
 export const isShellyConfigValid = (): boolean => {
   const config = getShellyConfig();
-  return config !== null && config.deviceId !== '' && config.serverUrl !== '';
+  return config.deviceId !== '' && config.serverUrl !== '' && config.apiKey !== '';
 };
 
 export const getShellyCloudUrl = (): string | null => {
@@ -79,6 +79,7 @@ export const fetchShellyData = async (): Promise<ShellyEMData | null> => {  cons
     const shellyData: ShellyEMData = {
       timestamp,
       power: gridMeter.power,
+      reactive: gridMeter.reactive,
       production_power: productionMeter ? productionMeter.power : 0,
       total_energy: gridMeter.total,
       production_energy: productionMeter ? productionMeter.total : 0,
