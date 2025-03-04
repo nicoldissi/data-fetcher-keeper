@@ -25,8 +25,11 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
       setDeviceId(config.deviceId);
       setApiKey(config.apiKey);
       setServerUrl(config.serverUrl);
+      if (isShellyConfigValid()) {
+        onConfigured();
+      }
     }
-  }, []); // Remove onConfigured from dependencies
+  }, [onConfigured]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
