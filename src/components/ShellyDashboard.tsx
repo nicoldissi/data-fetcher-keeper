@@ -15,6 +15,7 @@ import { DailyTotals } from './DailyTotals';
 import { EnergyFlowChartDark } from './EnergyFlowChartDark';
 import { SelfConsumptionCard } from './SelfConsumptionCard';
 import { PowerTriangleCard } from './PowerTriangleCard';
+import { UserMenu } from './UserMenu';
 
 export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState<boolean>(!isShellyConfigValid());
@@ -48,6 +49,7 @@ export function ShellyDashboard() {
           </div>
           
           <div className="flex items-center space-x-2">
+            <UserMenu />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleConfigClick}>
               <Settings className="h-4 w-4" />
               <span>Paramètres</span>
