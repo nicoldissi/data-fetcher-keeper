@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
-import { fetchShellyEMData, storeEnergyData, isDataDifferent, loadShellyConfig, isShellyConfigValid } from '@/lib/api';
+import { fetchShellyData, storeEnergyData, isShellyConfigValid } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 
 export function useShellyData(pollingInterval = 5000) {
@@ -20,14 +20,12 @@ export function useShellyData(pollingInterval = 5000) {
 
   // Load configuration on mount
   useEffect(() => {
-    loadShellyConfig();
     setIsConfigValid(isShellyConfigValid());
   }, []);
-
+  
   useEffect(() => {
     let isMounted = true;
-    let intervalId: number;
-
+    
     const fetchData = async () => {
       // Skip fetching if configuration is not valid
       if (!isShellyConfigValid()) {
@@ -41,7 +39,7 @@ export function useShellyData(pollingInterval = 5000) {
       
       try {
         setIsLoading(true);
-        const data = await fetchShellyEMData();
+        const data = await fetchShellyData();
         
         if (!isMounted) return;
         
@@ -49,7 +47,14 @@ export function useShellyData(pollingInterval = 5000) {
         setCurrentData(data);
         
         // Only store data if it's valid and different from the previous stored data
-        if (data.is_valid && isDataDifferent(previousDataRef.current, data)) {
+        if (data && (!previousDataRef.current ||
+            data.power !== previousDataRef.current.power ||
+            data.production_power !== previousDataRef.current.production_power ||
+            data.total_energy !== previousDataRef.current.total_energy ||
+            data.grid_returned !== previousDataRef.current.grid_returned ||
+            data.production_energy !== previousDataRef.current.production_energy ||
+            data.timestamp !== previousDataRef.current.timestamp
+          )) {
           const stored = await storeEnergyData(data);
           
           if (stored) {
@@ -62,8 +67,6 @@ export function useShellyData(pollingInterval = 5000) {
               const newHistory = [...prev, data];
               return newHistory.slice(-100);
             });
-            
-            console.log('New data stored:', data);
           }
         }
         
@@ -84,19 +87,16 @@ export function useShellyData(pollingInterval = 5000) {
         }
       }
     };
-
-    // Initial fetch
-    fetchData();
     
-    // Set up polling
-    intervalId = window.setInterval(fetchData, pollingInterval);
+    fetchData();
+    const interval = setInterval(fetchData, pollingInterval);
     
     return () => {
       isMounted = false;
-      clearInterval(intervalId);
+      clearInterval(interval);
     };
   }, [pollingInterval]);
-
+  
   return {
     currentData,
     isLoading,

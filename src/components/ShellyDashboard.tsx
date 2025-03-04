@@ -9,8 +9,12 @@ import { ShellyConfigForm } from './ShellyConfigForm';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Sun } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { isShellyConfigValid } from '@/lib/api';
+import { DailyTotals } from './DailyTotals';
+import { EnergyFlowChartDark } from './EnergyFlowChartDark';
+import { SelfConsumptionCard } from './SelfConsumptionCard';
+import { PowerTriangleCard } from './PowerTriangleCard';
 
 export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState<boolean>(!isShellyConfigValid());
@@ -19,7 +23,6 @@ export function ShellyDashboard() {
   const lastUpdated = currentData 
     ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true }) 
     : 'Never';
-
   const handleConfigClick = () => {
     setShowConfig(true);
   };
@@ -27,7 +30,7 @@ export function ShellyDashboard() {
   if (showConfig) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Energy Monitor</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Moniteur d'Énergie</h1>
         <ShellyConfigForm onConfigured={() => setShowConfig(false)} />
       </div>
     );
@@ -38,16 +41,16 @@ export function ShellyDashboard() {
       <div className="py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="space-y-1 mb-4 md:mb-0">
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Energy Monitor</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Moniteur d'Énergie</h1>
             <p className="text-muted-foreground">
-              Real-time data from your Shelly EM device
+              Données en temps réel de votre appareil Shelly EM
             </p>
           </div>
           
           <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleConfigClick}>
               <Settings className="h-4 w-4" />
-              <span>Settings</span>
+              <span>Paramètres</span>
             </Button>
           </div>
         </div>
@@ -55,49 +58,38 @@ export function ShellyDashboard() {
         <Separator className="my-6" />
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <DeviceStatus 
-            data={currentData} 
-            lastUpdated={lastUpdated} 
-            className="md:col-span-1"
-          />
-          
-          <div className="space-y-2 md:col-span-2">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="glass-panel p-4 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Grid Power</p>
-                <h3 className="text-2xl font-semibold">{currentData?.power.toFixed(1) || '0'} W</h3>
+          <div className="md:col-span-1 space-y-6">
+            <DeviceStatus 
+              data={currentData} 
+              lastUpdated={lastUpdated} 
+            />
+            
+            {currentData && (
+              <div className="grid grid-cols-1 gap-6">
+                <PowerTriangleCard 
+                  title="Power Triangle - Grid" 
+                  activePower={currentData.power}
+                  reactivePower={currentData.reactive}
+                  powerFactor={currentData.pf}
+                  emeterIndex={0} 
+                />
               </div>
-              <div className="glass-panel p-4 rounded-lg flex items-center">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Production</p>
-                  <h3 className="text-2xl font-semibold text-green-600">
-                    {currentData?.production_power.toFixed(1) || '0'} W
-                  </h3>
-                </div>
-                <div className="ml-2">
-                  <Sun className="h-6 w-6 text-yellow-500" />
-                </div>
-              </div>
-              <div className="glass-panel p-4 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Total Consumption</p>
-                <h3 className="text-2xl font-semibold">
-                  {currentData ? (currentData.total_energy / 1000).toFixed(3) : '0'} kWh
-                </h3>
-              </div>
-              <div className="glass-panel p-4 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Total Production</p>
-                <h3 className="text-2xl font-semibold text-green-600">
-                  {currentData ? (currentData.production_energy / 1000).toFixed(3) : '0'} kWh
-                </h3>
-              </div>
-            </div>
+            )}
           </div>
+          
+          <div className="md:col-span-2">
+            <EnergyFlowChartDark data={currentData} />
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <DailyTotals data={currentData} />
         </div>
         
         <Tabs defaultValue="chart" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="chart">Chart</TabsTrigger>
-            <TabsTrigger value="data">Data Table</TabsTrigger>
+            <TabsTrigger value="chart">Graphique</TabsTrigger>
+            <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
             <EnergyChart data={history} />
@@ -107,11 +99,6 @@ export function ShellyDashboard() {
           </TabsContent>
         </Tabs>
         
-        <div className="mt-6 text-center text-xs text-gray-500">
-          <p>
-            To connect to Supabase for data storage, use the Supabase integration from the top menu.
-          </p>
-        </div>
       </div>
     </div>
   );

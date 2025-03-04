@@ -2,7 +2,8 @@
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
-  power: number;          // Current power consumption in Watts (grid)
+  power: number;
+  reactive:number;          // Current power consumption in Watts (grid)
   production_power: number; // Solar production power in Watts
   total_energy: number;   // Total energy consumed in Watt-hours
   production_energy: number; // Total energy produced in Watt-hours
@@ -20,6 +21,7 @@ export interface ShellyEMResponse {
   data: {
     online: boolean;
     device_status: {
+      _updated: string;   // Device update time in format 'YYYY-MM-DD HH:mm:ss'
       temperature?: {
         tC: number;
       };
@@ -39,4 +41,5 @@ export interface ShellyEMResponse {
 export interface ShellyConfig {
   deviceId: string;
   apiKey: string;
+  serverUrl: string;
 }

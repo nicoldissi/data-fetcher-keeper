@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShellyConfig } from '@/lib/types';
-import { updateShellyConfig, loadShellyConfig, isShellyConfigValid } from '@/lib/api';
+import { updateShellyConfig, getShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 
 interface ShellyConfigFormProps {
@@ -15,25 +15,28 @@ interface ShellyConfigFormProps {
 export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
   const [deviceId, setDeviceId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
+  const [serverUrl, setServerUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     // Try to load configuration from localStorage
-    if (loadShellyConfig() && isShellyConfigValid()) {
-      // Hide the config form if we already have valid configuration
-      onConfigured();
+    const config = getShellyConfig();
+    if (config) {
+      setDeviceId(config.deviceId);
+      setApiKey(config.apiKey);
+      setServerUrl(config.serverUrl);
     }
-  }, [onConfigured]);
+  }, []); // Remove onConfigured from dependencies
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!deviceId || !apiKey) {
+    if (!deviceId || !apiKey || !serverUrl) {
       toast({
         variant: "destructive",
         title: "Missing information",
-        description: "Please provide both device ID and API key"
+        description: "Please provide device ID, API key, and server URL"
       });
       setIsLoading(false);
       return;
@@ -41,7 +44,8 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
 
     const config: ShellyConfig = {
       deviceId: deviceId.trim(),
-      apiKey: apiKey.trim()
+      apiKey: apiKey.trim(),
+      serverUrl: serverUrl.trim()
     };
 
     // Save the configuration and hide the form
@@ -68,7 +72,7 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
             <Label htmlFor="deviceId">Device ID</Label>
             <Input
               id="deviceId"
-              placeholder="Enter your Shelly device ID"
+              placeholder="shellyem3-XXXXXXXXXXXX"
               value={deviceId}
               onChange={(e) => setDeviceId(e.target.value)}
               required
@@ -79,9 +83,19 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
             <Input
               id="apiKey"
               type="password"
-              placeholder="Enter your Shelly API key"
+              placeholder="MWRiNzA1dWlk1234567890EXAMPLE"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="serverUrl">Server URL</Label>
+            <Input
+              id="serverUrl"
+              placeholder="https://shelly-12-eu.shelly.cloud"
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
               required
             />
           </div>

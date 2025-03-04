@@ -1,166 +1,160 @@
 
-import { ShellyEMData, ShellyEMResponse, ShellyConfig } from './types';
-import { createClient } from '@supabase/supabase-js';
+import { ShellyConfig, ShellyEMData } from './types';
+import { supabase } from '@/integrations/supabase/client';
 
-// Default empty config - will be populated by user input
-let shellyConfig: ShellyConfig = {
-  deviceId: '',
-  apiKey: ''
+const SHELLY_CONFIG_KEY = 'shelly_config';
+
+export const updateShellyConfig = (config: ShellyConfig): void => {
+  localStorage.setItem(SHELLY_CONFIG_KEY, JSON.stringify(config));
 };
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-/**
- * Updates the Shelly device configuration
- * @param config New Shelly configuration
- */
-export const updateShellyConfig = (config: ShellyConfig) => {
-  shellyConfig = config;
-  localStorage.setItem('shellyConfig', JSON.stringify(config));
-  console.log('Shelly configuration updated:', config);
+const DEFAULT_CONFIG: ShellyConfig = {
+  serverUrl: 'https://shelly-11-eu.shelly.cloud',
+  deviceId: 'ecfabcc7ebe9',
+  apiKey: 'MmIzYzJ1aWQ9E5B47CE0F300842AD58AEC918783E62DADA00AC1D88E8C28721C5CE356A11CA021A43DAE7AE96ED'
 };
 
-/**
- * Loads Shelly configuration from localStorage
- * @returns True if configuration was loaded successfully
- */
-export const loadShellyConfig = (): boolean => {
-  const savedConfig = localStorage.getItem('shellyConfig');
-  if (savedConfig) {
-    try {
-      shellyConfig = JSON.parse(savedConfig);
-      console.log('Loaded Shelly configuration:', shellyConfig);
-      return true;
-    } catch (e) {
-      console.error('Failed to parse saved Shelly configuration:', e);
-      return false;
-    }
+export const getShellyConfig = (): ShellyConfig => {
+  const config = localStorage.getItem(SHELLY_CONFIG_KEY);
+  if (!config) return DEFAULT_CONFIG;
+  
+  try {
+    return JSON.parse(config);
+  } catch (error) {
+    return DEFAULT_CONFIG;
   }
-  return false;
 };
 
-/**
- * Checks if Shelly configuration is valid
- * @returns True if configuration has deviceId and apiKey
- */
 export const isShellyConfigValid = (): boolean => {
-  return !!(shellyConfig.deviceId && shellyConfig.apiKey);
+  const config = getShellyConfig();
+  return config.deviceId !== '' && config.serverUrl !== '' && config.apiKey !== '';
 };
 
-/**
- * Gets the Shelly cloud API URL
- * @returns URL for the Shelly cloud API
- */
-const getShellyCloudUrl = (): string => {
-  return `https://shelly-11-eu.shelly.cloud/device/status?id=${shellyConfig.deviceId}&auth_key=${shellyConfig.apiKey}`;
+export const getShellyCloudUrl = (): string | null => {
+  const config = getShellyConfig();
+  if (!config) return null;
+  return `${config.serverUrl}/device/status?id=${config.deviceId}&auth_key=${config.apiKey}`;
 };
 
-/**
- * Fetches data from a Shelly EM device via cloud API
- * @returns Processed Shelly EM data array for both channels
- */
-export const fetchShellyEMData = async (): Promise<ShellyEMData> => {
-  if (!isShellyConfigValid()) {
-    console.error('Shelly configuration is not valid');
-    return {
-      timestamp: Date.now(),
-      power: 0,
-      production_power: 0,
-      total_energy: 0,
-      production_energy: 0,
-      grid_returned: 0,
-      voltage: 0,
-      current: 0,
-      pf: 0,
-      temperature: 0,
-      is_valid: false,
-      channel: 0
-    };
+export const fetchShellyData = async (): Promise<ShellyEMData | null> => {  const url = getShellyCloudUrl();
+  if (!url) {
+    console.error('Shelly Cloud URL is not configured');
+    throw new Error('Shelly Cloud URL is not configured');
   }
 
   try {
-    console.log('Fetching data from Shelly API:', getShellyCloudUrl());
-    const response = await fetch(getShellyCloudUrl());
-    
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Error fetching Shelly EM data: ${response.statusText}`);
+      const errorMessage = `HTTP error! status: ${response.status}`;
+      console.error('Failed to fetch Shelly data:', errorMessage);
+      throw new Error(errorMessage);
     }
     
-    const jsonData = await response.json() as ShellyEMResponse;
-    console.log('Received data from Shelly API:', jsonData);
-    
-    if (!jsonData.isok || !jsonData.data || !jsonData.data.device_status || !jsonData.data.device_status.emeters) {
-      throw new Error('Invalid data format received from Shelly API');
+    // Check content type to ensure we're getting JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Received non-JSON response:', text.substring(0, 100) + '...');
+      throw new Error('Server returned non-JSON response. Check your server URL configuration.');
     }
     
-    // Channel 0: Grid consumption/injection
-    const gridMeter = jsonData.data.device_status.emeters[0];
-    // Channel 1: Solar production
-    const productionMeter = jsonData.data.device_status.emeters.length > 1 
-      ? jsonData.data.device_status.emeters[1] 
-      : { power: 0, total: 0, is_valid: false, pf: 0, voltage: gridMeter.voltage, total_returned: 0 };
+    const jsonResponse = await response.json() as ShellyEMResponse;
+    console.log('Received Shelly data:', jsonResponse);
     
-    const temperature = jsonData.data.device_status.temperature?.tC || 0;
+    if (!jsonResponse.isok || !jsonResponse.data || !jsonResponse.data.device_status) {
+      console.error('Invalid Shelly response format');
+      throw new Error('Invalid Shelly response format');
+    }
     
-    return {
-      timestamp: Date.now(),
-      power: gridMeter.power, // Grid power (negative means injection to grid)
-      production_power: productionMeter.power, // Solar production power
-      total_energy: gridMeter.total, // Total energy consumed from grid
-      production_energy: productionMeter.total, // Total energy produced by solar
-      grid_returned: gridMeter.total_returned, // Total energy returned to grid
+    const deviceStatus = jsonResponse.data.device_status;
+    const gridMeter = deviceStatus.emeters[0]; // Grid meter is typically the first emeter
+    const productionMeter = deviceStatus.emeters.length > 1 ? deviceStatus.emeters[1] : null; // Production meter (if exists)
+    
+    // Transform the response into our ShellyEMData format
+    // Parse the device's timestamp and preserve local timezone
+    // Convert the device's timestamp to UTC to ensure consistent timezone handling
+    const deviceDate = new Date(deviceStatus._updated + 'Z');
+    const timestamp = deviceDate.getTime();
+
+    const shellyData: ShellyEMData = {
+      timestamp,
+      power: gridMeter.power,
+      reactive: gridMeter.reactive,
+      production_power: productionMeter ? productionMeter.power : 0,
+      total_energy: gridMeter.total,
+      production_energy: productionMeter ? productionMeter.total : 0,
+      grid_returned: gridMeter.total_returned,
       voltage: gridMeter.voltage,
-      current: Math.abs(gridMeter.power / gridMeter.voltage), // Calculate current as P/V
+      current: 0, // Not directly available in the response
       pf: gridMeter.pf,
-      temperature: temperature,
-      is_valid: jsonData.data.online && gridMeter.is_valid,
+      temperature: deviceStatus.temperature?.tC || 0,
+      is_valid: gridMeter.is_valid,
       channel: 0
     };
-  } catch (error) {
-    console.error('Failed to fetch Shelly EM data:', error);
     
-    // Return a fallback data structure with is_valid = false
-    return {
-      timestamp: Date.now(),
-      power: 0,
-      production_power: 0,
-      total_energy: 0,
-      production_energy: 0,
-      grid_returned: 0,
-      voltage: 0,
-      current: 0,
-      pf: 0,
-      temperature: 0,
-      is_valid: false,
-      channel: 0
-    };
+    return shellyData;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Shelly data';
+    console.error('Error fetching Shelly data:', errorMessage);
+    throw error;
   }
 };
 
-/**
- * Stores energy data in Supabase
- * @param data ShellyEM data to store
- * @returns Success indicator
- */
 export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
   try {
+    // Get the last stored record to compare values
+    const { data: lastRecord, error: fetchError } = await supabase
+      .from('energy_data')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(1);
+
+    if (fetchError) {
+      console.error('Error fetching last record:', fetchError);
+      return false;
+    }
+
+    // Ensure timestamp is a valid date
+    let timestamp: string;
+    if (typeof data.timestamp === 'number') {
+      // Convert timestamp to UTC ISO string for Supabase
+      const date = new Date(data.timestamp);
+      timestamp = date.toISOString();
+    } else {
+      console.error('Invalid timestamp format:', data.timestamp);
+      timestamp = new Date().toISOString(); // Use current time as fallback
+    }
+
+    // Compare current values with last stored values and check time threshold
+    if (lastRecord && lastRecord.length > 0) {
+      const last = lastRecord[0];
+      const lastTimestamp = new Date(last.timestamp).getTime() / 1000;
+      const currentTimestamp = data.timestamp;
+      const timeDiff = currentTimestamp - lastTimestamp;
+      
+      // Skip if data is too recent (less than 30 seconds) or if all values are identical
+      if (timeDiff < 30 || (
+        last.consumption === data.power &&
+        last.production === data.production_power &&
+        last.grid_total === data.total_energy &&
+        last.grid_total_returned === data.grid_returned &&
+        last.production_total === data.production_energy
+      )) {
+        console.log('Skipping storage: data too recent or unchanged from last record');
+        return true;
+      }
+    }
+
     const { error } = await supabase
       .from('energy_data')
       .insert([
         {
-          timestamp: new Date(data.timestamp).toISOString(),
-          power: data.power,
-          production_power: data.production_power,
-          total_energy: data.total_energy,
-          production_energy: data.production_energy,
-          grid_returned: data.grid_returned,
-          voltage: data.voltage,
-          current: data.current,
-          temperature: data.temperature,
-          pf: data.pf
+          timestamp,
+          consumption: data.power,
+          production: data.production_power,
+          grid_total: data.total_energy,
+          grid_total_returned: data.grid_returned,
+          production_total: data.production_energy
         }
       ]);
     
@@ -169,26 +163,10 @@ export const storeEnergyData = async (data: ShellyEMData): Promise<boolean> => {
       return false;
     }
     
-    console.log('Data stored in Supabase successfully');
+    console.log('Successfully stored new energy data with timestamp:', timestamp);
     return true;
   } catch (error) {
-    console.error('Failed to store data:', error);
+    console.error('Failed to store data in Supabase:', error);
     return false;
   }
-};
-
-/**
- * Determines if a reading is different enough from the previous one to be stored
- * @param previous Previous ShellyEMData object
- * @param current Current ShellyEMData object
- * @returns True if data is different
- */
-export const isDataDifferent = (previous: ShellyEMData | null, current: ShellyEMData): boolean => {
-  if (!previous) return true;
-  
-  // Consider a reading different if power changes by more than 5W or energy by 0.01 kWh
-  const powerDifferent = Math.abs(previous.power - current.power) > 5;
-  const energyDifferent = Math.abs(previous.total_energy - current.total_energy) > 0.01;
-  
-  return powerDifferent || energyDifferent;
 };
