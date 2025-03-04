@@ -1,3 +1,4 @@
+
 import { ShellyConfig, ShellyEMData, ShellyEMResponse } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -105,29 +106,56 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       user_id: user.id
     };
 
+    // Rename the fields to match the database column names if necessary
+    // For example, if the database uses snake_case instead of camelCase:
+    const dbConfig = {
+      ...configWithUser,
+      device_id: config.deviceId,
+      api_key: config.apiKey,
+      server_url: config.serverUrl
+    };
+
     // Check if config already has an ID (update) or not (insert)
     if (config.id) {
       // Update existing config
       const { data, error } = await supabase
         .from('shelly_configs')
-        .update(configWithUser)
+        .update(dbConfig)
         .eq('id', config.id)
         .eq('user_id', user.id)
         .select('*')
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Convert back to camelCase for the frontend
+      const camelCaseData = {
+        ...data,
+        deviceId: data.device_id,
+        apiKey: data.api_key,
+        serverUrl: data.server_url
+      };
+      
+      return camelCaseData;
     } else {
       // Insert new config
       const { data, error } = await supabase
         .from('shelly_configs')
-        .insert(configWithUser)
+        .insert(dbConfig)
         .select('*')
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Convert back to camelCase for the frontend
+      const camelCaseData = {
+        ...data,
+        deviceId: data.device_id,
+        apiKey: data.api_key,
+        serverUrl: data.server_url
+      };
+      
+      return camelCaseData;
     }
   } catch (error) {
     console.error("Error updating Shelly config:", error);
