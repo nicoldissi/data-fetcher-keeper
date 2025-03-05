@@ -42,12 +42,14 @@ export const useServerShellyData = (config: ShellyConfig | null) => {
     enabled: !!config?.deviceid && !!config?.apikey && !!config?.serverurl,
     refetchInterval: 60000, // Refresh every minute
     retry: 3,
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        title: "Error fetching data",
-        description: error.message || "Failed to fetch Shelly data",
-      });
+    meta: {
+      onError: (error: any) => {
+        toast({
+          variant: "destructive",
+          title: "Error fetching data",
+          description: error.message || "Failed to fetch Shelly data",
+        });
+      }
     }
   });
 };

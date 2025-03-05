@@ -39,6 +39,7 @@ export interface ShellyEMResponse {
 }
 
 export interface ShellyConfig {
+  // Frontend property names (camelCase)
   deviceId?: string;
   apiKey?: string;
   serverUrl?: string;

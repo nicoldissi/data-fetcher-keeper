@@ -19,13 +19,17 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // Try to load configuration from localStorage
-    const config = getShellyConfig();
-    if (config) {
-      setDeviceId(config.deviceId);
-      setApiKey(config.apiKey);
-      setServerUrl(config.serverUrl);
-    }
+    // Try to load configuration from localStorage or database
+    const loadConfig = async () => {
+      const config = await getShellyConfig();
+      if (config) {
+        setDeviceId(config.deviceId || '');
+        setApiKey(config.apiKey || '');
+        setServerUrl(config.serverUrl || '');
+      }
+    };
+    
+    loadConfig();
   }, []); // Remove onConfigured from dependencies
 
   const handleSubmit = (e: React.FormEvent) => {
