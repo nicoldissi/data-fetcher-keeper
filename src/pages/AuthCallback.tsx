@@ -1,15 +1,51 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
 export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      // Check if we have a hash in the URL (common with OAuth redirects)
+      if (location.hash && location.hash.includes('access_token')) {
+        // Extract access token from URL
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        if (accessToken && refreshToken) {
+          try {
+            // Set the session manually with the tokens from the URL
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) throw error;
+            
+            console.log('Session set successfully:', data);
+            
+            toast({
+              title: "Connexion réussie",
+              description: "Vous êtes maintenant connecté.",
+            });
+            
+            // Redirect to homepage
+            navigate('/');
+            return;
+          } catch (err) {
+            console.error('Error setting session:', err);
+            setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+          }
+        }
+      }
+      
+      // Fall back to the regular session check if hash parameters aren't present
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -36,7 +72,7 @@ export default function AuthCallback() {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, location.hash]);
 
   if (error) {
     return (
