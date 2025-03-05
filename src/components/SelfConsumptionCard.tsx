@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShellyEMData } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,11 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
   
   const selfConsumptionRate = calculateSelfConsumptionRate();
   const formattedRate = selfConsumptionRate.toFixed(1);
-  const totalConsumption = ((dailyTotals?.consumption || 0) / 1000).toFixed(2);
+  
+  // Calculate energy values in kWh
+  const totalProduction = (dailyTotals?.production || 0) / 1000; // Wh to kWh
+  const selfConsumed = (dailyTotals?.production - dailyTotals?.injection || 0) / 1000;
+  const gridInjection = (dailyTotals?.injection || 0) / 1000;
   
   // Determine color based on self-consumption rate
   const getColor = (rate: number) => {
@@ -49,7 +54,7 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center p-6 h-[calc(100%-4rem)]">
-        <div className="w-32 h-32">
+        <div className="w-32 h-32 mb-4">
           <CircularProgressbar
             value={selfConsumptionRate}
             text={`${formattedRate}%`}
@@ -61,7 +66,25 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
             })}
           />
         </div>
-        <p className="text-sm text-muted-foreground text-center my-4">
+        
+        <div className="grid grid-cols-1 gap-2 w-full max-w-xs mt-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Production PV:</span>
+            <span className="font-medium">{totalProduction.toFixed(2)} kWh</span>
+          </div>
+          
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Autoconsommée:</span>
+            <span className="font-medium text-emerald-600">{selfConsumed.toFixed(2)} kWh</span>
+          </div>
+          
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Injectée réseau:</span>
+            <span className="font-medium text-blue-600">{gridInjection.toFixed(2)} kWh</span>
+          </div>
+        </div>
+        
+        <p className="text-sm text-muted-foreground text-center mt-4">
           {selfConsumptionRate >= 80 ? 'Excellente autoconsommation' :
            selfConsumptionRate >= 70 ? 'Très Bonne autoconsommation' :
            selfConsumptionRate >= 50 ? 'Bonne autoconsommation' :
