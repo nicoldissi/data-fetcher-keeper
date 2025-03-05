@@ -1,3 +1,4 @@
+
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
@@ -38,15 +39,15 @@ export interface ShellyEMResponse {
 }
 
 export interface ShellyConfig {
-  deviceId: string;
-  apiKey: string;
-  serverUrl: string;
+  deviceId?: string;
+  apiKey?: string;
+  serverUrl?: string;
   name?: string;
   id?: string;
   user_id?: string;
   deviceType?: 'ShellyEM' | 'ShellyProEM';
   
-  // Database field mappings
+  // Database field mappings - snake_case format from Supabase
   deviceid?: string;
   apikey?: string;
   serverurl?: string;
