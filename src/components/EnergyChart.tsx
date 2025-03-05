@@ -1,12 +1,17 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps, Legend } from 'recharts';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, TooltipProps, Legend, ReferenceArea
+} from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
+import { RefreshCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EnergyChartProps {
   data: ShellyEMData[];
@@ -17,6 +22,15 @@ interface EnergyChartProps {
 export function EnergyChart({ data, className, configId }: EnergyChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
   const { dailyData } = useDailyEnergyTotals(configId);
+  
+  // États pour le zoom
+  const [leftIndex, setLeftIndex] = useState<number | null>(null);
+  const [rightIndex, setRightIndex] = useState<number | null>(null);
+  const [startX, setStartX] = useState<number | null>(null);
+  const [endX, setEndX] = useState<number | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [originalDomain, setOriginalDomain] = useState<[number, number] | null>(null);
+  const [currentDomain, setCurrentDomain] = useState<[number, number] | null>(null);
   
   useEffect(() => {
     // Get start of current day
@@ -62,7 +76,19 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
     uniqueData.sort((a, b) => a.timestamp - b.timestamp);
     
     setChartData(uniqueData);
-  }, [data, dailyData]);
+    
+    // Set original domain if we have data and haven't set it yet
+    if (uniqueData.length > 0 && !originalDomain) {
+      const firstTimestamp = uniqueData[0].timestamp;
+      const lastTimestamp = uniqueData[uniqueData.length - 1].timestamp;
+      setOriginalDomain([firstTimestamp, lastTimestamp]);
+      
+      // Initialize current domain if not already set
+      if (!currentDomain) {
+        setCurrentDomain([firstTimestamp, lastTimestamp]);
+      }
+    }
+  }, [data, dailyData, originalDomain, currentDomain]);
   
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
@@ -90,12 +116,67 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
     return null;
   };
   
+  // Gestionnaires d'événements pour le zoom
+  const handleMouseDown = (e: any) => {
+    if (!e || !e.activeLabel) return;
+    setStartX(e.activeLabel);
+    setLeftIndex(e.activeTooltipIndex);
+  };
+  
+  const handleMouseMove = (e: any) => {
+    if (!e || !e.activeLabel || startX === null || leftIndex === null) return;
+    setEndX(e.activeLabel);
+    setRightIndex(e.activeTooltipIndex);
+  };
+  
+  const handleMouseUp = () => {
+    if (leftIndex !== null && rightIndex !== null && startX !== null && endX !== null) {
+      // Assure-toi que l'utilisateur a fait glisser la souris
+      if (Math.abs(rightIndex - leftIndex) > 1) {
+        // Calcule le domaine de zoom
+        const newDomain: [number, number] = [
+          Math.min(startX, endX),
+          Math.max(startX, endX)
+        ];
+        
+        setCurrentDomain(newDomain);
+        setIsZoomed(true);
+      }
+    }
+    
+    // Réinitialise les valeurs de départ
+    setLeftIndex(null);
+    setRightIndex(null);
+    setStartX(null);
+    setEndX(null);
+  };
+  
+  const resetZoom = () => {
+    if (originalDomain) {
+      setCurrentDomain(originalDomain);
+      setIsZoomed(false);
+    }
+  };
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium flex items-center">
-          <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>
-          Moniteur d'Énergie
+        <CardTitle className="text-lg font-medium flex items-center justify-between">
+          <div className="flex items-center">
+            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>
+            Moniteur d'Énergie
+          </div>
+          {isZoomed && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={resetZoom} 
+              className="flex items-center gap-1 text-xs"
+            >
+              <RefreshCcw size={14} />
+              Réinitialiser le zoom
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -114,6 +195,9 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                   <AreaChart
                     data={chartData}
                     margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
                   >
                     <defs>
                       <linearGradient id="gridGradient" x1="0" y1="0" x2="0" y2="1">
@@ -133,7 +217,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                     <XAxis 
                       dataKey="timestamp" 
                       type="number"
-                      domain={['dataMin', 'dataMax']}
+                      domain={currentDomain || ['dataMin', 'dataMax']}
                       scale="time"
                       tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
@@ -141,6 +225,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       axisLine={{ stroke: '#e5e7eb' }}
                       interval="preserveStartEnd"
                       minTickGap={50}
+                      allowDataOverflow
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -180,6 +265,16 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       fill="url(#consumptionGradient)" 
                       animationDuration={300}
                     />
+                    
+                    {leftIndex !== null && rightIndex !== null && (
+                      <ReferenceArea 
+                        x1={startX} 
+                        x2={endX} 
+                        strokeOpacity={0.3}
+                        fill="#8884d8"
+                        fillOpacity={0.1} 
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -189,6 +284,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
               )}
             </div>
           </TabsContent>
+          
           <TabsContent value="grid" className="mt-2">
             <div className="h-[300px] w-full">
               {chartData.length > 0 ? (
@@ -196,6 +292,9 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                   <AreaChart
                     data={chartData}
                     margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
                   >
                     <defs>
                       <linearGradient id="gridGradient" x1="0" y1="0" x2="0" y2="1">
@@ -207,7 +306,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                     <XAxis 
                       dataKey="timestamp" 
                       type="number"
-                      domain={['dataMin', 'dataMax']}
+                      domain={currentDomain || ['dataMin', 'dataMax']}
                       scale="time"
                       tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
@@ -215,6 +314,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       axisLine={{ stroke: '#e5e7eb' }}
                       interval="preserveStartEnd"
                       minTickGap={50}
+                      allowDataOverflow
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -233,6 +333,16 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       fill="url(#gridGradient)" 
                       animationDuration={300}
                     />
+                    
+                    {leftIndex !== null && rightIndex !== null && (
+                      <ReferenceArea 
+                        x1={startX} 
+                        x2={endX} 
+                        strokeOpacity={0.3}
+                        fill="#8884d8"
+                        fillOpacity={0.1} 
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -242,6 +352,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
               )}
             </div>
           </TabsContent>
+          
           <TabsContent value="production" className="mt-2">
             <div className="h-[300px] w-full">
               {chartData.length > 0 ? (
@@ -249,6 +360,9 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                   <AreaChart
                     data={chartData}
                     margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
                   >
                     <defs>
                       <linearGradient id="productionGradient" x1="0" y1="0" x2="0" y2="1">
@@ -260,7 +374,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                     <XAxis 
                       dataKey="timestamp" 
                       type="number"
-                      domain={['dataMin', 'dataMax']}
+                      domain={currentDomain || ['dataMin', 'dataMax']}
                       scale="time"
                       tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
@@ -268,6 +382,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       axisLine={{ stroke: '#e5e7eb' }}
                       interval="preserveStartEnd"
                       minTickGap={50}
+                      allowDataOverflow
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -286,6 +401,16 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       fill="url(#productionGradient)" 
                       animationDuration={300}
                     />
+                    
+                    {leftIndex !== null && rightIndex !== null && (
+                      <ReferenceArea 
+                        x1={startX} 
+                        x2={endX} 
+                        strokeOpacity={0.3}
+                        fill="#8884d8"
+                        fillOpacity={0.1} 
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -295,6 +420,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
               )}
             </div>
           </TabsContent>
+          
           <TabsContent value="consumption" className="mt-2">
             <div className="h-[300px] w-full">
               {chartData.length > 0 ? (
@@ -302,6 +428,9 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                   <AreaChart
                     data={chartData}
                     margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
                   >
                     <defs>
                       <linearGradient id="consumptionGradient" x1="0" y1="0" x2="0" y2="1">
@@ -313,7 +442,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                     <XAxis 
                       dataKey="timestamp" 
                       type="number"
-                      domain={['dataMin', 'dataMax']}
+                      domain={currentDomain || ['dataMin', 'dataMax']}
                       scale="time"
                       tickFormatter={(timestamp) => new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       tick={{ fontSize: 10 }} 
@@ -321,6 +450,7 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       axisLine={{ stroke: '#e5e7eb' }}
                       interval="preserveStartEnd"
                       minTickGap={50}
+                      allowDataOverflow
                     />
                     <YAxis 
                       tick={{ fontSize: 10 }} 
@@ -339,6 +469,16 @@ export function EnergyChart({ data, className, configId }: EnergyChartProps) {
                       fill="url(#consumptionGradient)" 
                       animationDuration={300}
                     />
+                    
+                    {leftIndex !== null && rightIndex !== null && (
+                      <ReferenceArea 
+                        x1={startX} 
+                        x2={endX} 
+                        strokeOpacity={0.3}
+                        fill="#8884d8"
+                        fillOpacity={0.1} 
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
