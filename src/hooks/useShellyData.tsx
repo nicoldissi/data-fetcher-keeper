@@ -9,7 +9,7 @@ export function useShellyData(configId?: string, pollingInterval = 5000) {
   const [error, setError] = useState<string | null>(null);
   const [lastStored, setLastStored] = useState<ShellyEMData | null>(null);
   const [history, setHistory] = useState<ShellyEMData[]>([]);
-  const [isConfigValid, setIsConfigValid] = useState<boolean>(isShellyConfigValid());
+  const [isConfigValid, setIsConfigValid] = useState<boolean>(false);
   
   // Keep the previous data to compare against
   const previousDataRef = useRef<ShellyEMData | null>(null);
@@ -20,25 +20,39 @@ export function useShellyData(configId?: string, pollingInterval = 5000) {
 
   // Load configuration on mount
   useEffect(() => {
-    setIsConfigValid(isShellyConfigValid());
-  }, []);
+    const checkConfigValid = async () => {
+      const valid = await isShellyConfigValid(configId);
+      setIsConfigValid(valid);
+    };
+    
+    checkConfigValid();
+  }, [configId]);
   
   useEffect(() => {
     let isMounted = true;
     
     const fetchData = async () => {
       // Skip fetching if configuration is not valid
-      if (!isShellyConfigValid()) {
-        setIsConfigValid(false);
-        setError('Shelly device not configured');
-        setIsLoading(false);
+      const configValid = await isShellyConfigValid(configId);
+      
+      if (!configValid) {
+        if (isMounted) {
+          setIsConfigValid(false);
+          setError('Shelly device not configured');
+          setIsLoading(false);
+        }
         return;
       }
 
-      setIsConfigValid(true);
+      if (isMounted) {
+        setIsConfigValid(true);
+      }
       
       try {
-        setIsLoading(true);
+        if (isMounted) {
+          setIsLoading(true);
+        }
+        
         const data = await fetchShellyData(configId);
         
         if (!isMounted) return;
@@ -95,7 +109,7 @@ export function useShellyData(configId?: string, pollingInterval = 5000) {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [pollingInterval]);
+  }, [pollingInterval, configId]);
   
   return {
     currentData,

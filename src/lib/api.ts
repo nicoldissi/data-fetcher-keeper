@@ -1,4 +1,3 @@
-
 import { ShellyConfig, ShellyEMData, ShellyEMResponse } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,6 +26,32 @@ export const getLocalShellyConfig = (): ShellyConfig => {
   }
 };
 
+// Helper function to map database fields to frontend model
+const mapDbConfigToFrontend = (dbConfig: any): ShellyConfig => {
+  return {
+    id: dbConfig.id,
+    deviceId: dbConfig.deviceid,
+    apiKey: dbConfig.apikey,
+    serverUrl: dbConfig.serverurl,
+    name: dbConfig.name,
+    deviceType: dbConfig.device_type || 'ShellyEM',
+    user_id: dbConfig.user_id
+  };
+};
+
+// Helper function to map frontend model to database fields
+const mapFrontendToDbConfig = (config: ShellyConfig): any => {
+  return {
+    id: config.id,
+    deviceid: config.deviceId,
+    apikey: config.apiKey,
+    serverurl: config.serverUrl,
+    name: config.name || 'Default Device',
+    device_type: config.deviceType || 'ShellyEM',
+    user_id: config.user_id
+  };
+};
+
 // New Supabase functions
 export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
   try {
@@ -46,14 +71,9 @@ export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
     }
     
     // Map database fields to frontend expected format
-    const mappedConfigs = data.map(config => ({
-      ...config,
-      deviceId: config.deviceid,
-      apiKey: config.apikey,
-      serverUrl: config.serverurl
-    }));
+    const mappedConfigs = data.map(config => mapDbConfigToFrontend(config));
     
-    return mappedConfigs as ShellyConfig[];
+    return mappedConfigs;
   } catch (error) {
     console.error("Error fetching Shelly configs:", error);
     return [DEFAULT_CONFIG];
@@ -93,15 +113,7 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
     }
     
     // Map database fields to frontend expected format
-    const config = data[0];
-    const mappedConfig = {
-      ...config,
-      deviceId: config.deviceid,
-      apiKey: config.apikey,
-      serverUrl: config.serverurl
-    };
-    
-    return mappedConfig as ShellyConfig;
+    return mapDbConfigToFrontend(data[0]);
   } catch (error) {
     console.error("Error fetching Shelly config:", error);
     return DEFAULT_CONFIG;
@@ -142,16 +154,8 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       user_id: user.id
     };
 
-    // Rename the fields to match the database column names
-    const dbConfig = {
-      id: config.id,
-      user_id: user.id,
-      deviceid: config.deviceId,
-      apikey: config.apiKey,
-      serverurl: config.serverUrl,
-      name: config.name || 'Default Device',
-      device_type: config.deviceType || 'ShellyEM'
-    };
+    // Map frontend model to database fields
+    const dbConfig = mapFrontendToDbConfig(configWithUser);
     
     console.log('Prepared database config:', JSON.stringify(dbConfig, null, 2));
 
@@ -175,15 +179,7 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       console.log('Update successful, received data:', data);
       
       // Convert back to camelCase for the frontend
-      const camelCaseData = {
-        ...data,
-        deviceId: data.deviceid,
-        apiKey: data.apikey,
-        serverUrl: data.serverurl,
-        deviceType: data.device_type
-      };
-      
-      return camelCaseData;
+      return mapDbConfigToFrontend(data);
     } else {
       console.log('Inserting new config');
       // Insert new config
@@ -201,15 +197,7 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       console.log('Insert successful, received data:', data);
       
       // Convert back to camelCase for the frontend
-      const camelCaseData = {
-        ...data,
-        deviceId: data.deviceid,
-        apiKey: data.apikey,
-        serverUrl: data.serverurl,
-        deviceType: data.device_type
-      };
-      
-      return camelCaseData;
+      return mapDbConfigToFrontend(data);
     }
   } catch (error) {
     console.error("Error updating Shelly config:", error);
@@ -239,8 +227,13 @@ export const deleteShellyConfig = async (id: string): Promise<boolean> => {
 };
 
 export const isShellyConfigValid = async (id?: string): Promise<boolean> => {
-  const config = await getShellyConfig(id);
-  return config.deviceId !== '' && config.serverUrl !== '' && config.apiKey !== '';
+  try {
+    const config = await getShellyConfig(id);
+    return config.deviceId !== '' && config.serverUrl !== '' && config.apiKey !== '';
+  } catch (error) {
+    console.error("Error checking Shelly config validity:", error);
+    return false;
+  }
 };
 
 export const getShellyCloudUrl = async (id?: string): Promise<string | null> => {

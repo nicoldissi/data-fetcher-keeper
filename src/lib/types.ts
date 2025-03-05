@@ -1,4 +1,3 @@
-
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
@@ -47,9 +46,9 @@ export interface ShellyConfig {
   user_id?: string;
   deviceType?: 'ShellyEM' | 'ShellyProEM';
   
-  // Database field mappings (these fields will be present when fetched from DB)
-  device_id?: string;
-  api_key?: string;
-  server_url?: string;
+  // Database field mappings
+  deviceid?: string;
+  apikey?: string;
+  serverurl?: string;
   device_type?: string;
 }

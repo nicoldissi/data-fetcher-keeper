@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
+import { Google } from "lucide-react";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -87,6 +88,36 @@ export default function Auth() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erreur avec Google",
+          description: error.message,
+        });
+      }
+    } catch (error) {
+      console.error("Error during Google sign in:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la connexion avec Google.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
@@ -103,74 +134,116 @@ export default function Auth() {
           </TabsList>
           
           <TabsContent value="signin">
-            <form onSubmit={handleSignIn}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+            <CardContent className="space-y-4 pt-4">
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+              >
+                <Google className="w-4 h-4" />
+                Continuer avec Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Mot de passe</Label>
-                    <Button variant="link" className="px-0 h-auto" type="button">
-                      Mot de passe oublié?
-                    </Button>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-muted-foreground">
+                    ou
+                  </span>
+                </div>
+              </div>
+              
+              <form onSubmit={handleSignIn}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Mot de passe</Label>
+                      <Button variant="link" className="px-0 h-auto" type="button">
+                        Mot de passe oublié?
+                      </Button>
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button className="w-full" type="submit" disabled={loading}>
+                    {loading ? "Connexion en cours..." : "Se connecter"}
+                  </Button>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full" type="submit" disabled={loading}>
-                  {loading ? "Connexion en cours..." : "Se connecter"}
-                </Button>
-              </CardFooter>
-            </form>
+              </form>
+            </CardContent>
           </TabsContent>
           
           <TabsContent value="signup">
-            <form onSubmit={handleSignUp}>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-signup">Email</Label>
-                  <Input
-                    id="email-signup"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+            <CardContent className="space-y-4 pt-4">
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+              >
+                <Google className="w-4 h-4" />
+                S'inscrire avec Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-signup">Mot de passe</Label>
-                  <Input
-                    id="password-signup"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-muted-foreground">
+                    ou
+                  </span>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full" type="submit" disabled={loading}>
-                  {loading ? "Inscription en cours..." : "S'inscrire"}
-                </Button>
-              </CardFooter>
-            </form>
+              </div>
+              
+              <form onSubmit={handleSignUp}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email-signup">Email</Label>
+                    <Input
+                      id="email-signup"
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password-signup">Mot de passe</Label>
+                    <Input
+                      id="password-signup"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button className="w-full" type="submit" disabled={loading}>
+                    {loading ? "Inscription en cours..." : "S'inscrire"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
           </TabsContent>
         </Tabs>
       </Card>
