@@ -54,33 +54,63 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center p-6 h-[calc(100%-4rem)]">
-        <div className="w-32 h-32 mb-4">
+        <div className="w-52 h-52 mb-4 relative">
           <CircularProgressbar
             value={selfConsumptionRate}
-            text={`${formattedRate}%`}
             styles={buildStyles({
-              textSize: '16px',
               pathColor: color,
-              textColor: color,
               trailColor: '#e5e7eb',
+              strokeLinecap: 'butt',
             })}
           />
+          
+          {/* Center text - Production PV value */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="text-2xl font-bold text-gray-800">{totalProduction.toFixed(2)}</div>
+            <div className="text-xs text-gray-600">kWh PV</div>
+            <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoconsommé</div>
+          </div>
+          
+          {/* Self consumed sector label */}
+          <div 
+            className="absolute text-emerald-600 font-medium text-sm"
+            style={{ 
+              top: '25%', 
+              right: '0%', 
+              transform: 'translate(50%, -50%)' 
+            }}
+          >
+            {selfConsumed.toFixed(2)} kWh
+          </div>
+          
+          {/* Grid injection sector label */}
+          <div 
+            className="absolute text-blue-600 font-medium text-sm"
+            style={{ 
+              top: '75%', 
+              right: '0%', 
+              transform: 'translate(50%, 50%)' 
+            }}
+          >
+            {gridInjection.toFixed(2)} kWh
+          </div>
         </div>
         
-        <div className="grid grid-cols-1 gap-2 w-full max-w-xs mt-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Production PV:</span>
-            <span className="font-medium">{totalProduction.toFixed(2)} kWh</span>
+        <div className="w-full max-w-xs mt-4">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></div>
+              <span className="text-sm text-gray-600">Autoconsommée:</span>
+            </div>
+            <span className="font-medium text-sm text-emerald-600">{selfConsumed.toFixed(2)} kWh</span>
           </div>
           
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Autoconsommée:</span>
-            <span className="font-medium text-emerald-600">{selfConsumed.toFixed(2)} kWh</span>
-          </div>
-          
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Injectée réseau:</span>
-            <span className="font-medium text-blue-600">{gridInjection.toFixed(2)} kWh</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+              <span className="text-sm text-gray-600">Injectée réseau:</span>
+            </div>
+            <span className="font-medium text-sm text-blue-600">{gridInjection.toFixed(2)} kWh</span>
           </div>
         </div>
         

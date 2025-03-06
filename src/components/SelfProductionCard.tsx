@@ -63,33 +63,63 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center p-6 h-[calc(100%-4rem)]">
-        <div className="w-32 h-32 mb-4">
+        <div className="w-52 h-52 mb-4 relative">
           <CircularProgressbar
             value={selfProductionRate}
-            text={`${formattedRate}%`}
             styles={buildStyles({
-              textSize: '16px',
               pathColor: color,
-              textColor: color,
               trailColor: '#e5e7eb',
+              strokeLinecap: 'butt',
             })}
           />
+          
+          {/* Center text - Total Consumption value */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <div className="text-2xl font-bold text-gray-800">{totalConsumption.toFixed(2)}</div>
+            <div className="text-xs text-gray-600">kWh Conso</div>
+            <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoproduit</div>
+          </div>
+          
+          {/* Self produced consumption sector label */}
+          <div 
+            className="absolute text-emerald-600 font-medium text-sm"
+            style={{ 
+              top: '25%', 
+              right: '0%', 
+              transform: 'translate(50%, -50%)' 
+            }}
+          >
+            {selfProducedConsumption.toFixed(2)} kWh
+          </div>
+          
+          {/* Grid consumption sector label */}
+          <div 
+            className="absolute text-orange-600 font-medium text-sm"
+            style={{ 
+              top: '75%', 
+              right: '0%', 
+              transform: 'translate(50%, 50%)' 
+            }}
+          >
+            {gridConsumption.toFixed(2)} kWh
+          </div>
         </div>
         
-        <div className="grid grid-cols-1 gap-2 w-full max-w-xs mt-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Consommation totale:</span>
-            <span className="font-medium">{totalConsumption.toFixed(2)} kWh</span>
+        <div className="w-full max-w-xs mt-4">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></div>
+              <span className="text-sm text-gray-600">Depuis le PV:</span>
+            </div>
+            <span className="font-medium text-sm text-emerald-600">{selfProducedConsumption.toFixed(2)} kWh</span>
           </div>
           
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Depuis le réseau:</span>
-            <span className="font-medium text-orange-600">{gridConsumption.toFixed(2)} kWh</span>
-          </div>
-          
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Depuis le PV:</span>
-            <span className="font-medium text-emerald-600">{selfProducedConsumption.toFixed(2)} kWh</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+              <span className="text-sm text-gray-600">Depuis le réseau:</span>
+            </div>
+            <span className="font-medium text-sm text-orange-600">{gridConsumption.toFixed(2)} kWh</span>
           </div>
         </div>
         
