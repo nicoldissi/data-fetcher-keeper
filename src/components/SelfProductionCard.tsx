@@ -56,30 +56,31 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
   
   // Calculate positions for the labels based on the sectors
   const getSelfProducedPosition = () => {
-    // The midpoint of the self-produced sector (from 0 to selfProductionRate%)
-    const angleDegrees = (selfProductionRate / 2) * 3.6; // Convert percentage to degrees (100% = 360 degrees)
-    const angleRadians = (angleDegrees - 90) * (Math.PI / 180); // Convert to radians and adjust for CircularProgressbar starting at top
+    // Calculate the angle that corresponds to the middle of self-produced sector
+    const midpointAngle = selfProductionRate / 2;
+    // Convert from percentage to radians (0-100% maps to 0-2π)
+    const angleRadians = (midpointAngle * 3.6 - 90) * (Math.PI / 180);
     
-    // Calculate position with a radius slightly outside the gauge
-    const radius = 125; // The gauge radius plus some offset
+    // Calculate position with radius (can be adjusted based on gauge size)
+    const radius = 120; // Adjusted for better positioning
     const x = Math.cos(angleRadians) * radius;
     const y = Math.sin(angleRadians) * radius;
     
-    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' };
+    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)` };
   };
   
   const getGridConsumptionPosition = () => {
-    // The midpoint of the grid consumption sector (from selfProductionRate% to 100%)
-    const midpointPercentage = (selfProductionRate + 100) / 2;
-    const angleDegrees = midpointPercentage * 3.6; // Convert percentage to degrees
-    const angleRadians = (angleDegrees - 90) * (Math.PI / 180); // Convert to radians and adjust
+    // Calculate the angle that corresponds to the middle of grid consumption sector
+    const midpointAngle = (selfProductionRate + (100 - selfProductionRate) / 2);
+    // Convert from percentage to radians
+    const angleRadians = (midpointAngle * 3.6 - 90) * (Math.PI / 180);
     
-    // Calculate position with a radius slightly outside the gauge
-    const radius = 125; // The gauge radius plus some offset
+    // Calculate position with radius (can be adjusted based on gauge size)
+    const radius = 120; // Adjusted for better positioning
     const x = Math.cos(angleRadians) * radius;
     const y = Math.sin(angleRadians) * radius;
     
-    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' };
+    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)` };
   };
   
   const selfProducedPosition = getSelfProducedPosition();
@@ -114,11 +115,15 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
           
           {/* Self produced consumption sector label - dynamically positioned */}
           <div 
-            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-2 py-1 rounded-full shadow-sm"
+            className="absolute text-emerald-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-emerald-200"
             style={{ 
               position: 'absolute',
               ...selfProducedPosition,
-              zIndex: 10
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10,
+              whiteSpace: 'nowrap',
+              minWidth: '80px',
+              textAlign: 'center'
             }}
           >
             {selfProducedConsumption.toFixed(2)} kWh
@@ -126,23 +131,20 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
           
           {/* Grid consumption sector label - dynamically positioned */}
           <div 
-            className="absolute text-orange-600 font-medium text-sm bg-white/80 px-2 py-1 rounded-full shadow-sm"
+            className="absolute text-orange-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-orange-200"
             style={{ 
               position: 'absolute',
               ...gridConsumptionPosition,
-              zIndex: 10
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10,
+              whiteSpace: 'nowrap',
+              minWidth: '80px',
+              textAlign: 'center'
             }}
           >
             {gridConsumption.toFixed(2)} kWh
           </div>
         </div>
-        
-        <p className="text-sm text-muted-foreground text-center mt-4">
-          {selfProductionRate >= 70 ? 'Excellente autoproduction' :
-           selfProductionRate >= 50 ? 'Très Bonne autoproduction' :
-           selfProductionRate >= 30 ? 'Bonne autoproduction' :
-           'Faible autoproduction'}
-        </p>
       </CardContent>
     </Card>
   );
