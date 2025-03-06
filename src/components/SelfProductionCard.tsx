@@ -54,6 +54,37 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
   
   const color = getColor(selfProductionRate);
   
+  // Calculate positions for the labels based on the sectors
+  const getSelfProducedPosition = () => {
+    // The midpoint of the self-produced sector (from 0 to selfProductionRate%)
+    const angleDegrees = (selfProductionRate / 2) * 3.6; // Convert percentage to degrees (100% = 360 degrees)
+    const angleRadians = (angleDegrees - 90) * (Math.PI / 180); // Convert to radians and adjust for CircularProgressbar starting at top
+    
+    // Calculate position with a radius slightly outside the gauge
+    const radius = 125; // The gauge radius plus some offset
+    const x = Math.cos(angleRadians) * radius;
+    const y = Math.sin(angleRadians) * radius;
+    
+    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' };
+  };
+  
+  const getGridConsumptionPosition = () => {
+    // The midpoint of the grid consumption sector (from selfProductionRate% to 100%)
+    const midpointPercentage = (selfProductionRate + 100) / 2;
+    const angleDegrees = midpointPercentage * 3.6; // Convert percentage to degrees
+    const angleRadians = (angleDegrees - 90) * (Math.PI / 180); // Convert to radians and adjust
+    
+    // Calculate position with a radius slightly outside the gauge
+    const radius = 125; // The gauge radius plus some offset
+    const x = Math.cos(angleRadians) * radius;
+    const y = Math.sin(angleRadians) * radius;
+    
+    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' };
+  };
+  
+  const selfProducedPosition = getSelfProducedPosition();
+  const gridConsumptionPosition = getGridConsumptionPosition();
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
@@ -81,25 +112,25 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
             <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoproduit</div>
           </div>
           
-          {/* Self produced consumption sector label - positioned at top right */}
+          {/* Self produced consumption sector label - dynamically positioned */}
           <div 
-            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-1 rounded"
+            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-2 py-1 rounded-full shadow-sm"
             style={{ 
-              top: '20%', 
-              right: '-15%',
-              transform: 'translateY(-50%)'
+              position: 'absolute',
+              ...selfProducedPosition,
+              zIndex: 10
             }}
           >
             {selfProducedConsumption.toFixed(2)} kWh
           </div>
           
-          {/* Grid consumption sector label - positioned at bottom right */}
+          {/* Grid consumption sector label - dynamically positioned */}
           <div 
-            className="absolute text-orange-600 font-medium text-sm bg-white/80 px-1 rounded"
+            className="absolute text-orange-600 font-medium text-sm bg-white/80 px-2 py-1 rounded-full shadow-sm"
             style={{ 
-              bottom: '20%', 
-              right: '-15%',
-              transform: 'translateY(50%)'
+              position: 'absolute',
+              ...gridConsumptionPosition,
+              zIndex: 10
             }}
           >
             {gridConsumption.toFixed(2)} kWh

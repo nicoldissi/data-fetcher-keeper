@@ -45,6 +45,37 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
   
   const color = getColor(selfConsumptionRate);
   
+  // Calculate positions for the labels based on the sectors
+  const getSelfConsumedPosition = () => {
+    // The midpoint of the self-consumed sector (from 0 to selfConsumptionRate%)
+    const angleDegrees = (selfConsumptionRate / 2) * 3.6; // Convert percentage to degrees (100% = 360 degrees)
+    const angleRadians = (angleDegrees - 90) * (Math.PI / 180); // Convert to radians and adjust for CircularProgressbar starting at top
+    
+    // Calculate position with a radius slightly outside the gauge
+    const radius = 125; // The gauge radius plus some offset
+    const x = Math.cos(angleRadians) * radius;
+    const y = Math.sin(angleRadians) * radius;
+    
+    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' };
+  };
+  
+  const getInjectionPosition = () => {
+    // The midpoint of the injection sector (from selfConsumptionRate% to 100%)
+    const midpointPercentage = (selfConsumptionRate + 100) / 2;
+    const angleDegrees = midpointPercentage * 3.6; // Convert percentage to degrees
+    const angleRadians = (angleDegrees - 90) * (Math.PI / 180); // Convert to radians and adjust
+    
+    // Calculate position with a radius slightly outside the gauge
+    const radius = 125; // The gauge radius plus some offset
+    const x = Math.cos(angleRadians) * radius;
+    const y = Math.sin(angleRadians) * radius;
+    
+    return { top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' };
+  };
+  
+  const selfConsumedPosition = getSelfConsumedPosition();
+  const injectionPosition = getInjectionPosition();
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
@@ -72,25 +103,25 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
             <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoconsommé</div>
           </div>
           
-          {/* Self consumed sector label - positioned at top right */}
+          {/* Self consumed sector label - dynamically positioned */}
           <div 
-            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-1 rounded"
+            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-2 py-1 rounded-full shadow-sm"
             style={{ 
-              top: '20%', 
-              right: '-15%',
-              transform: 'translateY(-50%)'
+              position: 'absolute',
+              ...selfConsumedPosition,
+              zIndex: 10
             }}
           >
             {selfConsumed.toFixed(2)} kWh
           </div>
           
-          {/* Grid injection sector label - positioned at bottom right */}
+          {/* Grid injection sector label - dynamically positioned */}
           <div 
-            className="absolute text-blue-600 font-medium text-sm bg-white/80 px-1 rounded"
+            className="absolute text-blue-600 font-medium text-sm bg-white/80 px-2 py-1 rounded-full shadow-sm"
             style={{ 
-              bottom: '20%', 
-              right: '-15%',
-              transform: 'translateY(50%)'
+              position: 'absolute',
+              ...injectionPosition,
+              zIndex: 10
             }}
           >
             {gridInjection.toFixed(2)} kWh
