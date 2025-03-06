@@ -97,24 +97,6 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
           </div>
         </div>
         
-        <div className="w-full max-w-xs mt-4">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></div>
-              <span className="text-sm text-gray-600">Autoconsommée:</span>
-            </div>
-            <span className="font-medium text-sm text-emerald-600">{selfConsumed.toFixed(2)} kWh</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-              <span className="text-sm text-gray-600">Injectée réseau:</span>
-            </div>
-            <span className="font-medium text-sm text-blue-600">{gridInjection.toFixed(2)} kWh</span>
-          </div>
-        </div>
-        
         <p className="text-sm text-muted-foreground text-center mt-4">
           {selfConsumptionRate >= 80 ? 'Excellente autoconsommation' :
            selfConsumptionRate >= 70 ? 'Très Bonne autoconsommation' :
