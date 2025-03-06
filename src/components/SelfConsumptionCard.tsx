@@ -61,6 +61,7 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
               pathColor: color,
               trailColor: '#e5e7eb',
               strokeLinecap: 'butt',
+              textSize: '16px',
             })}
           />
           
@@ -71,25 +72,25 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
             <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoconsommé</div>
           </div>
           
-          {/* Self consumed sector label */}
+          {/* Self consumed sector label - positioned at top right */}
           <div 
-            className="absolute text-emerald-600 font-medium text-sm"
+            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-1 rounded"
             style={{ 
-              top: '25%', 
-              right: '0%', 
-              transform: 'translate(50%, -50%)' 
+              top: '20%', 
+              right: '-15%',
+              transform: 'translateY(-50%)'
             }}
           >
             {selfConsumed.toFixed(2)} kWh
           </div>
           
-          {/* Grid injection sector label */}
+          {/* Grid injection sector label - positioned at bottom right */}
           <div 
-            className="absolute text-blue-600 font-medium text-sm"
+            className="absolute text-blue-600 font-medium text-sm bg-white/80 px-1 rounded"
             style={{ 
-              top: '75%', 
-              right: '0%', 
-              transform: 'translate(50%, 50%)' 
+              bottom: '20%', 
+              right: '-15%',
+              transform: 'translateY(50%)'
             }}
           >
             {gridInjection.toFixed(2)} kWh

@@ -70,6 +70,7 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
               pathColor: color,
               trailColor: '#e5e7eb',
               strokeLinecap: 'butt',
+              textSize: '16px',
             })}
           />
           
@@ -80,25 +81,25 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
             <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoproduit</div>
           </div>
           
-          {/* Self produced consumption sector label */}
+          {/* Self produced consumption sector label - positioned at top right */}
           <div 
-            className="absolute text-emerald-600 font-medium text-sm"
+            className="absolute text-emerald-600 font-medium text-sm bg-white/80 px-1 rounded"
             style={{ 
-              top: '25%', 
-              right: '0%', 
-              transform: 'translate(50%, -50%)' 
+              top: '20%', 
+              right: '-15%',
+              transform: 'translateY(-50%)'
             }}
           >
             {selfProducedConsumption.toFixed(2)} kWh
           </div>
           
-          {/* Grid consumption sector label */}
+          {/* Grid consumption sector label - positioned at bottom right */}
           <div 
-            className="absolute text-orange-600 font-medium text-sm"
+            className="absolute text-orange-600 font-medium text-sm bg-white/80 px-1 rounded"
             style={{ 
-              top: '75%', 
-              right: '0%', 
-              transform: 'translate(50%, 50%)' 
+              bottom: '20%', 
+              right: '-15%',
+              transform: 'translateY(50%)'
             }}
           >
             {gridConsumption.toFixed(2)} kWh
