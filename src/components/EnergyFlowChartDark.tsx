@@ -1,8 +1,8 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils'
 import * as d3 from 'd3'
 
 interface EnergyFlowChartDarkProps {
@@ -36,14 +36,13 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     solarToGrid: false
   })
   
-  // Update SVG size on window resize
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
         const { offsetWidth } = containerRef.current
         setSize({
           width: offsetWidth,
-          height: Math.min(400, offsetWidth) // Keeping aspect ratio
+          height: Math.min(400, offsetWidth)
         })
       }
     }
@@ -56,24 +55,20 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     }
   }, [])
   
-  // Update flow animations based on new data
   useEffect(() => {
     if (!data) return
     
     console.log('EnergyFlowChartDark received new data:', data)
     
-    // Utiliser la méthode de conversion UTC fournie
-    const utcTimestamp = data.timestamp + "Z"; // Forcer l'interprétation en UTC
-    const localDate = new Date(utcTimestamp);
+    const localDate = parseToLocalDate(data.timestamp)
+    const formattedTime = formatLocalDate(data.timestamp)
     
-    console.log('Converted timestamp:', localDate.toLocaleString('fr-FR'));
+    console.log('Converted timestamp:', formattedTime)
     
-    // Determine flow scenarios
-    const isPVProducing = data.production_power > 6 // Minimum threshold for production
+    const isPVProducing = data.production_power > 6
     const isGridSupplyingHome = data.power > 0
     const isGridReceivingExcess = data.power < 0
     
-    // Update animation states
     setFlowAnimations({
       gridToHome: isGridSupplyingHome,
       gridFromHome: isGridReceivingExcess,
@@ -83,17 +78,15 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     
   }, [data])
   
-  // Render D3 visualization
   useEffect(() => {
     if (!svgRef.current || !data) return
     
     const svg = d3.select(svgRef.current)
-    svg.selectAll("*").remove() // Clear previous content
+    svg.selectAll("*").remove()
     
     const { width, height } = size
     const nodeRadius = 40
     
-    // Set up node positions
     const nodes = {
       grid: {
         x: width * 0.2,
@@ -118,13 +111,11 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       }
     }
     
-    // Create a container for each node with its elements
     Object.entries(nodes).forEach(([key, node]) => {
       const nodeGroup = svg.append('g')
         .attr('transform', `translate(${node.x}, ${node.y})`)
         .attr('class', `node-${key}`)
       
-      // Node circle with shadow
       nodeGroup.append('circle')
         .attr('r', nodeRadius)
         .attr('fill', 'white')
@@ -132,7 +123,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('stroke-width', 2)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
-      // Node label
       nodeGroup.append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', '0em')
@@ -140,7 +130,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('font-weight', 'bold')
         .text(node.label)
       
-      // Node value
       nodeGroup.append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', '1.5em')
@@ -149,7 +138,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .text(node.value)
     })
     
-    // Define arrow paths with control points for curved arrows
     const arrowPaths = {
       gridToHome: {
         path: createCurvedPath(
@@ -158,7 +146,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           0.3, -20
         ),
         active: flowAnimations.gridToHome,
-        color: '#ef4444' // Red for grid supply
+        color: '#ef4444'
       },
       gridFromHome: {
         path: createCurvedPath(
@@ -167,7 +155,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           0.3, 20
         ),
         active: flowAnimations.gridFromHome,
-        color: '#10b981' // Green for grid receiving
+        color: '#10b981'
       },
       solarToHome: {
         path: createCurvedPath(
@@ -176,7 +164,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           0.5, 0
         ),
         active: flowAnimations.solarToHome,
-        color: '#f59e0b' // Amber for solar production
+        color: '#f59e0b'
       },
       solarToGrid: {
         path: createCurvedPath(
@@ -185,11 +173,10 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           0.5, 0
         ),
         active: flowAnimations.solarToGrid,
-        color: '#10b981' // Green for excess to grid
+        color: '#10b981'
       }
     }
     
-    // Create curved path between points
     function createCurvedPath(
       x1: number, y1: number, 
       x2: number, y2: number, 
@@ -201,7 +188,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       return `M${x1},${y1} Q${midX},${midY} ${x2},${y2}`
     }
     
-    // Create arrow marker definitions for different colors
     const colors = ['#ef4444', '#10b981', '#f59e0b']
     const defs = svg.append('defs')
     
@@ -220,9 +206,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('fill', color)
     })
     
-    // Create flow paths with animations
     Object.entries(arrowPaths).forEach(([key, arrow]) => {
-      // Create the path element
       const path = svg.append('path')
         .attr('d', arrow.path)
         .attr('fill', 'none')
@@ -233,9 +217,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('opacity', arrow.active ? 1 : 0)
         .style('filter', `drop-shadow(0px 2px 3px ${arrow.color}80)`)
       
-      // Animate the dash pattern if active
       if (arrow.active) {
-        // Self calling animation function using d3 transition
         function animateDash() {
           path.transition()
             .duration(500)
@@ -255,7 +237,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     
   }, [data, flowAnimations, size])
   
-  // If no data is available, show a loading state
   if (!data) {
     return (
       <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>

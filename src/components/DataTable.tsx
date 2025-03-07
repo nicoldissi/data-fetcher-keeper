@@ -1,9 +1,9 @@
-
 import { ShellyEMData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatDistance } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils';
 
 interface DataTableProps {
   data: ShellyEMData[];
@@ -12,7 +12,6 @@ interface DataTableProps {
 }
 
 export function DataTable({ data, className, configId }: DataTableProps) {
-  // Filter data by configId if provided
   const filteredData = configId 
     ? data.filter(item => item.shelly_config_id === configId)
     : data;
@@ -40,29 +39,17 @@ export function DataTable({ data, className, configId }: DataTableProps) {
               </thead>
               <tbody>
                 {reversedData.map((item, index) => {
-                  // Utiliser la méthode de conversion fournie
-                  const utcTimestamp = item.timestamp + "Z"; // Forcer l'interprétation en UTC
-                  const localDate = new Date(utcTimestamp);
+                  const formattedTime = formatLocalDate(item.timestamp);
                   
-                  // Formater l'heure en utilisant directement toLocaleTimeString avec les options de formatage
-                  const formattedTime = localDate.toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                  });
+                  const localDate = parseToLocalDate(item.timestamp);
                   
-                  // Calculer le temps écoulé
                   const timeAgo = formatDistance(localDate, new Date(), { 
                     addSuffix: true,
                     locale: fr 
                   });
                   
-                  // Calculate grid current using the same method as DeviceStatus
                   const gridCurrent = item.voltage > 0 ? Math.abs(item.power) / item.voltage : 0;
                   
-                  // Calculate photovoltaic current (approximation based on power and voltage)
                   const pvCurrent = item.voltage > 0 ? item.production_power / item.voltage : 0;
                   
                   return (

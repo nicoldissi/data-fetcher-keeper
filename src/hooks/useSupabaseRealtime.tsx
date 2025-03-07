@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { toast } from '@/components/ui/use-toast';
+import { parseToLocalDate } from '@/lib/dateUtils';
 
 export function useSupabaseRealtime(configId?: string) {
   const [currentData, setCurrentData] = useState<ShellyEMData | null>(null);
@@ -14,7 +15,6 @@ export function useSupabaseRealtime(configId?: string) {
   const lastFetchTimeRef = useRef<number>(0);
   const CACHE_DURATION = 60000; // 60 seconds
 
-  // Load device configuration
   useEffect(() => {
     const fetchDeviceConfig = async () => {
       if (!configId) {
@@ -24,7 +24,6 @@ export function useSupabaseRealtime(configId?: string) {
       }
 
       try {
-        // Get device configuration from Supabase
         const { data, error } = await supabase
           .from('shelly_configs')
           .select('*')
@@ -40,7 +39,6 @@ export function useSupabaseRealtime(configId?: string) {
           return;
         }
 
-        // Map database fields to frontend format
         const config: ShellyConfig = {
           id: data.id,
           deviceId: data.deviceid,
@@ -63,7 +61,6 @@ export function useSupabaseRealtime(configId?: string) {
     fetchDeviceConfig();
   }, [configId]);
 
-  // Load initial data and set up real-time subscription
   useEffect(() => {
     const fetchInitialData = async () => {
       if (!configId) {
@@ -74,7 +71,6 @@ export function useSupabaseRealtime(configId?: string) {
 
       setIsLoading(true);
       try {
-        // Get the latest energy data for this device
         const { data, error } = await supabase
           .from('energy_data')
           .select('*')
@@ -88,7 +84,6 @@ export function useSupabaseRealtime(configId?: string) {
           const latestData = mapDbToShellyEMData(data[0]);
           setCurrentData(latestData);
           
-          // Also get recent history data
           fetchHistoryData();
         } else {
           console.log('No data found for device');
@@ -108,14 +103,12 @@ export function useSupabaseRealtime(configId?: string) {
     };
 
     const fetchHistoryData = async () => {
-      // Check if we should fetch new data based on cache duration
       const now = Date.now();
       if (now - lastFetchTimeRef.current < CACHE_DURATION) {
-        return; // Use cached data
+        return;
       }
 
       try {
-        // Get the energy data history for this device (last 24 hours)
         const twentyFourHoursAgo = new Date();
         twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
@@ -125,7 +118,7 @@ export function useSupabaseRealtime(configId?: string) {
           .eq('shelly_config_id', configId)
           .gte('timestamp', twentyFourHoursAgo.toISOString())
           .order('timestamp', { ascending: true })
-          .limit(100); // Adjust based on your needs
+          .limit(100);
 
         if (error) throw error;
 
@@ -136,15 +129,12 @@ export function useSupabaseRealtime(configId?: string) {
         }
       } catch (err) {
         console.error('Error loading history data:', err);
-        // Don't set error state for history data to avoid disrupting the UI
       }
     };
 
-    // Subscribe to real-time updates
     const setupRealtimeSubscription = () => {
       if (!configId) return;
       
-      // Clean up any existing channel
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
@@ -160,16 +150,12 @@ export function useSupabaseRealtime(configId?: string) {
             filter: `shelly_config_id=eq.${configId}`
           },
           (payload) => {
-            console.log('Received real-time data update:', payload);
             const newData = mapDbToShellyEMData(payload.new);
             
-            // Update current data
             setCurrentData(newData);
             
-            // Add to history
             setHistory(prev => {
               const newHistory = [...prev, newData];
-              // Keep most recent 100 entries
               return newHistory.slice(-100);
             });
           }
@@ -186,16 +172,12 @@ export function useSupabaseRealtime(configId?: string) {
       channelRef.current = channel;
     };
 
-    // Initial data load
     fetchInitialData();
     
-    // Set up real-time subscription
     setupRealtimeSubscription();
     
-    // Periodically refresh history data
     const historyInterval = setInterval(fetchHistoryData, CACHE_DURATION);
 
-    // Cleanup
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -204,22 +186,23 @@ export function useSupabaseRealtime(configId?: string) {
     };
   }, [configId]);
 
-  // Helper function to map database record to ShellyEMData
   const mapDbToShellyEMData = (record: any): ShellyEMData => {
+    const timestamp = parseToLocalDate(record.timestamp).getTime();
+    
     return {
-      timestamp: new Date(record.timestamp).getTime(),
+      timestamp,
       power: record.consumption || 0,
-      reactive: 0, // Not always available in database
+      reactive: 0,
       production_power: record.production || 0,
       total_energy: record.grid_total || 0,
       production_energy: record.production_total || 0,
       grid_returned: record.grid_total_returned || 0,
       voltage: record.voltage || 0,
-      current: 0, // Not available in database
-      pf: 0, // Not available in database
-      temperature: 0, // Not available in database
-      is_valid: true, // Assume data in database is valid
-      channel: 0, // Not available in database
+      current: 0,
+      pf: 0,
+      temperature: 0,
+      is_valid: true,
+      channel: 0,
       shelly_config_id: configId,
       frequency: record.frequency || 0
     };

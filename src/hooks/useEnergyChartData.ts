@@ -1,9 +1,8 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
+import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils';
 
-// Define the type for the chart data points
 export interface ChartDataPoint {
   time: string;
   timestamp: number;
@@ -18,7 +17,6 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
   const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
   
-  // Fetch full day data from Supabase
   useEffect(() => {
     const fetchFullDayData = async () => {
       if (!configId) return;
@@ -26,7 +24,6 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       setIsLoadingFullDay(true);
       
       try {
-        // Get start of the current day in local time, then convert to ISO for the query
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const startOfDay = today.toISOString();
@@ -45,28 +42,24 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         console.log(`Fetched ${data?.length || 0} data points for the full day`);
         
         if (data && data.length > 0) {
-          // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            // Ensure we create a local date object from the timestamp
             const date = new Date(item.timestamp);
             
-            // Ensure consumption = grid + production with positive values
             const grid = Math.round(item.consumption || 0);
             const production = Math.round(item.production || 0);
             const consumption = grid + production;
             
             return {
-              // Format time using toLocaleTimeString to ensure it's in the user's local timezone
               time: date.toLocaleTimeString('fr-FR', { 
                 hour: '2-digit', 
                 minute: '2-digit',
-                hour12: false // Format 24h pour la France
+                hour12: false
               }),
               timestamp: date.getTime(),
               consumption,
               production,
               grid,
-              voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined // Round to 1 decimal place if available
+              voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined
             };
           });
           
@@ -82,32 +75,20 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     fetchFullDayData();
   }, [configId]);
 
-  // Use both sources of data
   useEffect(() => {
     if (fullDayData.length > 0) {
-      // Use the full day data if available
       setChartData(fullDayData);
     } else if (history.length > 0) {
-      // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-        // Utiliser la méthode de conversion fournie
-        const utcTimestamp = item.timestamp + "Z"; // Forcer l'interprétation en UTC
-        const localDate = new Date(utcTimestamp);
+        const localDate = parseToLocalDate(item.timestamp);
+        const formattedTime = formatLocalDate(item.timestamp);
         
-        // Ensure consumption = grid + production
         const grid = Math.round(item.power);
         const production = Math.round(item.production_power || 0);
         const consumption = grid + production;
         
         return {
-          // Format time using the new date conversion method
-          time: localDate.toLocaleString('fr-FR', {
-            day: '2-digit',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }),
+          time: formattedTime,
           timestamp: localDate.getTime(),
           consumption,
           production,
@@ -120,13 +101,11 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     }
   }, [history, fullDayData]);
 
-  // Calculate Y-axis domains
   const calculateYAxisDomain = useCallback((showConsumption: boolean, showProduction: boolean, showGrid: boolean) => {
     if (chartData.length === 0) {
-      return [-500, 3000]; // Default if no data
+      return [-500, 3000];
     }
     
-    // Find max value based on which lines are shown
     const maxValue = Math.max(
       ...chartData.map(d => Math.max(
         showConsumption ? d.consumption : 0,
@@ -135,21 +114,18 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       ))
     );
     
-    // Find min value (for grid which can be negative)
     const minValue = Math.min(
       ...chartData.map(d => Math.min(
         showGrid ? d.grid : 0
       ))
     );
     
-    // Add 10% padding to max and min for better visualization
     return [minValue < 0 ? 1.1 * minValue : -100, 1.1 * maxValue];
   }, [chartData]);
 
-  // Calculate voltage Y-axis domain
   const calculateVoltageYAxisDomain = useCallback((showVoltage: boolean) => {
     if (chartData.length === 0 || !showVoltage) {
-      return [220, 240]; // Default voltage range if no data
+      return [220, 240];
     }
 
     const voltageValues = chartData
@@ -157,13 +133,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       .filter(v => v !== undefined) as number[];
     
     if (voltageValues.length === 0) {
-      return [220, 240]; // Default if no voltage data
+      return [220, 240];
     }
     
     const minVoltage = Math.min(...voltageValues);
     const maxVoltage = Math.max(...voltageValues);
     
-    // Add small padding for better visualization
     const padding = (maxVoltage - minVoltage) * 0.1;
     return [
       Math.floor(minVoltage - padding), 

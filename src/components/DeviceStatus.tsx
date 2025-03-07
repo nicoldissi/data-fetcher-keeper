@@ -1,4 +1,3 @@
-
 import { ShellyEMData } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { Stage, Layer, Arc, Text, Group } from 'react-konva';
 import { useEffect, useState, useRef } from 'react';
+import { formatLocalDate } from '@/lib/dateUtils';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -20,7 +20,6 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   const containerRef = useRef<HTMLDivElement>(null);
   const [stageSize, setStageSize] = useState(100);
   
-  // Update stage size based on container size
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
@@ -33,53 +32,36 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   
-  // Calculate self-consumption rate using daily totals
   const calculateSelfConsumptionRate = () => {
     if (!dailyTotals || dailyTotals.production <= 0) {
       return 0;
     }
     
-    // Calculate self-consumption using daily totals
     const consumedFromProduction = dailyTotals.production - dailyTotals.injection;
     const selfConsumptionRate = (consumedFromProduction / dailyTotals.production) * 100;
     
-    // Ensure the rate is between 0 and 100
     return Math.max(0, Math.min(100, selfConsumptionRate));
   };
   
   const selfConsumptionRate = calculateSelfConsumptionRate();
   const formattedRate = selfConsumptionRate.toFixed(1);
   
-  // Determine color based on self-consumption rate
   const getColor = (rate: number) => {
-    if (rate >= 70) return '#10b981'; // Green for high self-consumption
-    if (rate >= 45) return '#f59e0b'; // Amber for medium self-consumption
-    return '#ef4444'; // Red for low self-consumption
+    if (rate >= 70) return '#10b981';
+    if (rate >= 45) return '#f59e0b';
+    return '#ef4444';
   };
   
   const color = getColor(selfConsumptionRate);
   
-  // Format timestamp in local time using the provided format
   const formattedTimestamp = data 
-    ? (() => {
-        const utcTimestamp = data.timestamp + "Z"; // Forcer l'interprétation en UTC
-        return new Date(utcTimestamp).toLocaleString('fr-FR', {
-          day: '2-digit',
-          month: 'short',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false // Format 24h pour la France
-        });
-      })()
+    ? formatLocalDate(data.timestamp)
     : 'Jamais';
   
-  // Calculate grid current without absolute value
   const gridCurrent = data && data.voltage > 0 ? data.power / data.voltage : 0;
   
-  // Determine if we are injecting to grid (exporting) or drawing from grid (importing)
   const isExporting = data && data.power < 0;
   
-  // Set current color based on direction
   const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
   
   return (
@@ -123,11 +105,9 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
               </div>
             </div>
             
-            {/* React Konva Gauge for Self-Consumption */}
             <div className="mt-6 flex justify-center" ref={containerRef}>
               <Stage width={stageSize} height={stageSize}>
                 <Layer>
-                  {/* Background Arc */}
                   <Arc
                     x={stageSize/2}
                     y={stageSize/2}
@@ -138,7 +118,6 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                     rotation={-90}
                   />
                   
-                  {/* Value Arc */}
                   <Arc
                     x={stageSize/2}
                     y={stageSize/2}
@@ -149,7 +128,6 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                     rotation={-90}
                   />
                   
-                  {/* Center Text Group */}
                   <Group>
                     <Text
                       x={stageSize/2}
