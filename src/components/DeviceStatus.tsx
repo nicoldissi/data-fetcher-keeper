@@ -7,6 +7,7 @@ import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { formatDistanceToNow } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -45,8 +46,18 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   const color = getColor(selfConsumptionRate);
   
-  // Format timestamp properly using formatDistanceToNow if we have data
-  const formattedTimestamp = data ? formatDistanceToNow(new Date(data.timestamp), { addSuffix: true }) : 'Never';
+  // Get the user's local timezone
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  // Format timestamp properly using the user's local timezone
+  const formattedTimestamp = data 
+    ? formatDistanceToNow(new Date(data.timestamp), { addSuffix: true })
+    : 'Never';
+
+  // Also create a more precise timestamp for debugging
+  const preciseTimestamp = data
+    ? formatInTimeZone(new Date(data.timestamp), userTimeZone, 'yyyy-MM-dd HH:mm:ss (z)')
+    : 'No data';
   
   // Calculate grid current without absolute value
   const gridCurrent = data && data.voltage > 0 ? data.power / data.voltage : 0;
@@ -56,6 +67,15 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   // Set current color based on direction
   const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
+  
+  // Log timestamp info for debugging
+  console.log('Timestamp debugging:', {
+    originalTimestamp: data?.timestamp,
+    timestampAsDate: data ? new Date(data.timestamp) : null,
+    userTimeZone,
+    formattedTimestamp,
+    preciseTimestamp
+  });
   
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
