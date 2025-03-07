@@ -165,7 +165,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background border rounded-md shadow-md p-3">
+        <div className="bg-background border rounded-md shadow-md p-3 font-sans">
           <p className="font-semibold">{`${label}`}</p>
           {payload.map((entry: any, index: number) => (
             <div key={`tooltip-${index}`} className="flex items-center gap-2">
@@ -181,6 +181,19 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       );
     }
     return null;
+  };
+
+  // Common font styling for the chart
+  const fontStyle = {
+    fontFamily: 'inherit',
+    fontSize: 12,
+    fontWeight: 'bold'
+  };
+
+  const axisLabelStyle = {
+    ...fontStyle,
+    fontSize: 14,
+    textAnchor: 'middle',
   };
 
   return (
@@ -264,15 +277,13 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   <XAxis 
                     dataKey="time" 
                     minTickGap={60}
-                    tick={{ fontSize: 12, fontWeight: 'bold', fontFamily: 'inherit' }}
+                    tick={fontStyle}
                     tickMargin={10}
                     label={{
                       value: 'Heure',
                       position: 'insideBottomRight',
                       offset: -10,
-                      fontSize: 14,
-                      fontWeight: 'bold',
-                      fontFamily: 'inherit'
+                      style: axisLabelStyle
                     }}
                   />
                   <YAxis 
@@ -282,24 +293,19 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       value: 'Watts', 
                       angle: -90, 
                       position: 'insideLeft',
-                      style: { 
-                        textAnchor: 'middle',
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        fontFamily: 'inherit'
-                      },
+                      style: axisLabelStyle,
                       offset: 0
                     }}
-                    tick={{ fontSize: 12, fontWeight: 'bold', fontFamily: 'inherit' }}
+                    tick={fontStyle}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend 
                     verticalAlign="bottom"
                     height={36}
                     wrapperStyle={{ 
+                      fontFamily: 'inherit',
                       fontSize: 14,
                       fontWeight: 'bold',
-                      fontFamily: 'inherit',
                       paddingTop: '10px'
                     }}
                     formatter={(value, entry, index) => {
