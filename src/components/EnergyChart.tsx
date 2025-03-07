@@ -2,14 +2,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Area, ComposedChart, ReferenceLine 
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { Toggle } from '@/components/ui/toggle';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 
 interface HistoricalEnergyChartProps {
@@ -27,7 +26,6 @@ interface ChartDataPoint {
 
 export default function HistoricalEnergyChart({ history }: HistoricalEnergyChartProps) {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [activeTab, setActiveTab] = useState('combined');
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
   const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
   const [configId, setConfigId] = useState<string | null>(null);
@@ -131,10 +129,6 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     }
   }, [history, fullDayData]);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
   // Calculate max and min values for dynamic Y axis based on visible data and enabled lines
   const calculateYAxisDomain = useCallback(() => {
     if (chartData.length === 0) {
@@ -235,140 +229,112 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="combined" onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-4 max-w-md mb-4">
-            <TabsTrigger value="combined">Combiné</TabsTrigger>
-            <TabsTrigger value="grid">Réseau</TabsTrigger>
-            <TabsTrigger value="production">Production</TabsTrigger>
-            <TabsTrigger value="consumption">Consommation</TabsTrigger>
-          </TabsList>
-
-          <div className="h-[400px] w-full">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={chartData}
-                  margin={{
-                    top: 10,
-                    right: 30,
-                    left: 20,
-                    bottom: 40,
+        <div className="h-[400px] w-full">
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={chartData}
+                margin={{
+                  top: 10,
+                  right: 30,
+                  left: 20,
+                  bottom: 40,
+                }}
+              >
+                <defs>
+                  <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F97415" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#F97415" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorProduction" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00FF59" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#00FF59" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorGridPos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorGridNeg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis 
+                  dataKey="time" 
+                  minTickGap={60}
+                  tick={fontStyle}
+                  tickMargin={10}
+                  label={{
+                    value: 'Heure',
+                    position: 'insideBottomRight',
+                    offset: -10,
+                    style: axisLabelStyle
                   }}
-                >
-                  <defs>
-                    <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F97415" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#F97415" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorProduction" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00FF59" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#00FF59" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorGridPos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorGridNeg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis 
-                    dataKey="time" 
-                    minTickGap={60}
-                    tick={fontStyle}
-                    tickMargin={10}
-                    label={{
-                      value: 'Heure',
-                      position: 'insideBottomRight',
-                      offset: -10,
-                      style: axisLabelStyle
-                    }}
+                />
+                <YAxis 
+                  domain={calculateYAxisDomain()}
+                  tickFormatter={(value) => `${Math.round(value)} W`}
+                  label={{ 
+                    value: '', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: axisLabelStyle,
+                    offset: 0
+                  }}
+                  tick={fontStyle}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
+                
+                {showGrid && (
+                  <Area
+                    type="monotone"
+                    dataKey="grid"
+                    name="Réseau"
+                    fill="url(#colorGridPos)"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
                   />
-                  <YAxis 
-                    domain={calculateYAxisDomain()}
-                    tickFormatter={(value) => `${Math.round(value)} W`}
-                    label={{ 
-                      value: '', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      style: axisLabelStyle,
-                      offset: 0
-                    }}
-                    tick={fontStyle}
+                )}
+                
+                {showProduction && (
+                  <Area
+                    type="monotone"
+                    dataKey="production"
+                    name="Production"
+                    fill="url(#colorProduction)"
+                    stroke="#00FF59"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    verticalAlign="bottom"
-                    height={36}
-                    wrapperStyle={{ 
-                      fontFamily: 'system-ui, sans-serif',
-                      fontSize: 14,
-                      fontWeight: 'normal', // Changed from bold to normal
-                      paddingTop: '10px'
-                    }}
-                    formatter={(value, entry, index) => {
-                      return <span style={{ color: entry.color, fontWeight: 'normal', fontFamily: 'system-ui, sans-serif' }}>{value}</span>;
-                    }}
+                )}
+                
+                {showConsumption && (
+                  <Area
+                    type="monotone"
+                    dataKey="consumption"
+                    name="Consommation"
+                    fill="url(#colorConsumption)"
+                    stroke="#F97415"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
                   />
-                  <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
-                  
-                  {/* Only show relevant graphs based on selected tab */}
-                  {(activeTab === 'combined' || activeTab === 'grid') && showGrid && (
-                    <>
-                      <Area
-                        type="monotone"
-                        dataKey="grid"
-                        name="Réseau"
-                        fill="url(#colorGridPos)"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 6, strokeWidth: 2 }}
-                        hide={!showGrid}
-                      />
-                    </>
-                  )}
-                  
-                  {(activeTab === 'combined' || activeTab === 'production') && showProduction && (
-                    <Area
-                      type="monotone"
-                      dataKey="production"
-                      name="Production"
-                      fill="url(#colorProduction)"
-                      stroke="#00FF59"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 6, strokeWidth: 2 }}
-                      hide={!showProduction}
-                    />
-                  )}
-                  
-                  {(activeTab === 'combined' || activeTab === 'consumption') && showConsumption && (
-                    <Area
-                      type="monotone"
-                      dataKey="consumption"
-                      name="Consommation"
-                      fill="url(#colorConsumption)"
-                      stroke="#F97415"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 6, strokeWidth: 2 }}
-                      hide={!showConsumption}
-                    />
-                  )}
-                </ComposedChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">
-                  {isLoadingFullDay ? 'Chargement des données...' : 'Pas de données disponibles'}
-                </p>
-              </div>
-            )}
-          </div>
-        </Tabs>
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">
+                {isLoadingFullDay ? 'Chargement des données...' : 'Pas de données disponibles'}
+              </p>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
