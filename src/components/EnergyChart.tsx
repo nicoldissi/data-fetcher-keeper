@@ -11,6 +11,7 @@ import { ShellyEMData } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Toggle } from '@/components/ui/toggle';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -28,31 +29,102 @@ interface ChartDataPoint {
 export default function HistoricalEnergyChart({ history }: HistoricalEnergyChartProps) {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [activeTab, setActiveTab] = useState('combined');
+  const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
+  const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
+  const [configId, setConfigId] = useState<string | null>(null);
   
   // Toggle visibility of lines
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
 
+  // Extract configId from the first history item
   useEffect(() => {
-    // Transform all history data for the chart without limiting data points
-    const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-      const date = new Date(item.timestamp);
-      const consumption = Math.round(Math.abs(item.power) + (item.production_power || 0));
-      const production = Math.round(item.production_power || 0);
-      const grid = Math.round(item.power);
-      
-      return {
-        time: format(date, 'HH:mm', { locale: fr }),
-        timestamp: item.timestamp,
-        consumption,
-        production,
-        grid
-      };
-    });
-
-    setChartData(transformedData);
+    if (history.length > 0 && history[0].shelly_config_id) {
+      setConfigId(history[0].shelly_config_id);
+    }
   }, [history]);
+
+  // Fetch full day data from Supabase
+  useEffect(() => {
+    const fetchFullDayData = async () => {
+      if (!configId) return;
+      
+      setIsLoadingFullDay(true);
+      
+      try {
+        // Get start of the current day in ISO format
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startOfDay = today.toISOString();
+        
+        console.log('Fetching full day data since:', startOfDay);
+        
+        const { data, error } = await supabase
+          .from('energy_data')
+          .select('*')
+          .eq('shelly_config_id', configId)
+          .gte('timestamp', startOfDay)
+          .order('timestamp', { ascending: true });
+          
+        if (error) throw error;
+        
+        console.log(`Fetched ${data?.length || 0} data points for the full day`);
+        
+        if (data && data.length > 0) {
+          // Transform the data for the chart
+          const transformedData: ChartDataPoint[] = data.map((item: any) => {
+            const date = new Date(item.timestamp);
+            const consumption = Math.round(Math.abs(item.consumption || 0) + (item.production || 0));
+            const production = Math.round(item.production || 0);
+            const grid = Math.round(item.consumption || 0);
+            
+            return {
+              time: format(date, 'HH:mm', { locale: fr }),
+              timestamp: new Date(item.timestamp).getTime(),
+              consumption,
+              production,
+              grid
+            };
+          });
+          
+          setFullDayData(transformedData);
+        }
+      } catch (err) {
+        console.error('Error fetching full day data:', err);
+      } finally {
+        setIsLoadingFullDay(false);
+      }
+    };
+    
+    fetchFullDayData();
+  }, [configId]);
+
+  // Use both sources of data
+  useEffect(() => {
+    if (fullDayData.length > 0) {
+      // Use the full day data if available
+      setChartData(fullDayData);
+    } else if (history.length > 0) {
+      // Fall back to the history prop if full day data isn't ready
+      const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
+        const date = new Date(item.timestamp);
+        const consumption = Math.round(Math.abs(item.power) + (item.production_power || 0));
+        const production = Math.round(item.production_power || 0);
+        const grid = Math.round(item.power);
+        
+        return {
+          time: format(date, 'HH:mm', { locale: fr }),
+          timestamp: item.timestamp,
+          consumption,
+          production,
+          grid
+        };
+      });
+
+      setChartData(transformedData);
+    }
+  }, [history, fullDayData]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -171,6 +243,10 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
                     </linearGradient>
+                    <linearGradient id="colorGridNeg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis 
@@ -203,25 +279,29 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   
                   {/* Only show relevant graphs based on selected tab */}
                   {(activeTab === 'combined' || activeTab === 'grid') && showGrid && (
-                    <Line
-                      type="monotone"
-                      dataKey="grid"
-                      name="Réseau"
-                      stroke="#3b82f6"
-                      strokeWidth={2.5}
-                      dot={false}
-                      activeDot={{ r: 6, strokeWidth: 2 }}
-                      hide={!showGrid}
-                    />
+                    <>
+                      <Area
+                        type="monotone"
+                        dataKey="grid"
+                        name="Réseau"
+                        fill="url(#colorGridPos)"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 6, strokeWidth: 2 }}
+                        hide={!showGrid}
+                      />
+                    </>
                   )}
                   
                   {(activeTab === 'combined' || activeTab === 'production') && showProduction && (
-                    <Line
+                    <Area
                       type="monotone"
                       dataKey="production"
                       name="Production"
+                      fill="url(#colorProduction)"
                       stroke="#10b981"
-                      strokeWidth={2.5}
+                      strokeWidth={3}
                       dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showProduction}
@@ -229,12 +309,13 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   )}
                   
                   {(activeTab === 'combined' || activeTab === 'consumption') && showConsumption && (
-                    <Line
+                    <Area
                       type="monotone"
                       dataKey="consumption"
                       name="Consommation"
+                      fill="url(#colorConsumption)"
                       stroke="#f97316"
-                      strokeWidth={2.5}
+                      strokeWidth={3}
                       dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showConsumption}
@@ -255,7 +336,9 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">Pas de données disponibles</p>
+                <p className="text-gray-500">
+                  {isLoadingFullDay ? 'Chargement des données...' : 'Pas de données disponibles'}
+                </p>
               </div>
             )}
           </div>
