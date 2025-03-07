@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { fetchShellyData, storeEnergyData, isShellyConfigValid } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useShellyData(configId?: string, pollingInterval = 5000) {
   const [currentData, setCurrentData] = useState<ShellyEMData | null>(null);
@@ -110,7 +112,7 @@ export function useShellyData(configId?: string, pollingInterval = 5000) {
       clearInterval(interval);
     };
   }, [pollingInterval, configId]);
-  
+
   return {
     currentData,
     isLoading,

@@ -14,6 +14,8 @@ export interface ShellyEMData {
   temperature: number;    // Device temperature
   is_valid: boolean;      // Whether the reading is valid
   channel: number;        // Which channel (0 or 1) the data comes from
+  shelly_config_id?: string; // ID of the Shelly device configuration
+  frequency?: number;     // Current frequency (Hz)
 }
 
 export interface ShellyEMResponse {

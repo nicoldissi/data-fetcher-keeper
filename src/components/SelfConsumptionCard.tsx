@@ -8,10 +8,11 @@ import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 interface SelfConsumptionCardProps {
   data: ShellyEMData | null;
   className?: string;
+  configId?: string;
 }
 
-export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProps) {
-  const { dailyTotals } = useDailyEnergyTotals();
+export function SelfConsumptionCard({ data, className, configId }: SelfConsumptionCardProps) {
+  const { dailyTotals } = useDailyEnergyTotals(configId);
 
   // Calculate self-consumption rate using daily totals
   const calculateSelfConsumptionRate = () => {
@@ -89,8 +90,8 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
           <CircularProgressbar
             value={selfConsumptionRate}
             styles={buildStyles({
-              pathColor: color,
-              trailColor: '#e5e7eb',
+              pathColor: '#10b981', // Green for PV
+              trailColor: '#007bff', // Blue for Grid
               strokeLinecap: 'butt',
               textSize: '16px',
             })}
@@ -104,9 +105,9 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
           </div>
           
           {/* Self consumed sector label - dynamically positioned */}
-          <div 
-            className="absolute text-emerald-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-emerald-200"
-            style={{ 
+          <div
+            className="absolute text-emerald-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-emerald-200 flex flex-col items-center justify-center"
+            style={{
               position: 'absolute',
               ...selfConsumedPosition,
               transform: 'translate(-50%, -50%)',
@@ -116,23 +117,25 @@ export function SelfConsumptionCard({ data, className }: SelfConsumptionCardProp
               textAlign: 'center'
             }}
           >
-            {selfConsumed.toFixed(2)} kWh
+            <div>Autoconsommé</div>
+            <div>{selfConsumed.toFixed(2)} kWh</div>
           </div>
-          
+
           {/* Grid injection sector label - dynamically positioned */}
-          <div 
-            className="absolute text-blue-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-blue-200"
-            style={{ 
-              position: 'absolute',
+          <div
+            className="absolute text-blue-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-blue-200 flex flex-col items-center justify-center"
+            style={{
+              position: "absolute",
               ...injectionPosition,
-              transform: 'translate(-50%, -50%)',
+              transform: "translate(-50%, -50%)",
               zIndex: 10,
-              whiteSpace: 'nowrap',
-              minWidth: '80px',
-              textAlign: 'center'
+              whiteSpace: "nowrap",
+              minWidth: "80px",
+              textAlign: "center",
             }}
           >
-            {gridInjection.toFixed(2)} kWh
+            <div>Injection</div>
+            <div>{gridInjection.toFixed(2)} kWh</div>
           </div>
         </div>
         

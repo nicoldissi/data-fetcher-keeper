@@ -11,11 +11,12 @@ interface DeviceStatusProps {
   data: ShellyEMData | null;
   lastUpdated: string;
   className?: string;
+  configId?: string;
 }
 
-export function DeviceStatus({ data, lastUpdated, className }: DeviceStatusProps) {
+export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceStatusProps) {
   const isOnline = data?.is_valid ?? false;
-  const { dailyTotals } = useDailyEnergyTotals();
+  const { dailyTotals, loading } = useDailyEnergyTotals(configId);
   
   // Calculate self-consumption rate using daily totals
   const calculateSelfConsumptionRate = () => {

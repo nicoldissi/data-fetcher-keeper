@@ -1,44 +1,90 @@
-
 import { useState, useEffect } from 'react';
-import { useShellyData } from '@/hooks/useShellyData';
-import { getShellyConfig } from '@/lib/api';
+import { useServerShellyData } from '@/hooks/useServerShellyData';
+import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
-import { EnergyChart } from './EnergyChart';
+import HistoricalEnergyChart from './EnergyChart'; // Corrected import: default import
 import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { isShellyConfigValid } from '@/lib/api';
 import { DailyTotals } from './DailyTotals';
 import { EnergyFlowChartDark } from './EnergyFlowChartDark';
 import { SelfConsumptionCard } from './SelfConsumptionCard';
+import { SelfProductionCard } from './SelfProductionCard';
 import { PowerTriangleCard } from './PowerTriangleCard';
 import { UserMenu } from './UserMenu';
+import { ShellyConfig } from '@/lib/types';
+
+// Add development mode check
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+const debugLog = (message: string, ...args: unknown[]) => { // Use unknown[]
+  if (isDevelopment) {
+    console.log(message, ...args);
+  }
+};
 
 export function ShellyDashboard() {
-  const [showConfig, setShowConfig] = useState<boolean>(!isShellyConfigValid());
-  const [activeConfigId, setActiveConfigId] = useState<string | undefined>();
-  const { currentData, isLoading, error, lastStored, history, stats } = useShellyData(activeConfigId);
+  const [showConfig, setShowConfig] = useState(false);
+  const [activeConfigId, setActiveConfigId] = useState<string | null>(null); // Type activeConfigId
+  const [config, setConfig] = useState<ShellyConfig | null>(null); // Type config
+  const [isInitializing, setIsInitializing] = useState(true);
 
+  // Check if config is valid on component mount
   useEffect(() => {
-    const loadActiveConfig = async () => {
-      const config = await getShellyConfig();
-      if (config && config.id) {
-        setActiveConfigId(config.id);
+    const checkConfigValidity = async () => {
+      try {
+        const isValid = await isShellyConfigValid();
+        setShowConfig(!isValid);
+        if (isValid) {
+          const config = await getShellyConfig();
+          if (config && config.id) {
+            setActiveConfigId(config.id);
+            setConfig(config);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking config validity:', error);
+      } finally {
+        setIsInitializing(false);
       }
     };
-    loadActiveConfig();
+    checkConfigValidity();
   }, []);
-  
-  const lastUpdated = currentData 
-    ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true }) 
+
+  const { currentData, isLoading, error, lastStored, history, stats } = useServerShellyData(config);
+
+  // Add detailed logging to track data flow only when data changes and in development mode
+  useEffect(() => {
+    if (currentData && isDevelopment) {
+      debugLog('ShellyDashboard - Power values:', {
+        grid_power: currentData.power,
+        production_power: currentData.production_power,
+        total_consumption: currentData.power + currentData.production_power
+      });
+    }
+  }, [currentData]);
+
+  const lastUpdated = currentData
+    ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true })
     : 'Never';
+
   const handleConfigClick = () => {
     setShowConfig(true);
   };
-  
+
+  if (isInitializing) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Moniteur d'Énergie</h1>
+        <div className="text-center text-muted-foreground">
+          <p>Initialisation...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (showConfig) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -47,7 +93,7 @@ export function ShellyDashboard() {
       </div>
     );
   }
-  
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="py-6">
@@ -58,56 +104,61 @@ export function ShellyDashboard() {
               Données en temps réel de votre appareil Shelly EM
             </p>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <UserMenu />
           </div>
         </div>
-        
+
         <Separator className="my-6" />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="md:col-span-1 space-y-6">
-            <DeviceStatus 
-              data={currentData} 
-              lastUpdated={lastUpdated} 
+            <DeviceStatus
+              data={currentData}
+              lastUpdated={lastUpdated}
+              configId={activeConfigId}
             />
-            
+
             {currentData && (
               <div className="grid grid-cols-1 gap-6">
-                <PowerTriangleCard 
-                  title="Power Triangle - Grid" 
+                <PowerTriangleCard
+                  title="Power Triangle - Grid"
                   activePower={currentData.power}
                   reactivePower={currentData.reactive}
                   powerFactor={currentData.pf}
-                  emeterIndex={0} 
+                  emeterIndex={0}
                 />
               </div>
             )}
           </div>
-          
+
           <div className="md:col-span-2">
             <EnergyFlowChartDark data={currentData} />
           </div>
         </div>
-        
-        <div className="mb-6">
-          <DailyTotals data={currentData} />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <SelfConsumptionCard data={currentData} configId={activeConfigId} />
+          <SelfProductionCard data={currentData} configId={activeConfigId} />
         </div>
-        
+
+        <div className="mb-6">
+          <DailyTotals data={currentData} configId={activeConfigId} />
+        </div>
+
         <Tabs defaultValue="chart" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="chart">Graphique</TabsTrigger>
             <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
-            <EnergyChart data={history} configId={activeConfigId} />
+            <HistoricalEnergyChart  history={history}  /> {/* Use HistoricalEnergyChart, pass history */}
           </TabsContent>
           <TabsContent value="data" className="mt-6">
             <DataTable data={history} />
           </TabsContent>
         </Tabs>
-        
       </div>
     </div>
   );

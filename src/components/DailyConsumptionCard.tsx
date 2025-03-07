@@ -4,10 +4,11 @@ import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 
 interface DailyConsumptionCardProps {
   className?: string;
+  configId?: string;
 }
 
-export function DailyConsumptionCard({ className }: DailyConsumptionCardProps) {
-  const { dailyTotals, loading, error } = useDailyEnergyTotals();
+export function DailyConsumptionCard({ className, configId }: DailyConsumptionCardProps) {
+  const { dailyTotals, loading, error } = useDailyEnergyTotals(configId);
 
   // Calculate total consumption in kWh
   const totalConsumption = ((dailyTotals?.consumption || 0) / 1000).toFixed(2);

@@ -10,73 +10,121 @@ interface EnergyFlowChartDarkProps {
 
 export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-
+  
   useEffect(() => {
-    if (!data || !svgRef.current) return
-
+    // Only run effect when we have both data and SVG ref
+    if (!data || !svgRef.current) {
+      // Reduce log noise during initialization
+      return;
+    }
+  
+    // Ajout de logs pour déboguer
+    console.log('EnergyFlowChartDark received new data:', data)
+    console.log('Grid power:', data.power, 'W', typeof data.power)
+    console.log('Solar power:', data.production_power, 'W', typeof data.production_power)
+    console.log('Home consumption:', data.power + data.production_power, 'W')
+  
     // Récupère les valeurs de puissance
     const gridFlow = data.power
     const solarFlow = data.production_power
-    const homeConsumption = gridFlow + solarFlow
-
+    const homeConsumption = Math.abs(solarFlow) + Math.abs(gridFlow)
+    
+    console.log('Calculated values:', { gridFlow, solarFlow, homeConsumption })
+  
     // Sélectionne les chemins
     const gridToHomePath = svgRef.current.querySelector('#gridToHomePath') as SVGPathElement | null
     const gridFromHomePath = svgRef.current.querySelector('#gridFromHomePath') as SVGPathElement | null
     const solarToHomePath = svgRef.current.querySelector('#solarToHomePath') as SVGPathElement | null
     const solarToGridPath = svgRef.current.querySelector('#solarToGridPath') as SVGPathElement | null
-
+    
+    console.log('SVG paths found:', { 
+      gridToHomePath: !!gridToHomePath, 
+      gridFromHomePath: !!gridFromHomePath, 
+      solarToHomePath: !!solarToHomePath, 
+      solarToGridPath: !!solarToGridPath 
+    })
+  
     if (gridToHomePath && gridFromHomePath && solarToHomePath && solarToGridPath) {
       // Fonction utilitaire pour ajuster la durée d'animation
       const getAnimationDuration = (power: number) => {
         const absValue = Math.abs(power)
         return Math.max(2, Math.min(10, 20000 / (absValue + 100)))
       }
-
+  
       // Détermine les scénarios de flux d'énergie
-      const isPVProducingMoreThanConsumption = solarFlow > homeConsumption
+      const isPVProducing = solarFlow > 6 // Seuil minimal pour considérer la production
       const isGridSupplyingHome = gridFlow > 0
       const isGridReceivingExcess = gridFlow < 0
-
+      
+      console.log('Flow scenarios:', { isPVProducing, isGridSupplyingHome, isGridReceivingExcess })
+  
       // Gestion des chemins et animations en fonction des scénarios
       
       // 1. Flux du réseau vers la maison (consommation depuis le réseau)
-      if (isGridSupplyingHome && !isPVProducingMoreThanConsumption) {
+      if (isGridSupplyingHome) {
         gridToHomePath.style.display = 'block'
         gridToHomePath.style.animation = `flowAnimation ${getAnimationDuration(gridFlow)}s linear infinite`
         gridToHomePath.setAttribute('stroke', '#ef4444') // Rouge pour consommation depuis le réseau
+        console.log('Grid to home flow active with duration:', getAnimationDuration(gridFlow))
       } else {
         gridToHomePath.style.display = 'none'
+        console.log('Grid to home flow inactive')
       }
-
+  
       // 2. Flux de la maison vers le réseau (injection vers le réseau)
-      if (isGridReceivingExcess && !isPVProducingMoreThanConsumption) {
+      if (isGridReceivingExcess) {
         gridFromHomePath.style.display = 'block'
         gridFromHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
         gridFromHomePath.setAttribute('stroke', '#10b981') // Vert pour injection vers le réseau
+        console.log('Grid from home flow active with duration:', getAnimationDuration(Math.abs(gridFlow)))
       } else {
         gridFromHomePath.style.display = 'none'
+        console.log('Grid from home flow inactive')
       }
-
+  
       // 3. Flux du PV vers la maison (toujours présent si production)
-      if (solarFlow > 6) {
+      if (isPVProducing) {
         solarToHomePath.style.display = 'block'
         solarToHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.min(solarFlow, homeConsumption))}s linear infinite`
         solarToHomePath.setAttribute('stroke', '#10b981') // Vert pour production solaire
+        console.log('Solar to home flow active with duration:', getAnimationDuration(Math.min(solarFlow, homeConsumption)))
       } else {
         solarToHomePath.style.display = 'none'
+        console.log('Solar to home flow inactive')
       }
-
+  
       // 4. Flux du PV vers le réseau (excédent de production)
-      if (isPVProducingMoreThanConsumption && solarFlow > 6) {
+      if (isPVProducing && isGridReceivingExcess) {
         solarToGridPath.style.display = 'block'
-        solarToGridPath.style.animation = `flowAnimation ${getAnimationDuration(solarFlow - homeConsumption)}s linear infinite`
+        solarToGridPath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
         solarToGridPath.setAttribute('stroke', '#10b981') // Vert pour production solaire
+        console.log('Solar to grid flow active with duration:', getAnimationDuration(Math.abs(gridFlow)))
       } else {
         solarToGridPath.style.display = 'none'
+        console.log('Solar to grid flow inactive')
       }
     }
   }, [data])
-
+  // If no data is available, show a loading or placeholder state
+  if (!data) {
+    return (
+      <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium flex items-center">
+            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>
+            Flux d'Énergie
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center p-6 min-h-[300px]">
+          <div className="text-center text-muted-foreground">
+            <p>En attente de données...</p>
+            <p className="text-sm">Les données seront affichées dès qu'elles seront disponibles.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
       <CardHeader className="pb-2">

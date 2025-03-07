@@ -9,10 +9,11 @@ import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 interface SelfProductionCardProps {
   data: ShellyEMData | null;
   className?: string;
+  configId?: string;
 }
 
-export function SelfProductionCard({ data, className }: SelfProductionCardProps) {
-  const { dailyTotals } = useDailyEnergyTotals();
+export function SelfProductionCard({ data, className, configId }: SelfProductionCardProps) {
+  const { dailyTotals } = useDailyEnergyTotals(configId);
 
   // Calculate self-production rate using daily totals
   const calculateSelfProductionRate = () => {
@@ -99,8 +100,8 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
           <CircularProgressbar
             value={selfProductionRate}
             styles={buildStyles({
-              pathColor: color,
-              trailColor: '#e5e7eb',
+              pathColor: '#10b981', // Green for PV
+              trailColor: '#007bff', // Blue for Grid
               strokeLinecap: 'butt',
               textSize: '16px',
             })}
@@ -114,35 +115,37 @@ export function SelfProductionCard({ data, className }: SelfProductionCardProps)
           </div>
           
           {/* Self produced consumption sector label - dynamically positioned */}
-          <div 
-            className="absolute text-emerald-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-emerald-200"
-            style={{ 
-              position: 'absolute',
+          <div
+            className="absolute text-emerald-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-emerald-200 flex flex-col items-center justify-center"
+            style={{
+              position: "absolute",
               ...selfProducedPosition,
-              transform: 'translate(-50%, -50%)',
+              transform: "translate(-50%, -50%)",
               zIndex: 10,
-              whiteSpace: 'nowrap',
-              minWidth: '80px',
-              textAlign: 'center'
+              whiteSpace: "nowrap",
+              minWidth: "80px",
+              textAlign: "center",
             }}
           >
-            {selfProducedConsumption.toFixed(2)} kWh
+            <div>Origine photovoltaïque</div>
+            <div>{selfProducedConsumption.toFixed(2)} kWh</div>
           </div>
-          
+
           {/* Grid consumption sector label - dynamically positioned */}
-          <div 
-            className="absolute text-orange-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-orange-200"
-            style={{ 
-              position: 'absolute',
+          <div
+            className="absolute text-blue-600 font-medium text-sm bg-white/90 px-2 py-1 rounded-full shadow-sm border border-blue-200 flex flex-col items-center justify-center"
+            style={{
+              position: "absolute",
               ...gridConsumptionPosition,
-              transform: 'translate(-50%, -50%)',
+              transform: "translate(-50%, -50%)",
               zIndex: 10,
-              whiteSpace: 'nowrap',
-              minWidth: '80px',
-              textAlign: 'center'
+              whiteSpace: "nowrap",
+              minWidth: "80px",
+              textAlign: "center",
             }}
           >
-            {gridConsumption.toFixed(2)} kWh
+            <div>Origine réseau</div>
+            <div>{gridConsumption.toFixed(2)} kWh</div>
           </div>
         </div>
       </CardContent>

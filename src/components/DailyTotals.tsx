@@ -8,10 +8,11 @@ import { ShellyEMData } from '@/lib/types';
 interface DailyTotalsProps {
   data: ShellyEMData | null;
   className?: string;
+  configId?: string;
 }
 
-export function DailyTotals({ data, className }: DailyTotalsProps) {
-  const { dailyTotals } = useDailyEnergyTotals();
+export function DailyTotals({ data, className, configId }: DailyTotalsProps) {
+  const { dailyTotals } = useDailyEnergyTotals(configId);
   
   // Calculate self-consumption rate using daily totals
   const calculateSelfConsumptionRate = () => {

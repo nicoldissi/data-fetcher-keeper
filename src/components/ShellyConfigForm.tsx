@@ -17,7 +17,8 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
   const [apiKey, setApiKey] = useState<string>('');
   const [serverUrl, setServerUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
+  const [deviceType, setDeviceType] = useState<'ShellyEM' | 'ShellyProEM'>('ShellyEM');
+  
   useEffect(() => {
     // Try to load configuration from localStorage or database
     const loadConfig = async () => {
@@ -26,16 +27,17 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
         setDeviceId(config.deviceId || '');
         setApiKey(config.apiKey || '');
         setServerUrl(config.serverUrl || '');
+        setDeviceType(config.deviceType || 'ShellyEM');
       }
     };
     
     loadConfig();
   }, []); // Remove onConfigured from dependencies
-
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+  
     if (!deviceId || !apiKey || !serverUrl) {
       toast({
         variant: "destructive",
@@ -45,13 +47,14 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
       setIsLoading(false);
       return;
     }
-
+  
     const config: ShellyConfig = {
       deviceId: deviceId.trim(),
       apiKey: apiKey.trim(),
-      serverUrl: serverUrl.trim()
+      serverUrl: serverUrl.trim(),
+      deviceType: deviceType
     };
-
+  
     // Save the configuration and hide the form
     updateShellyConfig(config);
     setIsLoading(false);
@@ -61,7 +64,7 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
     });
     onConfigured();
   };
-
+  
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -102,6 +105,19 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
               onChange={(e) => setServerUrl(e.target.value)}
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="deviceType">Device Type</Label>
+            <select
+              id="deviceType"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={deviceType}
+              onChange={(e) => setDeviceType(e.target.value as 'ShellyEM' | 'ShellyProEM')}
+              required
+            >
+              <option value="ShellyEM">Shelly EM</option>
+              <option value="ShellyProEM">Shelly Pro EM</option>
+            </select>
           </div>
         </CardContent>
         <CardFooter>
