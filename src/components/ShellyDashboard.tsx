@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
@@ -73,6 +72,8 @@ export function ShellyDashboard() {
     }
   }, [currentData]);
 
+  // We'll keep lastUpdated in ShellyDashboard but we'll pass the actual timestamp to DeviceStatus
+  // which will do its own formatting
   const lastUpdated = currentData
     ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true })
     : 'Never';

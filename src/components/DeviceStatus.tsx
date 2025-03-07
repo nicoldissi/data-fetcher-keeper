@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import { formatDistanceToNow } from 'date-fns';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -44,7 +45,17 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   const color = getColor(selfConsumptionRate);
   
-
+  // Format timestamp properly using formatDistanceToNow if we have data
+  const formattedTimestamp = data ? formatDistanceToNow(new Date(data.timestamp), { addSuffix: true }) : 'Never';
+  
+  // Calculate grid current without absolute value
+  const gridCurrent = data && data.voltage > 0 ? data.power / data.voltage : 0;
+  
+  // Determine if we are injecting to grid (exporting) or drawing from grid (importing)
+  const isExporting = data && data.power < 0;
+  
+  // Set current color based on direction
+  const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
   
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
@@ -64,7 +75,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
           </div>
           
           <Badge variant="outline" className="px-3 py-1 text-xs">
-            Updated: {lastUpdated}
+            Updated: {formattedTimestamp}
           </Badge>
         </div>
         {data && (
@@ -76,7 +87,10 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">Current Grid</p>
-                <p className="text-lg font-medium">{(Math.abs(data.power) / data.voltage).toFixed(2)} A</p>
+                <p className={cn("text-lg font-medium", currentColor)}>
+                  {Math.abs(gridCurrent).toFixed(2)} A
+                  {isExporting ? ' (export)' : ' (import)'}
+                </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">Current PV</p>
