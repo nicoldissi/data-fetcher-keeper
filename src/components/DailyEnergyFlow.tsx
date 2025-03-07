@@ -12,6 +12,14 @@ interface DailyEnergyFlowProps {
 
 export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
   const { dailyTotals, loading } = useDailyEnergyTotals(configId);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  
+  // Respond to window resize events to adjust flow paths
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const toKWh = (wh: number) => (wh / 1000).toFixed(2);
   
@@ -28,6 +36,9 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
   
   const consumptionFromPvPercent = consumptionTotal > 0 ? (pvToLoads / consumptionTotal * 100).toFixed(2) : "0";
   const consumptionFromGridPercent = consumptionTotal > 0 ? (gridImportTotal / consumptionTotal * 100).toFixed(2) : "0";
+  
+  // Determine layout mode based on screen width - adjust bezier curves accordingly
+  const isMobile = windowWidth < 768;
   
   if (loading) {
     return (
@@ -47,6 +58,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
         <h3 className="text-lg font-medium mb-6">Bilan Énergétique Journalier</h3>
         
         <div className="relative h-[450px] w-full">
+          {/* PV Gauge (Top) */}
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-40 text-center">
             <div className="text-sm font-semibold mb-1">Production PV</div>
             <div className="text-lg font-bold">{toKWh(pvTotal)} kWh</div>
@@ -98,7 +110,11 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             </div>
           </div>
           
-          <div className="absolute bottom-0 left-0 md:left-1/4 transform md:-translate-x-1/4 w-40 text-center">
+          {/* Grid Gauge (Bottom Left) */}
+          <div className={cn(
+            "absolute bottom-0 left-0 transform w-40 text-center",
+            isMobile ? "left-0" : "left-1/4 -translate-x-1/2"
+          )}>
             <div className="text-sm font-semibold mb-1">Réseau</div>
             <div className="text-lg font-bold">{toKWh(gridImportTotal)} kWh</div>
             
@@ -133,7 +149,11 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             </div>
           </div>
           
-          <div className="absolute bottom-0 right-0 md:right-1/4 transform md:translate-x-1/4 w-40 text-center">
+          {/* Consumption Gauge (Bottom Right) */}
+          <div className={cn(
+            "absolute bottom-0 right-0 transform w-40 text-center",
+            isMobile ? "right-0" : "right-1/4 translate-x-1/2"
+          )}>
             <div className="text-sm font-semibold mb-1">Consommation</div>
             <div className="text-lg font-bold">{toKWh(consumptionTotal)} kWh</div>
             
@@ -184,7 +204,12 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             </div>
           </div>
           
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="xMidYMid meet">
+          {/* SVG Flow Lines */}
+          <svg 
+            className="absolute inset-0 w-full h-full pointer-events-none z-0" 
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
             <defs>
               <linearGradient id="gradientGreen" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#34d399" />
@@ -242,15 +267,15 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
                 }
                 
                 .flow-path {
-                  stroke-width: 2.5;
+                  stroke-width: 1;
                   fill: none;
                   stroke-linecap: round;
-                  stroke-dasharray: 10, 5;
+                  stroke-dasharray: 5, 3;
                   animation: flowDash 4s linear infinite;
                 }
                 
                 .flow-path-bg {
-                  stroke-width: 3.5;
+                  stroke-width: 2;
                   fill: none;
                   stroke-opacity: 0.15;
                   stroke-linecap: round;
@@ -258,43 +283,61 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
               `}
             </style>
             
-            {/* PV to Right Circle - Adjusted */}
+            {/* PV to Consumption (Right) Flow */}
             <path 
               className="flow-path-bg" 
-              d="M 50%, 85 L 50%, 160 C 150,200 200,220 70%,240" 
+              d={isMobile 
+                ? "M 50,30 C 50,55 80,55 80,70" 
+                : "M 50,30 C 50,50 70,50 75,70"
+              }
               stroke="url(#gradientGreen)" 
             />
             <path 
               className="flow-path" 
-              d="M 50%, 85 L 50%, 160 C 150,200 200,220 70%,240" 
+              d={isMobile 
+                ? "M 50,30 C 50,55 80,55 80,70" 
+                : "M 50,30 C 50,50 70,50 75,70"
+              }
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
-            {/* PV to Left Circle - Adjusted */}
+            {/* PV to Grid (Left) Flow */}
             <path 
               className="flow-path-bg" 
-              d="M 50%, 85 L 50%, 160 C -50,200 -100,220 30%,240" 
+              d={isMobile 
+                ? "M 50,30 C 50,55 20,55 20,70" 
+                : "M 50,30 C 50,50 30,50 25,70"
+              }
               stroke="url(#gradientGreen)" 
             />
             <path 
               className="flow-path" 
-              d="M 50%, 85 L 50%, 160 C -50,200 -100,220 30%,240" 
+              d={isMobile 
+                ? "M 50,30 C 50,55 20,55 20,70" 
+                : "M 50,30 C 50,50 30,50 25,70"
+              }
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
-            {/* Left to Right Circle - Adjusted */}
+            {/* Grid to Consumption Flow */}
             <path 
               className="flow-path-bg" 
-              d="M 30%, 250 C 30%,300 70%,300 70%,250" 
+              d={isMobile 
+                ? "M 20,80 C 20,90 80,90 80,80" 
+                : "M 25,80 C 25,90 75,90 75,80"
+              }
               stroke="url(#gradientGray)" 
             />
             <path 
               className="flow-path" 
-              d="M 30%, 250 C 30%,300 70%,300 70%,250" 
+              d={isMobile 
+                ? "M 20,80 C 20,90 80,90 80,80" 
+                : "M 25,80 C 25,90 75,90 75,80"
+              }
               stroke="url(#gradientGray)" 
               markerEnd="url(#arrowGray)"
               filter="url(#glow)"
