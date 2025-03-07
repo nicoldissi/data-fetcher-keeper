@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,7 +65,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       if (isGridSupplyingHome) {
         gridToHomePath.style.display = 'block'
         gridToHomePath.style.animation = `flowAnimation ${getAnimationDuration(gridFlow)}s linear infinite`
-        gridToHomePath.setAttribute('stroke', '#ef4444') // Rouge pour consommation depuis le réseau
         console.log('Grid to home flow active with duration:', getAnimationDuration(gridFlow))
       } else {
         gridToHomePath.style.display = 'none'
@@ -75,7 +75,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       if (isGridReceivingExcess) {
         gridFromHomePath.style.display = 'block'
         gridFromHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
-        gridFromHomePath.setAttribute('stroke', '#10b981') // Vert pour injection vers le réseau
         console.log('Grid from home flow active with duration:', getAnimationDuration(Math.abs(gridFlow)))
       } else {
         gridFromHomePath.style.display = 'none'
@@ -86,7 +85,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       if (isPVProducing) {
         solarToHomePath.style.display = 'block'
         solarToHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.min(solarFlow, homeConsumption))}s linear infinite`
-        solarToHomePath.setAttribute('stroke', '#10b981') // Vert pour production solaire
         console.log('Solar to home flow active with duration:', getAnimationDuration(Math.min(solarFlow, homeConsumption)))
       } else {
         solarToHomePath.style.display = 'none'
@@ -97,7 +95,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       if (isPVProducing && isGridReceivingExcess) {
         solarToGridPath.style.display = 'block'
         solarToGridPath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
-        solarToGridPath.setAttribute('stroke', '#10b981') // Vert pour production solaire
         console.log('Solar to grid flow active with duration:', getAnimationDuration(Math.abs(gridFlow)))
       } else {
         solarToGridPath.style.display = 'none'
@@ -160,6 +157,73 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
                   values="1 0 0 0 0.388   0 1 0 0 0.400   0 0 1 0 0.945  0 0 0 3 0"
                 />
               </filter>
+              
+              {/* Gradients pour les chemins de flux */}
+              <linearGradient id="gridToHomeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="100%" stopColor="#f87171" />
+              </linearGradient>
+              
+              <linearGradient id="gridFromHomeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#34d399" />
+              </linearGradient>
+              
+              <linearGradient id="solarToHomeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#fbbf24" />
+              </linearGradient>
+              
+              <linearGradient id="solarToGridGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+              
+              {/* Filtre de lueur pour les chemins */}
+              <filter id="flowGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              
+              {/* Marqueurs de flèche pour les chemins */}
+              <marker
+                id="arrowRed"
+                viewBox="0 0 10 10"
+                refX="5"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+                className="fill-red-500"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
+              
+              <marker
+                id="arrowGreen"
+                viewBox="0 0 10 10"
+                refX="5"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+                className="fill-green-500"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
+              
+              <marker
+                id="arrowYellow"
+                viewBox="0 0 10 10"
+                refX="5"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+                className="fill-yellow-500"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
             </defs>
 
             <style>
@@ -174,7 +238,14 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
                   stroke-linecap: round;
                   stroke-linejoin: round;
                   fill: none;
-                  marker-end: url(#arrowhead);
+                  filter: url(#flowGlow);
+                }
+
+                .flow-path-bg {
+                  stroke-width: 4;
+                  fill: none;
+                  stroke-opacity: 0.15;
+                  stroke-linecap: round;
                 }
 
                 .node-circle {
@@ -226,37 +297,61 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
               </text>
             </g>
 
-            {/* Flow Paths avec différentes directions selon les scénarios */}
+            {/* Flow Paths avec différentes directions et styles améliorés */}
             {/* 1. Du réseau vers la maison (consommation) */}
+            <path
+              className="flow-path-bg"
+              d="M 80,190 C 150,170 220,170 290,190"
+              stroke="url(#gridToHomeGradient)"
+            />
             <path
               id="gridToHomePath"
               className="flow-path"
-              d="M 90,200 C 170,200 230,200 310,200"
-              stroke="#ef4444"
+              d="M 80,190 C 150,170 220,170 290,190"
+              stroke="url(#gridToHomeGradient)"
+              markerEnd="url(#arrowRed)"
             />
             
             {/* 2. De la maison vers le réseau (injection) */}
             <path
+              className="flow-path-bg"
+              d="M 310,210 C 240,230 170,230 100,210"
+              stroke="url(#gridFromHomeGradient)"
+            />
+            <path
               id="gridFromHomePath"
               className="flow-path"
-              d="M 310,200 C 230,200 170,200 90,200"
-              stroke="#10b981"
+              d="M 310,210 C 240,230 170,230 100,210"
+              stroke="url(#gridFromHomeGradient)"
+              markerEnd="url(#arrowGreen)"
             />
             
             {/* 3. Du PV vers la maison (consommation directe) */}
             <path
+              className="flow-path-bg"
+              d="M 225,80 C 250,120 280,150 310,180"
+              stroke="url(#solarToHomeGradient)"
+            />
+            <path
               id="solarToHomePath"
               className="flow-path"
-              d="M 200,90 M 200,90 C 200,130 250,170 280,180 C 300,190 320,200 310,200"
-              stroke="#10b981"
+              d="M 225,80 C 250,120 280,150 310,180"
+              stroke="url(#solarToHomeGradient)"
+              markerEnd="url(#arrowYellow)"
             />
             
             {/* 4. Du PV vers le réseau (excédent) */}
             <path
+              className="flow-path-bg"
+              d="M 175,80 C 150,120 120,150 90,180"
+              stroke="url(#solarToGridGradient)"
+            />
+            <path
               id="solarToGridPath"
               className="flow-path"
-              d="M 200,90 C 200,130 150,170 120,180 C 100,190 80,200 90,200"
-              stroke="#10b981"
+              d="M 175,80 C 150,120 120,150 90,180"
+              stroke="url(#solarToGridGradient)"
+              markerEnd="url(#arrowGreen)"
             />
           </svg>
         </div>
