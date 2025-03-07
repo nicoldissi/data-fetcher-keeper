@@ -74,14 +74,14 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
           // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
             // Parse ISO string to Date object for proper local time formatting
-            const date = parseISO(item.timestamp);
+            const date = new Date(item.timestamp);
             // Ensure consumption = grid + production with positive values
             const grid = Math.round(item.consumption || 0);
             const production = Math.round(item.production || 0);
             const consumption = grid + production;
             
             return {
-              // Format in local time
+              // Format in local time using the browser's timezone
               time: format(date, 'HH:mm', { locale: fr }),
               timestamp: date.getTime(),
               consumption,
@@ -118,9 +118,9 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
         const consumption = grid + production;
         
         return {
-          // Format in local time
+          // Format in local time using the browser's timezone
           time: format(date, 'HH:mm', { locale: fr }),
-          timestamp: item.timestamp,
+          timestamp: date.getTime(),
           consumption,
           production,
           grid
@@ -187,7 +187,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
   const fontStyle = {
     fontFamily: 'system-ui, sans-serif',
     fontSize: 12,
-    fontWeight: 'bold'
+    fontWeight: 'normal' // Changed from bold to normal
   };
 
   const axisLabelStyle = {
@@ -288,9 +288,9 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   />
                   <YAxis 
                     domain={calculateYAxisDomain()}
-                    tickFormatter={(value) => `${Math.round(value)}`}
+                    tickFormatter={(value) => `${Math.round(value)} W`}
                     label={{ 
-                      value: 'Watts', 
+                      value: '', 
                       angle: -90, 
                       position: 'insideLeft',
                       style: axisLabelStyle,
@@ -305,11 +305,11 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     wrapperStyle={{ 
                       fontFamily: 'system-ui, sans-serif',
                       fontSize: 14,
-                      fontWeight: 'bold',
+                      fontWeight: 'normal', // Changed from bold to normal
                       paddingTop: '10px'
                     }}
                     formatter={(value, entry, index) => {
-                      return <span style={{ color: entry.color, fontWeight: 'bold', fontFamily: 'system-ui, sans-serif' }}>{value}</span>;
+                      return <span style={{ color: entry.color, fontWeight: 'normal', fontFamily: 'system-ui, sans-serif' }}>{value}</span>;
                     }}
                   />
                   <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
