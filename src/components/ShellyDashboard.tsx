@@ -4,7 +4,7 @@ import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
-import HistoricalEnergyChart from './EnergyChart';
+import { HistoricalEnergyChart } from './charts'; // Updated import path
 import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
