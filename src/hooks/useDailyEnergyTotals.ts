@@ -1,7 +1,8 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay } from 'date-fns';
-import { shouldFetchData, sampleDataPoints } from '@/lib/dataUtils';
+import { shouldFetchData } from '@/lib/dataUtils';
 
 interface DailyTotals {
   consumption: number;
@@ -23,7 +24,6 @@ export function useDailyEnergyTotals(configId?: string) {
   const [dailyData, setDailyData] = useState<DailyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const lastFetchTimeRef = useRef<number>(0);
   const CACHE_DURATION = 60000; // 60 seconds cache to reduce database load
 
@@ -33,7 +33,6 @@ export function useDailyEnergyTotals(configId?: string) {
       if (!shouldFetchData(lastFetchTimeRef.current, CACHE_DURATION)) {
         return; // Use cached data
       }
-      lastFetchTimeRef.current = Date.now();
 
       try {
         setLoading(true);
@@ -48,7 +47,7 @@ export function useDailyEnergyTotals(configId?: string) {
           setDailyTotals({ consumption: 0, production: 0, injection: 0 });
           setDailyData([]);
           setLoading(false);
-          return; // Skip the fetch operation instead of throwing an error
+          return; // Skip the fetch operation
         }
 
         const { data, error: queryError } = await supabase
@@ -73,8 +72,7 @@ export function useDailyEnergyTotals(configId?: string) {
                    !isNaN(reading.production_total);
           });
 
-          // Utiliser tous les points de données sans échantillonnage
-          // Le problème n'est pas lié à la quantité de données mais à autre chose
+          // Use all data points without sampling
           setDailyData(validData);
 
           if (validData.length >= 2) {
@@ -87,15 +85,15 @@ export function useDailyEnergyTotals(configId?: string) {
               production: Math.max(0, (lastReading.production_total - firstReading.production_total))
             };
 
-            // Validate calculated totals with more robust checks
-            const MAX_REASONABLE_VALUE = 100000; // 100 kWh is a more reasonable daily maximum
-            const hasUnreasonableValues = Object.entries(totals).some(([key, value]) => {
+            // Validate calculated totals
+            const MAX_REASONABLE_VALUE = 100000; // 100 kWh maximum
+            
+            // Cap any unreasonable values
+            Object.entries(totals).forEach(([key, value]) => {
               if (value > MAX_REASONABLE_VALUE) {
                 console.warn(`Unreasonably high ${key} value detected: ${value}Wh, capping at ${MAX_REASONABLE_VALUE}Wh`);
-                totals[key] = MAX_REASONABLE_VALUE; // Cap the value instead of throwing an error
-                return false; // Don't consider it unreasonable after capping
+                totals[key as keyof DailyTotals] = MAX_REASONABLE_VALUE;
               }
-              return false;
             });
 
             console.log('Daily energy totals calculated:', totals);
@@ -108,7 +106,7 @@ export function useDailyEnergyTotals(configId?: string) {
           setDailyTotals({ consumption: 0, production: 0, injection: 0 });
         }
 
-        setLastFetchTime(Date.now());
+        lastFetchTimeRef.current = Date.now();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
         console.error('Error fetching daily energy totals:', errorMessage);
@@ -119,10 +117,32 @@ export function useDailyEnergyTotals(configId?: string) {
     };
 
     fetchDailyTotals();
-    const interval = setInterval(fetchDailyTotals, 60000); // Update every minute
+    
+    // Set up a real-time subscription for new energy_data records
+    const channel = supabase
+      .channel('daily-totals-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'energy_data',
+          filter: configId ? `shelly_config_id=eq.${configId}` : undefined
+        },
+        (payload) => {
+          console.log('New energy data received, refreshing daily totals');
+          fetchDailyTotals();
+        }
+      )
+      .subscribe();
 
-    return () => clearInterval(interval);
-  }, [configId, lastFetchTime]);
+    const interval = setInterval(fetchDailyTotals, 60000); // Fallback update every minute
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [configId]);
 
   return { dailyTotals, dailyData, loading, error };
 }

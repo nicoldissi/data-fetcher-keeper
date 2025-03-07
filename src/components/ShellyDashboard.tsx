@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
-import { useServerShellyData } from '@/hooks/useServerShellyData';
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
-import HistoricalEnergyChart from './EnergyChart'; // Corrected import: default import
+import HistoricalEnergyChart from './EnergyChart';
 import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,7 +20,7 @@ import { ShellyConfig } from '@/lib/types';
 // Add development mode check
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-const debugLog = (message: string, ...args: unknown[]) => { // Use unknown[]
+const debugLog = (message: string, ...args: unknown[]) => {
   if (isDevelopment) {
     console.log(message, ...args);
   }
@@ -27,8 +28,7 @@ const debugLog = (message: string, ...args: unknown[]) => { // Use unknown[]
 
 export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState(false);
-  const [activeConfigId, setActiveConfigId] = useState<string | null>(null); // Type activeConfigId
-  const [config, setConfig] = useState<ShellyConfig | null>(null); // Type config
+  const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
   // Check if config is valid on component mount
@@ -41,7 +41,6 @@ export function ShellyDashboard() {
           const config = await getShellyConfig();
           if (config && config.id) {
             setActiveConfigId(config.id);
-            setConfig(config);
           }
         }
       } catch (error) {
@@ -53,7 +52,16 @@ export function ShellyDashboard() {
     checkConfigValidity();
   }, []);
 
-  const { currentData, isLoading, error, lastStored, history, stats } = useServerShellyData(config);
+  // Use our new hook instead of useServerShellyData
+  const { 
+    currentData, 
+    isLoading, 
+    error, 
+    history, 
+    deviceConfig,
+    isConfigValid,
+    stats 
+  } = useSupabaseRealtime(activeConfigId || undefined);
 
   // Add detailed logging to track data flow only when data changes and in development mode
   useEffect(() => {
@@ -101,7 +109,7 @@ export function ShellyDashboard() {
           <div className="space-y-1 mb-4 md:mb-0">
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Moniteur d'Énergie</h1>
             <p className="text-muted-foreground">
-              Données en temps réel de votre appareil Shelly EM
+              {deviceConfig?.name ? `Données en temps réel de ${deviceConfig.name}` : 'Données en temps réel de votre appareil Shelly EM'}
             </p>
           </div>
 
@@ -153,7 +161,7 @@ export function ShellyDashboard() {
             <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
-            <HistoricalEnergyChart  history={history}  /> {/* Use HistoricalEnergyChart, pass history */}
+            <HistoricalEnergyChart history={history} />
           </TabsContent>
           <TabsContent value="data" className="mt-6">
             <DataTable data={history} />

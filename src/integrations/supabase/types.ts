@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           consumption: number
           created_at: string | null
+          frequency: number | null
           grid_total: number
           grid_total_returned: number
           id: number
@@ -20,10 +21,12 @@ export type Database = {
           production_total: number
           shelly_config_id: string | null
           timestamp: string
+          voltage: number | null
         }
         Insert: {
           consumption: number
           created_at?: string | null
+          frequency?: number | null
           grid_total?: number
           grid_total_returned?: number
           id?: number
@@ -31,10 +34,12 @@ export type Database = {
           production_total?: number
           shelly_config_id?: string | null
           timestamp: string
+          voltage?: number | null
         }
         Update: {
           consumption?: number
           created_at?: string | null
+          frequency?: number | null
           grid_total?: number
           grid_total_returned?: number
           id?: number
@@ -42,6 +47,7 @@ export type Database = {
           production_total?: number
           shelly_config_id?: string | null
           timestamp?: string
+          voltage?: number | null
         }
         Relationships: [
           {
@@ -57,34 +63,63 @@ export type Database = {
         Row: {
           apikey: string
           created_at: string
+          device_type: string | null
           deviceid: string
           id: string
           name: string | null
           serverurl: string
           updated_at: string
-          user_id: string
         }
         Insert: {
           apikey: string
           created_at?: string
+          device_type?: string | null
           deviceid: string
           id?: string
           name?: string | null
           serverurl?: string
           updated_at?: string
-          user_id: string
         }
         Update: {
           apikey?: string
           created_at?: string
+          device_type?: string | null
           deviceid?: string
           id?: string
           name?: string | null
           serverurl?: string
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
+      }
+      user_device_shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          shelly_config_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          shelly_config_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          shelly_config_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_device_shares_shelly_config_id_fkey"
+            columns: ["shelly_config_id"]
+            isOneToOne: false
+            referencedRelation: "shelly_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
