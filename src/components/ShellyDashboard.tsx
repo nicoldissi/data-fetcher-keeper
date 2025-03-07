@@ -9,7 +9,6 @@ import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { DailyTotals } from './DailyTotals';
 import { EnergyFlowChartDark } from './EnergyFlowChartDark';
 import { SelfConsumptionCard } from './SelfConsumptionCard';
 import { SelfProductionCard } from './SelfProductionCard';
@@ -149,10 +148,6 @@ export function ShellyDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <SelfConsumptionCard data={currentData} configId={activeConfigId} />
           <SelfProductionCard data={currentData} configId={activeConfigId} />
-        </div>
-
-        <div className="mb-6">
-          <DailyTotals data={currentData} configId={activeConfigId} />
         </div>
 
         <Tabs defaultValue="chart" className="w-full">
