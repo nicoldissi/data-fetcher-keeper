@@ -8,6 +8,7 @@ interface DailyTotals {
   consumption: number;
   production: number;
   injection: number;
+  importFromGrid: number; // Nouvelle propriété pour l'énergie importée du réseau
 }
 
 interface DailyDataPoint {
@@ -20,7 +21,12 @@ interface DailyDataPoint {
 }
 
 export function useDailyEnergyTotals(configId?: string) {
-  const [dailyTotals, setDailyTotals] = useState<DailyTotals>({ consumption: 0, production: 0, injection: 0 });
+  const [dailyTotals, setDailyTotals] = useState<DailyTotals>({ 
+    consumption: 0, 
+    production: 0, 
+    injection: 0,
+    importFromGrid: 0
+  });
   const [dailyData, setDailyData] = useState<DailyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +50,7 @@ export function useDailyEnergyTotals(configId?: string) {
         // Ensure configId is provided to prevent mixing data from different devices
         if (!configId) {
           // Set default values and skip fetch without logging warnings
-          setDailyTotals({ consumption: 0, production: 0, injection: 0 });
+          setDailyTotals({ consumption: 0, production: 0, injection: 0, importFromGrid: 0 });
           setDailyData([]);
           setLoading(false);
           return; // Skip the fetch operation
@@ -79,10 +85,21 @@ export function useDailyEnergyTotals(configId?: string) {
             const firstReading = validData[0];
             const lastReading = validData[validData.length - 1];
 
+            // Calculer les totaux de base
+            const consumption = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
+            const injection = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
+            const production = Math.max(0, (lastReading.production_total - firstReading.production_total));
+            
+            // Calculer l'importation du réseau
+            // Importation = Consommation - (Production - Injection)
+            const consumedFromProduction = Math.max(0, production - injection);
+            const importFromGrid = Math.max(0, consumption - consumedFromProduction);
+
             const totals = {
-              consumption: Math.max(0, (lastReading.grid_total - firstReading.grid_total)),
-              injection: Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned)),
-              production: Math.max(0, (lastReading.production_total - firstReading.production_total))
+              consumption,
+              injection,
+              production,
+              importFromGrid
             };
 
             // Validate calculated totals
@@ -100,10 +117,10 @@ export function useDailyEnergyTotals(configId?: string) {
             setDailyTotals(totals);
           } else {
             console.warn('Insufficient valid data points for calculation');
-            setDailyTotals({ consumption: 0, production: 0, injection: 0 });
+            setDailyTotals({ consumption: 0, production: 0, injection: 0, importFromGrid: 0 });
           }
         } else {
-          setDailyTotals({ consumption: 0, production: 0, injection: 0 });
+          setDailyTotals({ consumption: 0, production: 0, injection: 0, importFromGrid: 0 });
         }
 
         lastFetchTimeRef.current = Date.now();

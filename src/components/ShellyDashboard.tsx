@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
@@ -14,6 +15,7 @@ import { SelfProductionCard } from './SelfProductionCard';
 import { PowerTriangleCard } from './PowerTriangleCard';
 import { UserMenu } from './UserMenu';
 import { ShellyConfig } from '@/lib/types';
+import { DailyEnergyFlow } from './DailyEnergyFlow';
 
 // Add development mode check
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -144,6 +146,11 @@ export function ShellyDashboard() {
           <div className="md:col-span-2">
             <EnergyFlowChartDark data={currentData} />
           </div>
+        </div>
+        
+        {/* Ajout du nouveau composant DailyEnergyFlow */}
+        <div className="mb-6">
+          <DailyEnergyFlow configId={activeConfigId} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
