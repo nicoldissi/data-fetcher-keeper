@@ -7,10 +7,16 @@ import { formatDistance } from 'date-fns';
 interface DataTableProps {
   data: ShellyEMData[];
   className?: string;
+  configId?: string | null;
 }
 
-export function DataTable({ data, className }: DataTableProps) {
-  const reversedData = [...data].reverse().slice(0, 5);
+export function DataTable({ data, className, configId }: DataTableProps) {
+  // Filter data by configId if provided
+  const filteredData = configId 
+    ? data.filter(item => item.shelly_config_id === configId)
+    : data;
+    
+  const reversedData = [...filteredData].reverse().slice(0, 5);
   
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
@@ -24,11 +30,11 @@ export function DataTable({ data, className }: DataTableProps) {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="px-4 py-2 text-left font-medium text-gray-500">Time</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Réseau W</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Photovoltaïque W</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Réseau</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Photovoltaïque</th>
                   <th className="px-4 py-2 text-right font-medium text-gray-500">Voltage</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Courant réseau</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Courant photovoltaïque</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Intensité réseau</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Intensité PV</th>
                 </tr>
               </thead>
               <tbody>

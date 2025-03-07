@@ -159,7 +159,7 @@ export function ShellyDashboard() {
             <HistoricalEnergyChart history={history} />
           </TabsContent>
           <TabsContent value="data" className="mt-6">
-            <DataTable data={history} />
+            <DataTable data={history} configId={activeConfigId} />
           </TabsContent>
         </Tabs>
       </div>
