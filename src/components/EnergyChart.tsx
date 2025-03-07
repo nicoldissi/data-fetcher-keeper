@@ -10,6 +10,7 @@ import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { Toggle } from '@/components/ui/toggle';
 import { supabase } from '@/integrations/supabase/client';
+import { Zap } from 'lucide-react';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -22,6 +23,7 @@ interface ChartDataPoint {
   consumption: number;
   production: number;
   grid: number;
+  voltage?: number;
 }
 
 export default function HistoricalEnergyChart({ history }: HistoricalEnergyChartProps) {
@@ -34,6 +36,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
+  const [showVoltage, setShowVoltage] = useState(false);
 
   // Extract configId from the first history item
   useEffect(() => {
@@ -84,7 +87,8 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
               timestamp: date.getTime(),
               consumption,
               production,
-              grid
+              grid,
+              voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined // Round to 1 decimal place if available
             };
           });
           
@@ -121,7 +125,8 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
           timestamp: date.getTime(),
           consumption,
           production,
-          grid
+          grid,
+          voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined // Round to 1 decimal place if available
         };
       });
 
@@ -155,6 +160,31 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     return [minValue < 0 ? 1.1 * minValue : -100, 1.1 * maxValue];
   }, [chartData, showConsumption, showProduction, showGrid]);
 
+  // Calculate voltage Y-axis domain
+  const calculateVoltageYAxisDomain = useCallback(() => {
+    if (chartData.length === 0 || !showVoltage) {
+      return [220, 240]; // Default voltage range if no data
+    }
+
+    const voltageValues = chartData
+      .map(d => d.voltage)
+      .filter(v => v !== undefined) as number[];
+    
+    if (voltageValues.length === 0) {
+      return [220, 240]; // Default if no voltage data
+    }
+    
+    const minVoltage = Math.min(...voltageValues);
+    const maxVoltage = Math.max(...voltageValues);
+    
+    // Add small padding for better visualization
+    const padding = (maxVoltage - minVoltage) * 0.1;
+    return [
+      Math.floor(minVoltage - padding), 
+      Math.ceil(maxVoltage + padding)
+    ];
+  }, [chartData, showVoltage]);
+
   // Custom tooltip to handle all series
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -168,7 +198,9 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-sm text-muted-foreground">{entry.name}:</span>
-              <span className="font-medium">{`${Math.abs(Math.round(entry.value))} W`}</span>
+              <span className="font-medium">
+                {`${Math.abs(Math.round(entry.value))} ${entry.name === 'Tension' ? 'V' : 'W'}`}
+              </span>
             </div>
           ))}
         </div>
@@ -181,7 +213,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
   const fontStyle = {
     fontFamily: 'system-ui, sans-serif',
     fontSize: 12,
-    fontWeight: 'normal' // Changed from bold to normal
+    fontWeight: 'normal'
   };
 
   const axisLabelStyle = {
@@ -225,6 +257,14 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
               <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
               Réseau
             </Toggle>
+            <Toggle 
+              pressed={showVoltage} 
+              onPressedChange={setShowVoltage}
+              className={`${showVoltage ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100' : ''}`}
+            >
+              <Zap className="w-3 h-3 text-[#9b87f5] mr-2" />
+              Tension
+            </Toggle>
           </div>
         </div>
       </CardHeader>
@@ -258,6 +298,10 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
                   </linearGradient>
+                  <linearGradient id="colorVoltage" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#9b87f5" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#9b87f5" stopOpacity={0.1}/>
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis 
@@ -273,25 +317,29 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   }}
                 />
                 <YAxis 
+                  yAxisId="power"
                   domain={calculateYAxisDomain()}
                   tickFormatter={(value) => `${Math.round(value)} W`}
-                  label={{ 
-                    value: '', 
-                    angle: -90, 
-                    position: 'insideLeft',
-                    style: axisLabelStyle,
-                    offset: 0
-                  }}
                   tick={fontStyle}
                 />
+                {showVoltage && (
+                  <YAxis 
+                    yAxisId="voltage"
+                    orientation="right"
+                    domain={calculateVoltageYAxisDomain()}
+                    tickFormatter={(value) => `${Math.round(value)} V`}
+                    tick={fontStyle}
+                  />
+                )}
                 <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
+                <ReferenceLine yAxisId="power" y={0} stroke="#666" strokeDasharray="3 3" />
                 
                 {showGrid && (
                   <Area
                     type="monotone"
                     dataKey="grid"
                     name="Réseau"
+                    yAxisId="power"
                     fill="url(#colorGridPos)"
                     stroke="#3b82f6"
                     strokeWidth={2}
@@ -305,6 +353,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     type="monotone"
                     dataKey="production"
                     name="Production"
+                    yAxisId="power"
                     fill="url(#colorProduction)"
                     stroke="#00FF59"
                     strokeWidth={2}
@@ -318,8 +367,22 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     type="monotone"
                     dataKey="consumption"
                     name="Consommation"
+                    yAxisId="power"
                     fill="url(#colorConsumption)"
                     stroke="#F97415"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
+                  />
+                )}
+
+                {showVoltage && (
+                  <Line
+                    type="monotone"
+                    dataKey="voltage"
+                    name="Tension"
+                    yAxisId="voltage"
+                    stroke="#9b87f5"
                     strokeWidth={2}
                     dot={false}
                     activeDot={{ r: 6, strokeWidth: 2 }}
