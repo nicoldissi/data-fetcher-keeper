@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -92,7 +91,12 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     ) => {
       if (arrowRef.current && isActive) {
         // Clear any existing animations
-        arrowRef.current.stopAnimation();
+        // Using any to bypass TypeScript error since stopAnimation exists on Konva.Node
+        const node = arrowRef.current as any;
+        if (node.getAnimations) {
+          const animations = node.getAnimations();
+          animations.forEach((anim: Konva.Animation) => anim.stop());
+        }
         
         // Create the dash animation
         const amplitude = 10;
