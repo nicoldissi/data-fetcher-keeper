@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,8 +56,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
             const consumption = grid + production;
             
             return {
-              // Format time directly in local timezone
-              time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              // Format time using toLocaleTimeString to ensure it's in the user's local timezone
+              time: date.toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false // Format 24h pour la France
+              }),
               timestamp: date.getTime(),
               consumption,
               production,
@@ -86,7 +91,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
         // Ensure we create a local date object from the timestamp
-        const date = new Date(item.timestamp);
+        const timeMs = typeof item.timestamp === 'number' ? item.timestamp : parseInt(item.timestamp as any);
+        const date = new Date(timeMs);
         
         // Ensure consumption = grid + production
         const grid = Math.round(item.power);
@@ -94,8 +100,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const consumption = grid + production;
         
         return {
-          // Format time directly in local timezone
-          time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          // Format time using toLocaleTimeString to ensure it's in the user's local timezone
+          time: date.toLocaleTimeString('fr-FR', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false // Format 24h pour la France
+          }),
           timestamp: date.getTime(),
           consumption,
           production,

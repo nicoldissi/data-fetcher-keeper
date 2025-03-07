@@ -40,8 +40,18 @@ export function DataTable({ data, className, configId }: DataTableProps) {
               </thead>
               <tbody>
                 {reversedData.map((item, index) => {
-                  // Créer une date locale à partir du timestamp
-                  const localDate = new Date(item.timestamp);
+                  // Garantir que nous avons un objet Date valide
+                  const timeMs = typeof item.timestamp === 'number' ? item.timestamp : parseInt(item.timestamp as any);
+                  const localDate = new Date(timeMs);
+                  
+                  // Formater l'heure en utilisant directement toLocaleTimeString avec les options de formatage
+                  const formattedTime = localDate.toLocaleTimeString('fr-FR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false // Format 24h pour la France
+                  });
+                  
+                  // Calculer le temps écoulé
                   const timeAgo = formatDistance(localDate, new Date(), { 
                     addSuffix: true,
                     locale: fr 
@@ -63,7 +73,7 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                     >
                       <td className="px-4 py-3 text-left">
                         <div className="font-medium">
-                          {localDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {formattedTime}
                         </div>
                         <div className="text-xs text-gray-500">{timeAgo}</div>
                       </td>

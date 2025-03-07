@@ -45,13 +45,14 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   const color = getColor(selfConsumptionRate);
   
-  // Format timestamp in local time using the browser's built-in formatter
+  // Format timestamp in local time
   const formattedTimestamp = data 
     ? new Date(data.timestamp).toLocaleString('fr-FR', {
         day: '2-digit',
         month: 'short', 
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false // Format 24h pour la France
       })
     : 'Jamais';
   
