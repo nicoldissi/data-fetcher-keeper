@@ -1,14 +1,13 @@
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, Area, ComposedChart, Brush, ReferenceLine 
+  ResponsiveContainer, Area, ComposedChart, ReferenceLine 
 } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Toggle } from '@/components/ui/toggle';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,24 +129,31 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     setActiveTab(value);
   };
 
-  // Find the max value for Y axis scaling
-  const maxValue = chartData.length > 0 
-    ? Math.max(
-        ...chartData.map(d => Math.max(
-          showConsumption ? d.consumption : 0,
-          showProduction ? d.production : 0,
-          showGrid ? Math.abs(d.grid) : 0
-        ))
-      ) 
-    : 3000; // Default max if no data
-
-  const minValue = chartData.length > 0
-    ? Math.min(
-        ...chartData.map(d => Math.min(
-          showGrid ? d.grid : 0
-        ))
-      )
-    : -1500; // Default min if no data
+  // Calculate max and min values for dynamic Y axis based on visible data and enabled lines
+  const calculateYAxisDomain = useCallback(() => {
+    if (chartData.length === 0) {
+      return [-500, 3000]; // Default if no data
+    }
+    
+    // Find max value based on which lines are shown
+    const maxValue = Math.max(
+      ...chartData.map(d => Math.max(
+        showConsumption ? d.consumption : 0,
+        showProduction ? d.production : 0,
+        showGrid ? Math.abs(d.grid) : 0
+      ))
+    );
+    
+    // Find min value (for grid which can be negative)
+    const minValue = Math.min(
+      ...chartData.map(d => Math.min(
+        showGrid ? d.grid : 0
+      ))
+    );
+    
+    // Add 10% padding to max and min for better visualization
+    return [minValue < 0 ? 1.1 * minValue : -100, 1.1 * maxValue];
+  }, [chartData, showConsumption, showProduction, showGrid]);
 
   // Custom tooltip to handle all series
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -224,10 +230,10 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                 <ComposedChart
                   data={chartData}
                   margin={{
-                    top: 5,
-                    right: 20,
-                    left: 10,
-                    bottom: 50,
+                    top: 10,
+                    right: 30,
+                    left: 20,
+                    bottom: 40,
                   }}
                 >
                   <defs>
@@ -252,25 +258,41 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   <XAxis 
                     dataKey="time" 
                     minTickGap={60}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fontWeight: 'bold' }}
                     tickMargin={10}
+                    label={{
+                      value: 'Heure',
+                      position: 'insideBottomRight',
+                      offset: -10,
+                      fontSize: 14,
+                      fontWeight: 'bold'
+                    }}
                   />
                   <YAxis 
-                    domain={[minValue < 0 ? 1.1 * minValue : -500, 1.1 * maxValue]}
+                    domain={calculateYAxisDomain()}
                     tickFormatter={(value) => `${value}`}
                     label={{ 
                       value: 'Watts', 
                       angle: -90, 
                       position: 'insideLeft',
-                      style: { textAnchor: 'middle' },
+                      style: { 
+                        textAnchor: 'middle',
+                        fontSize: 14,
+                        fontWeight: 'bold'
+                      },
                       offset: 0
                     }}
+                    tick={{ fontSize: 12, fontWeight: 'bold' }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend 
-                    verticalAlign="bottom" 
+                    verticalAlign="bottom"
                     height={36}
-                    wrapperStyle={{ paddingTop: '10px' }}
+                    wrapperStyle={{ 
+                      fontSize: 14,
+                      fontWeight: 'bold',
+                      paddingTop: '10px'
+                    }}
                     formatter={(value, entry, index) => {
                       return <span style={{ color: entry.color, fontWeight: 'bold' }}>{value}</span>;
                     }}
@@ -321,17 +343,6 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       hide={!showConsumption}
                     />
                   )}
-                  
-                  {/* Brush for zooming/timeline selection */}
-                  <Brush 
-                    dataKey="time" 
-                    height={30} 
-                    stroke="#8884d8"
-                    tickFormatter={(tick) => tick}
-                    y={320}
-                    fill="#f5f5f5"
-                    startIndex={Math.max(0, chartData.length - Math.min(chartData.length, 50))}
-                  />
                 </ComposedChart>
               </ResponsiveContainer>
             ) : (
