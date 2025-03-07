@@ -60,7 +60,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             <div className="relative w-32 h-32 mx-auto my-4">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 {/* Background Circle */}
-                <circle cx="50" cy="50" r="45" className="fill-none stroke-gray-200 stroke-[10]" />
+                <circle cx="50" cy="50" r="45" className="fill-white stroke-gray-200 stroke-[10]" />
                 
                 {/* PV to Loads Segment (Green) */}
                 <circle 
@@ -118,7 +118,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             <div className="relative w-32 h-32 mx-auto my-4">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 {/* Background Circle */}
-                <circle cx="50" cy="50" r="45" className="fill-none stroke-gray-200 stroke-[10]" />
+                <circle cx="50" cy="50" r="45" className="fill-white stroke-gray-200 stroke-[10]" />
                 
                 {/* Grid to Loads Segment (Gray) */}
                 <circle 
@@ -159,7 +159,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             <div className="relative w-32 h-32 mx-auto my-4">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 {/* Background Circle */}
-                <circle cx="50" cy="50" r="45" className="fill-none stroke-gray-200 stroke-[10]" />
+                <circle cx="50" cy="50" r="45" className="fill-white stroke-gray-200 stroke-[10]" />
                 
                 {/* Consumption from PV Segment (Orange) */}
                 <circle 
@@ -208,54 +208,126 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             </div>
           </div>
           
-          {/* Connection Lines as SVG paths in Triangle formation */}
-          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: -1 }}>
-            {/* PV to Grid Line (Left diagonal) */}
-            <path 
-              d="M 200,120 L 100,350" 
-              className="stroke-green-300 stroke-2 fill-none"
-              markerEnd="url(#arrowGreen)"
-            />
-            
-            {/* PV to Consumption Line (Right diagonal) */}
-            <path 
-              d="M 200,120 L 300,350" 
-              className="stroke-green-500 stroke-2 fill-none"
-              markerEnd="url(#arrowGreen)"
-            />
-            
-            {/* Grid to Consumption Line (Bottom horizontal) */}
-            <path 
-              d="M 100,350 L 300,350" 
-              className="stroke-gray-500 stroke-2 fill-none"
-              markerEnd="url(#arrowGray)"
-            />
-            
-            {/* Arrow markers */}
+          {/* Connection Lines as elegant curved SVG paths with animations */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
             <defs>
+              {/* Gradient definitions for flow paths */}
+              <linearGradient id="gradientGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#34d399" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+              
+              <linearGradient id="gradientOrange" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#fb923c" />
+              </linearGradient>
+              
+              <linearGradient id="gradientGray" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#6b7280" />
+                <stop offset="100%" stopColor="#9ca3af" />
+              </linearGradient>
+              
+              {/* Arrow marker definitions with better shape */}
               <marker
                 id="arrowGreen"
-                markerWidth="10"
-                markerHeight="10"
-                refX="9"
+                viewBox="0 0 10 10"
+                refX="5"
                 refY="5"
-                orient="auto"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
                 className="fill-green-500"
               >
-                <path d="M0,0 L0,10 L10,5 L0,0" />
+                <path d="M 0 0 L 10 5 L 0 10 z" />
               </marker>
+              
               <marker
                 id="arrowGray"
-                markerWidth="10"
-                markerHeight="10"
-                refX="9"
+                viewBox="0 0 10 10"
+                refX="5"
                 refY="5"
-                orient="auto"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
                 className="fill-gray-500"
               >
-                <path d="M0,0 L0,10 L10,5 L0,0" />
+                <path d="M 0 0 L 10 5 L 0 10 z" />
               </marker>
+              
+              {/* Animation definitions */}
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
             </defs>
+            
+            {/* Animated stylized curves */}
+            <style>
+              {`
+                @keyframes flowDash {
+                  to {
+                    stroke-dashoffset: -100;
+                  }
+                }
+                
+                .flow-path {
+                  stroke-width: 2.5;
+                  fill: none;
+                  stroke-linecap: round;
+                  stroke-dasharray: 10, 5;
+                  animation: flowDash 4s linear infinite;
+                }
+                
+                .flow-path-bg {
+                  stroke-width: 3.5;
+                  fill: none;
+                  stroke-opacity: 0.15;
+                  stroke-linecap: round;
+                }
+              `}
+            </style>
+            
+            {/* PV to Home (curved, attractive path) */}
+            <path 
+              className="flow-path-bg" 
+              d="M 200,80 C 270,120 320,150 330,200" 
+              stroke="url(#gradientGreen)" 
+            />
+            <path 
+              className="flow-path" 
+              d="M 200,80 C 270,120 320,150 330,200" 
+              stroke="url(#gradientGreen)" 
+              markerEnd="url(#arrowGreen)"
+              filter="url(#glow)"
+            />
+            
+            {/* PV to Grid (curved) */}
+            <path 
+              className="flow-path-bg" 
+              d="M 200,80 C 120,130 70,150 60,200" 
+              stroke="url(#gradientGreen)" 
+            />
+            <path 
+              className="flow-path" 
+              d="M 200,80 C 120,130 70,150 60,200" 
+              stroke="url(#gradientGreen)" 
+              markerEnd="url(#arrowGreen)"
+              filter="url(#glow)"
+            />
+            
+            {/* Grid to Consumption (curved) */}
+            <path 
+              className="flow-path-bg" 
+              d="M 70,220 C 110,260 280,260 330,220" 
+              stroke="url(#gradientGray)" 
+            />
+            <path 
+              className="flow-path" 
+              d="M 70,220 C 110,260 280,260 330,220" 
+              stroke="url(#gradientGray)" 
+              markerEnd="url(#arrowGray)"
+              filter="url(#glow)"
+            />
           </svg>
         </div>
       </CardContent>
