@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
-import { HistoricalEnergyChart } from './charts'; // Updated import path
+import { HistoricalEnergyChart } from './charts';
 import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,7 +16,6 @@ import { UserMenu } from './UserMenu';
 import { ShellyConfig } from '@/lib/types';
 import { DailyEnergyFlow } from './DailyEnergyFlow';
 
-// Add development mode check
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const debugLog = (message: string, ...args: unknown[]) => {
@@ -31,7 +29,6 @@ export function ShellyDashboard() {
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Check if config is valid on component mount
   useEffect(() => {
     const checkConfigValidity = async () => {
       try {
@@ -52,7 +49,6 @@ export function ShellyDashboard() {
     checkConfigValidity();
   }, []);
 
-  // Use our new hook instead of useServerShellyData
   const { 
     currentData, 
     isLoading, 
@@ -63,7 +59,6 @@ export function ShellyDashboard() {
     stats 
   } = useSupabaseRealtime(activeConfigId || undefined);
 
-  // Add detailed logging to track data flow only when data changes and in development mode
   useEffect(() => {
     if (currentData && isDevelopment) {
       debugLog('ShellyDashboard - Power values:', {
@@ -74,8 +69,6 @@ export function ShellyDashboard() {
     }
   }, [currentData]);
 
-  // We'll keep lastUpdated in ShellyDashboard but we'll pass the actual timestamp to DeviceStatus
-  // which will do its own formatting
   const lastUpdated = currentData
     ? formatDistanceToNow(new Date(currentData.timestamp), { addSuffix: true })
     : 'Never';
@@ -148,7 +141,6 @@ export function ShellyDashboard() {
           </div>
         </div>
         
-        {/* Ajout du nouveau composant DailyEnergyFlow */}
         <div className="mb-6">
           <DailyEnergyFlow configId={activeConfigId} />
         </div>
@@ -164,7 +156,7 @@ export function ShellyDashboard() {
             <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
-            <HistoricalEnergyChart history={history} />
+            <HistoricalEnergyChart history={history} configId={activeConfigId} />
           </TabsContent>
           <TabsContent value="data" className="mt-6">
             <DataTable data={history} configId={activeConfigId} />

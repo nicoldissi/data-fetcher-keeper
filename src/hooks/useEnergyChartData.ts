@@ -28,7 +28,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       setIsLoadingFullDay(true);
       
       try {
-        // Get start of the current day in ISO format
+        // Get start of the current day in local time, then convert to ISO for the query
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const startOfDay = today.toISOString();
