@@ -47,16 +47,17 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
       <CardContent className="p-6">
-        <h3 className="text-lg font-medium mb-4">Bilan Énergétique Journalier</h3>
+        <h3 className="text-lg font-medium mb-6">Bilan Énergétique Journalier</h3>
         
-        <div className="relative h-[400px] w-full">
+        {/* Triangle layout with PV at the top */}
+        <div className="relative h-[450px] w-full">
           {/* PV Section - Top */}
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-40 text-center">
-            <div className="text-sm font-semibold mb-1">PV</div>
+            <div className="text-sm font-semibold mb-1">Production PV</div>
             <div className="text-lg font-bold">{toKWh(pvTotal)} kWh</div>
             
             {/* PV Circle */}
-            <div className="relative w-32 h-32 mx-auto mt-2 mb-4">
+            <div className="relative w-32 h-32 mx-auto my-4">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 {/* Background Circle */}
                 <circle cx="50" cy="50" r="45" className="fill-none stroke-gray-200 stroke-[10]" />
@@ -94,22 +95,22 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             
             {/* PV Legend */}
             <div className="text-xs space-y-1">
-              <div className="flex items-center">
+              <div className="flex items-center justify-center">
                 <span className="w-3 h-3 inline-block bg-green-500 mr-1"></span>
-                <span>Utilisé par Charges: {pvToLoadsPercent}%</span>
+                <span>Utilisé: {pvToLoadsPercent}%</span>
               </div>
-              <div className="text-xs text-gray-500">{toKWh(pvToLoads)} kWh</div>
+              <div className="text-xs text-gray-500 text-center">{toKWh(pvToLoads)} kWh</div>
               
-              <div className="flex items-center mt-1">
+              <div className="flex items-center justify-center mt-1">
                 <span className="w-3 h-3 inline-block bg-green-300 mr-1"></span>
-                <span>Injecté au Réseau: {pvToGridPercent}%</span>
+                <span>Injecté: {pvToGridPercent}%</span>
               </div>
-              <div className="text-xs text-gray-500">{toKWh(gridExportTotal)} kWh</div>
+              <div className="text-xs text-gray-500 text-center">{toKWh(gridExportTotal)} kWh</div>
             </div>
           </div>
           
-          {/* Grid Section - Left */}
-          <div className="absolute bottom-1/3 left-0 w-40 text-center">
+          {/* Grid Section - Bottom Left */}
+          <div className="absolute bottom-0 left-0 md:left-1/4 transform md:-translate-x-1/4 w-40 text-center">
             <div className="text-sm font-semibold mb-1">Réseau</div>
             <div className="text-lg font-bold">{toKWh(gridImportTotal)} kWh</div>
             
@@ -141,16 +142,16 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             
             {/* Grid Legend */}
             <div className="text-xs space-y-1">
-              <div className="flex items-center">
+              <div className="flex items-center justify-center">
                 <span className="w-3 h-3 inline-block bg-gray-500 mr-1"></span>
-                <span>Utilisé par Charges: {gridToLoadsPercent}%</span>
+                <span>Importé: {gridToLoadsPercent}%</span>
               </div>
-              <div className="text-xs text-gray-500">{toKWh(gridImportTotal)} kWh</div>
+              <div className="text-xs text-gray-500 text-center">{toKWh(gridImportTotal)} kWh</div>
             </div>
           </div>
           
-          {/* Consumption Section - Right */}
-          <div className="absolute bottom-1/3 right-0 w-40 text-center">
+          {/* Consumption Section - Bottom Right */}
+          <div className="absolute bottom-0 right-0 md:right-1/4 transform md:translate-x-1/4 w-40 text-center">
             <div className="text-sm font-semibold mb-1">Consommation</div>
             <div className="text-lg font-bold">{toKWh(consumptionTotal)} kWh</div>
             
@@ -193,39 +194,39 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             
             {/* Consumption Legend */}
             <div className="text-xs space-y-1">
-              <div className="flex items-center">
+              <div className="flex items-center justify-center">
                 <span className="w-3 h-3 inline-block bg-orange-500 mr-1"></span>
                 <span>Depuis PV: {consumptionFromPvPercent}%</span>
               </div>
-              <div className="text-xs text-gray-500">{toKWh(pvToLoads)} kWh</div>
+              <div className="text-xs text-gray-500 text-center">{toKWh(pvToLoads)} kWh</div>
               
-              <div className="flex items-center mt-1">
+              <div className="flex items-center justify-center mt-1">
                 <span className="w-3 h-3 inline-block bg-orange-300 mr-1"></span>
                 <span>Depuis Réseau: {consumptionFromGridPercent}%</span>
               </div>
-              <div className="text-xs text-gray-500">{toKWh(gridImportTotal)} kWh</div>
+              <div className="text-xs text-gray-500 text-center">{toKWh(gridImportTotal)} kWh</div>
             </div>
           </div>
           
-          {/* Connection Lines */}
+          {/* Connection Lines as SVG paths in Triangle formation */}
           <svg className="absolute inset-0 w-full h-full" style={{ zIndex: -1 }}>
-            {/* PV to Grid Line */}
+            {/* PV to Grid Line (Left diagonal) */}
             <path 
-              d="M 200,120 C 200,180 100,230 100,270" 
+              d="M 200,120 L 100,350" 
               className="stroke-green-300 stroke-2 fill-none"
               markerEnd="url(#arrowGreen)"
             />
             
-            {/* PV to Consumption Line */}
+            {/* PV to Consumption Line (Right diagonal) */}
             <path 
-              d="M 200,120 C 200,180 300,230 300,270" 
+              d="M 200,120 L 300,350" 
               className="stroke-green-500 stroke-2 fill-none"
               markerEnd="url(#arrowGreen)"
             />
             
-            {/* Grid to Consumption Line */}
+            {/* Grid to Consumption Line (Bottom horizontal) */}
             <path 
-              d="M 100,300 C 100,320 200,320 300,300" 
+              d="M 100,350 L 300,350" 
               className="stroke-gray-500 stroke-2 fill-none"
               markerEnd="url(#arrowGray)"
             />
