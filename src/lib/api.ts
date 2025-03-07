@@ -91,16 +91,31 @@ export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [DEFAULT_CONFIG];
 
+    // First, get all shelly_config_ids that the user has access to
+    const { data: shareData, error: shareError } = await supabase
+      .from('user_device_shares')
+      .select('shelly_config_id')
+      .eq('user_id', user.id);
 
-    const { data, error }: SupabaseResponse<DbShellyConfig[]> = await supabase
-      .from('shelly_configs') // Query shelly_configs directly
-      .select('*')           // Select all columns
-      .in('id', supabase.from('user_device_shares').select('shelly_config_id').eq('user_id', user.id));  // Filter by user access
+    if (shareError) throw shareError;
+    
+    // If no shares found, return default
+    if (!shareData || shareData.length === 0) {
+      return [DEFAULT_CONFIG];
+    }
 
+    // Extract the IDs into an array
+    const configIds = shareData.map(share => share.shelly_config_id);
+
+    // Then query the shelly_configs table using those IDs
+    const { data, error } = await supabase
+      .from('shelly_configs')
+      .select('*')
+      .in('id', configIds);
 
     if (error) throw error;
 
-    if (!data) {
+    if (!data || data.length === 0) {
       // If no configs found, return default
       return [DEFAULT_CONFIG];
     }
@@ -129,38 +144,57 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
     if (!user) return DEFAULT_CONFIG;
 
     // If ID provided, get specific config
-      let query;
-      if (id) {
-        // Get specific config by ID
-        query = supabase
-          .from('shelly_configs')
-          .select('*')
-          .eq('id', id)
-          .single(); // Use single() to get only one record
-
-      } else {
-      // Get first config associated with the user
-      query = supabase
+    if (id) {
+      // Get specific config by ID
+      const { data, error } = await supabase
         .from('shelly_configs')
         .select('*')
-        .in('id', supabase.from('user_device_shares').select('shelly_config_id').eq('user_id', user.id))
+        .eq('id', id)
+        .single(); // Use single() to get only one record
+
+      if (error) throw error;
+
+      if (!data) {
+        // If no config found, return default
+        return DEFAULT_CONFIG;
+      }
+
+      // Map database fields to frontend expected format
+      return mapDbConfigToFrontend(data);
+    } else {
+      // First, get the first shelly_config_id that the user has access to
+      const { data: shareData, error: shareError } = await supabase
+        .from('user_device_shares')
+        .select('shelly_config_id')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true })
         .limit(1)
-        .single(); //Use single so it does not return an array.
+        .single();
+
+      if (shareError) throw shareError;
+      
+      if (!shareData) {
+        // If no shares found, return default
+        return DEFAULT_CONFIG;
+      }
+
+      // Then get the config using that ID
+      const { data, error } = await supabase
+        .from('shelly_configs')
+        .select('*')
+        .eq('id', shareData.shelly_config_id)
+        .single();
+
+      if (error) throw error;
+
+      if (!data) {
+        // If no config found, return default
+        return DEFAULT_CONFIG;
+      }
+
+      // Map database fields to frontend expected format
+      return mapDbConfigToFrontend(data);
     }
-    const { data, error }: SupabaseResponse<DbShellyConfig> = await query;
-
-
-    if (error) throw error;
-
-    if (!data) {
-      // If no config found, return default
-      return DEFAULT_CONFIG;
-    }
-
-
-    // Map database fields to frontend expected format
-    return mapDbConfigToFrontend(data);
   } catch (error) {
     console.error("Error fetching Shelly config:", error);
     return DEFAULT_CONFIG;
@@ -235,7 +269,7 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       console.log('Update successful, received data:', data);
 
       // Convert back to camelCase for the frontend
-     if(!data) return null;
+      if(!data) return null;
       return mapDbConfigToFrontend(data);
     } else {
       // Map frontend model to database fields (without user_id)
@@ -255,7 +289,7 @@ export const updateShellyConfig = async (config: ShellyConfig): Promise<ShellyCo
       }
 
       console.log('Insert successful, received data:', data);
-        if(!data) return null;
+      if(!data) return null;
 
       // Create the user-device relationship
       const { error: shareError } = await supabase
@@ -393,7 +427,7 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
       is_valid: true, // Assuming data in Supabase is valid
       channel: 0, // Not available in Supabase
       shelly_config_id: configId, // Add the config ID to ensure proper tracking
-        frequency: energyData.frequency || 0
+      frequency: energyData.frequency || 0
     };
 
     return shellyData;
