@@ -24,15 +24,19 @@ export function DataTable({ data, className }: DataTableProps) {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="px-4 py-2 text-left font-medium text-gray-500">Time</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Power</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Réseau W</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Photovoltaïque W</th>
                   <th className="px-4 py-2 text-right font-medium text-gray-500">Voltage</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Current</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-500">Energy</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Courant réseau</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-500">Courant photovoltaïque</th>
                 </tr>
               </thead>
               <tbody>
                 {reversedData.map((item, index) => {
                   const timeAgo = formatDistance(new Date(item.timestamp), new Date(), { addSuffix: true });
+                  
+                  // Calculate photovoltaic current (approximation based on power and voltage)
+                  const pvCurrent = item.voltage > 0 ? item.production_power / item.voltage : 0;
                   
                   return (
                     <tr 
@@ -49,6 +53,9 @@ export function DataTable({ data, className }: DataTableProps) {
                       <td className="px-4 py-3 text-right font-medium">
                         {item.power.toFixed(1)} W
                       </td>
+                      <td className="px-4 py-3 text-right font-medium">
+                        {item.production_power.toFixed(1)} W
+                      </td>
                       <td className="px-4 py-3 text-right">
                         {item.voltage.toFixed(1)} V
                       </td>
@@ -56,7 +63,7 @@ export function DataTable({ data, className }: DataTableProps) {
                         {item.current.toFixed(2)} A
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {(item.total_energy / 1000).toFixed(3)} kWh
+                        {pvCurrent.toFixed(2)} A
                       </td>
                     </tr>
                   );
