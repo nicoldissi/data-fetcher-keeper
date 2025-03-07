@@ -1,5 +1,6 @@
 
 import { TooltipProps } from 'recharts';
+import { formatLocalDate } from '@/lib/dateUtils';
 
 interface ChartDataPoint {
   name: string;
@@ -14,9 +15,12 @@ export function CustomChartTooltip({
   label 
 }: TooltipProps<number, string>) {
   if (active && payload && payload.length) {
+    // Format le label (qui est la date/heure) en utilisant notre fonction d'utilitaire
+    const formattedLabel = label ? label : '';
+    
     return (
       <div className="bg-background border rounded-md shadow-md p-3 font-sans">
-        <p className="font-semibold">{`${label}`}</p>
+        <p className="font-semibold">{formattedLabel}</p>
         {payload.map((entry: any, index: number) => {
           const isVoltage = entry.name === 'Tension';
           const unit = isVoltage ? 'V' : 'W';

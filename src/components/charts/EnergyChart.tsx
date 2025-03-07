@@ -10,6 +10,7 @@ import { EnergyChartWrapper } from './EnergyChartWrapper';
 import { ChartSeriesToggle } from './ChartSeriesToggle';
 import { CustomChartTooltip } from './CustomChartTooltip';
 import { useEnergyChartData } from '@/hooks/useEnergyChartData';
+import { formatTimeForChart } from '@/lib/dateUtils';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];

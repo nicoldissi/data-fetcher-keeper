@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,19 +44,23 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         
         if (data && data.length > 0) {
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            const date = new Date(item.timestamp);
+            // Utiliser formatLocalDate pour garantir le format français correct
+            const formattedTime = formatLocalDate(item.timestamp, { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              day: undefined,
+              month: undefined
+            });
+            
+            const localDate = parseToLocalDate(item.timestamp);
             
             const grid = Math.round(item.consumption || 0);
             const production = Math.round(item.production || 0);
             const consumption = grid + production;
             
             return {
-              time: date.toLocaleTimeString('fr-FR', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false
-              }),
-              timestamp: date.getTime(),
+              time: formattedTime,
+              timestamp: localDate.getTime(),
               consumption,
               production,
               grid,
@@ -80,8 +85,16 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       setChartData(fullDayData);
     } else if (history.length > 0) {
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
+        // Utiliser formatLocalDate pour l'affichage de l'heure uniquement
+        const formattedTime = formatLocalDate(item.timestamp, {
+          hour: '2-digit', 
+          minute: '2-digit',
+          day: undefined,
+          month: undefined,
+          hour12: false
+        });
+        
         const localDate = parseToLocalDate(item.timestamp);
-        const formattedTime = formatLocalDate(item.timestamp);
         
         const grid = Math.round(item.power);
         const production = Math.round(item.production_power || 0);

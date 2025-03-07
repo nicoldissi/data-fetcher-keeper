@@ -33,6 +33,21 @@ export function formatLocalDate(timestamp: string | number, options?: Intl.DateT
 }
 
 /**
+ * Convertit un timestamp en date locale formatée spécifiquement pour les graphiques (heure et minute uniquement)
+ * @param timestamp Le timestamp à convertir (string ou number)
+ * @returns Chaîne formatée pour l'affichage des heures sur les graphiques
+ */
+export function formatTimeForChart(timestamp: string | number): string {
+  return formatLocalDate(timestamp, {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: undefined,
+    month: undefined,
+    hour12: false
+  });
+}
+
+/**
  * Convertit un timestamp en objet Date
  * @param timestamp Le timestamp à convertir (string ou number)
  * @returns Objet Date
