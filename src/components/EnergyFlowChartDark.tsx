@@ -1,9 +1,9 @@
+
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Stage, Layer, Circle, Text, Arrow, Group } from 'react-konva'
-import Konva from 'konva'
+import * as d3 from 'd3'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
@@ -26,8 +26,9 @@ interface NodePosition {
 }
 
 export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProps) {
+  const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [stageSize, setStageSize] = useState({ width: 400, height: 400 })
+  const [size, setSize] = useState({ width: 400, height: 400 })
   const [flowAnimations, setFlowAnimations] = useState<FlowAnimationState>({
     gridToHome: false,
     gridFromHome: false,
@@ -35,29 +36,23 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     solarToGrid: false
   })
   
-  // Arrows references for animation
-  const gridToHomeArrowRef = useRef<Konva.Arrow>(null)
-  const gridFromHomeArrowRef = useRef<Konva.Arrow>(null)
-  const solarToHomeArrowRef = useRef<Konva.Arrow>(null)
-  const solarToGridArrowRef = useRef<Konva.Arrow>(null)
-  
-  // Update stage size on window resize
+  // Update SVG size on window resize
   useEffect(() => {
-    const updateStageSize = () => {
+    const updateSize = () => {
       if (containerRef.current) {
-        const { offsetWidth, offsetHeight } = containerRef.current;
-        setStageSize({
-          width: offsetWidth, 
+        const { offsetWidth } = containerRef.current
+        setSize({
+          width: offsetWidth,
           height: Math.min(400, offsetWidth) // Keeping aspect ratio
         })
       }
     }
     
-    updateStageSize()
-    window.addEventListener('resize', updateStageSize)
+    updateSize()
+    window.addEventListener('resize', updateSize)
     
     return () => {
-      window.removeEventListener('resize', updateStageSize)
+      window.removeEventListener('resize', updateSize)
     }
   }, [])
   
@@ -82,86 +77,177 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     
   }, [data])
   
-  // Run arrow animations
+  // Render D3 visualization
   useEffect(() => {
-    const animateArrow = (
-      arrowRef: React.RefObject<Konva.Arrow>,
-      isActive: boolean,
-      duration: number
-    ) => {
-      if (arrowRef.current && isActive) {
-        // Clear any existing animations
-        // Using any to bypass TypeScript error since stopAnimation exists on Konva.Node
-        const node = arrowRef.current as any;
-        if (node.getAnimations) {
-          const animations = node.getAnimations();
-          animations.forEach((anim: Konva.Animation) => anim.stop());
-        }
-        
-        // Create the dash animation
-        const amplitude = 10;
-        arrowRef.current.dashOffset(0);
-        
-        const anim = new Konva.Animation((frame) => {
-          if (!frame || !arrowRef.current) return;
-          const dashOffset = -((frame.time / duration) * amplitude) % 20;
-          arrowRef.current.dashOffset(dashOffset);
-          arrowRef.current.opacity(1); // Ensure visible
-        }, arrowRef.current.getLayer());
-        
-        anim.start();
-        
-        return anim;
-      } else if (arrowRef.current) {
-        arrowRef.current.opacity(0); // Hide when inactive
-      }
-    };
+    if (!svgRef.current || !data) return
     
-    // Start animations for active flows
-    const animations = [
-      animateArrow(gridToHomeArrowRef, flowAnimations.gridToHome, 500),
-      animateArrow(gridFromHomeArrowRef, flowAnimations.gridFromHome, 500),
-      animateArrow(solarToHomeArrowRef, flowAnimations.solarToHome, 300),
-      animateArrow(solarToGridArrowRef, flowAnimations.solarToGrid, 300)
-    ];
+    const svg = d3.select(svgRef.current)
+    svg.selectAll("*").remove() // Clear previous content
     
-    // Cleanup function to stop all animations
-    return () => {
-      animations.forEach(anim => anim?.stop());
-    };
-  }, [flowAnimations]);
-  
-  // Node positions based on stage size
-  const getNodePositions = (): Record<string, NodePosition> => {
-    const { width, height } = stageSize;
-    const gridValue = data ? `${data.power.toFixed(1)} W` : '0 W';
-    const solarValue = data ? `${data.production_power.toFixed(1)} W` : '0 W';
-    const homeValue = data ? `${(data.power + data.production_power).toFixed(1)} W` : '0 W';
+    const { width, height } = size
+    const nodeRadius = 40
     
-    return {
+    // Set up node positions
+    const nodes = {
       grid: {
         x: width * 0.2,
         y: height * 0.5,
         label: 'Réseau',
-        value: gridValue,
+        value: `${data.power.toFixed(1)} W`,
         color: '#94a3b8'
       },
       solar: {
         x: width * 0.5,
         y: height * 0.2,
         label: 'PV',
-        value: solarValue,
+        value: `${data.production_power.toFixed(1)} W`,
         color: '#f59e0b'
       },
       home: {
         x: width * 0.8,
         y: height * 0.5,
         label: 'Maison',
-        value: homeValue,
+        value: `${(data.power + data.production_power).toFixed(1)} W`,
         color: '#6366f1'
       }
-    };
-  };
+    }
+    
+    // Create a container for each node with its elements
+    Object.entries(nodes).forEach(([key, node]) => {
+      const nodeGroup = svg.append('g')
+        .attr('transform', `translate(${node.x}, ${node.y})`)
+        .attr('class', `node-${key}`)
+      
+      // Node circle with shadow
+      nodeGroup.append('circle')
+        .attr('r', nodeRadius)
+        .attr('fill', 'white')
+        .attr('stroke', node.color)
+        .attr('stroke-width', 2)
+        .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
+      
+      // Node label
+      nodeGroup.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '0em')
+        .attr('fill', key === 'grid' ? '#64748b' : (key === 'solar' ? '#d97706' : '#4f46e5'))
+        .attr('font-weight', 'bold')
+        .text(node.label)
+      
+      // Node value
+      nodeGroup.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '1.5em')
+        .attr('fill', key === 'grid' ? '#64748b' : (key === 'solar' ? '#d97706' : '#4f46e5'))
+        .attr('font-size', '12px')
+        .text(node.value)
+    })
+    
+    // Define arrow paths with control points for curved arrows
+    const arrowPaths = {
+      gridToHome: {
+        path: createCurvedPath(
+          nodes.grid.x + nodeRadius, nodes.grid.y - 10,
+          nodes.home.x - nodeRadius, nodes.home.y - 10,
+          0.3, -20
+        ),
+        active: flowAnimations.gridToHome,
+        color: '#ef4444' // Red for grid supply
+      },
+      gridFromHome: {
+        path: createCurvedPath(
+          nodes.home.x - nodeRadius, nodes.home.y + 10,
+          nodes.grid.x + nodeRadius, nodes.grid.y + 10,
+          0.3, 20
+        ),
+        active: flowAnimations.gridFromHome,
+        color: '#10b981' // Green for grid receiving
+      },
+      solarToHome: {
+        path: createCurvedPath(
+          nodes.solar.x + 15, nodes.solar.y + nodeRadius,
+          nodes.home.x - nodeRadius, nodes.home.y - 20,
+          0.5, 0
+        ),
+        active: flowAnimations.solarToHome,
+        color: '#f59e0b' // Amber for solar production
+      },
+      solarToGrid: {
+        path: createCurvedPath(
+          nodes.solar.x - 15, nodes.solar.y + nodeRadius,
+          nodes.grid.x + nodeRadius, nodes.grid.y - 20,
+          0.5, 0
+        ),
+        active: flowAnimations.solarToGrid,
+        color: '#10b981' // Green for excess to grid
+      }
+    }
+    
+    // Create curved path between points
+    function createCurvedPath(
+      x1: number, y1: number, 
+      x2: number, y2: number, 
+      curvature: number,
+      heightOffset: number
+    ) {
+      const midX = (x1 + x2) / 2
+      const midY = (y1 + y2) / 2 + heightOffset
+      return `M${x1},${y1} Q${midX},${midY} ${x2},${y2}`
+    }
+    
+    // Create arrow marker definitions for different colors
+    const colors = ['#ef4444', '#10b981', '#f59e0b']
+    const defs = svg.append('defs')
+    
+    colors.forEach(color => {
+      const markerId = `arrowMarker-${color.substring(1)}`
+      defs.append('marker')
+        .attr('id', markerId)
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 8)
+        .attr('refY', 0)
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', color)
+    })
+    
+    // Create flow paths with animations
+    Object.entries(arrowPaths).forEach(([key, arrow]) => {
+      // Create the path element
+      const path = svg.append('path')
+        .attr('d', arrow.path)
+        .attr('fill', 'none')
+        .attr('stroke', arrow.color)
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '10,5')
+        .attr('marker-end', `url(#arrowMarker-${arrow.color.substring(1)})`)
+        .attr('opacity', arrow.active ? 1 : 0)
+        .style('filter', `drop-shadow(0px 2px 3px ${arrow.color}80)`)
+      
+      // Animate the dash pattern if active
+      if (arrow.active) {
+        // Self calling animation function using d3 transition
+        function animateDash() {
+          path.transition()
+            .duration(500)
+            .ease(d3.easeLinear)
+            .attrTween('stroke-dashoffset', function() {
+              const length = (this as SVGPathElement).getTotalLength()
+              return function(t) {
+                return String(length * (1 - t))
+              }
+            })
+            .on('end', animateDash)
+        }
+        
+        animateDash()
+      }
+    })
+    
+  }, [data, flowAnimations, size])
   
   // If no data is available, show a loading state
   if (!data) {
@@ -182,8 +268,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       </Card>
     );
   }
-  
-  const nodePositions = getNodePositions();
 
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
@@ -198,190 +282,12 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           ref={containerRef} 
           className="relative w-full max-w-md aspect-square"
         >
-          <Stage width={stageSize.width} height={stageSize.height}>
-            <Layer>
-              {/* Grid to Home Arrow */}
-              <Arrow
-                ref={gridToHomeArrowRef}
-                points={[
-                  nodePositions.grid.x + 40, nodePositions.grid.y - 10,
-                  (nodePositions.grid.x + nodePositions.home.x) / 2, (nodePositions.grid.y + nodePositions.home.y) / 2 - 20,
-                  nodePositions.home.x - 40, nodePositions.home.y - 10
-                ]}
-                tension={0.4}
-                stroke="#ef4444"
-                strokeWidth={3}
-                dash={[10, 5]}
-                dashEnabled={true}
-                pointerLength={10}
-                pointerWidth={10}
-                opacity={flowAnimations.gridToHome ? 1 : 0}
-                shadowColor="rgba(239, 68, 68, 0.4)"
-                shadowBlur={5}
-                shadowOpacity={0.6}
-                shadowEnabled={true}
-              />
-              
-              {/* Grid from Home Arrow (Injection) */}
-              <Arrow
-                ref={gridFromHomeArrowRef}
-                points={[
-                  nodePositions.home.x - 40, nodePositions.home.y + 10,
-                  (nodePositions.grid.x + nodePositions.home.x) / 2, (nodePositions.grid.y + nodePositions.home.y) / 2 + 20,
-                  nodePositions.grid.x + 40, nodePositions.grid.y + 10
-                ]}
-                tension={0.4}
-                stroke="#10b981"
-                strokeWidth={3}
-                dash={[10, 5]}
-                dashEnabled={true}
-                pointerLength={10}
-                pointerWidth={10}
-                opacity={flowAnimations.gridFromHome ? 1 : 0}
-                shadowColor="rgba(16, 185, 129, 0.4)"
-                shadowBlur={5}
-                shadowOpacity={0.6}
-                shadowEnabled={true}
-              />
-              
-              {/* Solar to Home Arrow */}
-              <Arrow
-                ref={solarToHomeArrowRef}
-                points={[
-                  nodePositions.solar.x + 15, nodePositions.solar.y + 30,
-                  (nodePositions.solar.x + nodePositions.home.x) / 2, (nodePositions.solar.y + nodePositions.home.y) / 2,
-                  nodePositions.home.x - 30, nodePositions.home.y - 20
-                ]}
-                tension={0.4}
-                stroke="#f59e0b"
-                strokeWidth={3}
-                dash={[10, 5]}
-                dashEnabled={true}
-                pointerLength={10}
-                pointerWidth={10}
-                opacity={flowAnimations.solarToHome ? 1 : 0}
-                shadowColor="rgba(245, 158, 11, 0.4)"
-                shadowBlur={5}
-                shadowOpacity={0.6}
-                shadowEnabled={true}
-              />
-              
-              {/* Solar to Grid Arrow */}
-              <Arrow
-                ref={solarToGridArrowRef}
-                points={[
-                  nodePositions.solar.x - 15, nodePositions.solar.y + 30,
-                  (nodePositions.solar.x + nodePositions.grid.x) / 2, (nodePositions.solar.y + nodePositions.grid.y) / 2,
-                  nodePositions.grid.x + 30, nodePositions.grid.y - 20
-                ]}
-                tension={0.4}
-                stroke="#10b981"
-                strokeWidth={3}
-                dash={[10, 5]}
-                dashEnabled={true}
-                pointerLength={10}
-                pointerWidth={10}
-                opacity={flowAnimations.solarToGrid ? 1 : 0}
-                shadowColor="rgba(16, 185, 129, 0.4)"
-                shadowBlur={5}
-                shadowOpacity={0.6}
-                shadowEnabled={true}
-              />
-              
-              {/* Grid Node */}
-              <Group x={nodePositions.grid.x} y={nodePositions.grid.y}>
-                <Circle
-                  radius={40}
-                  fill="white"
-                  stroke={nodePositions.grid.color}
-                  strokeWidth={2}
-                  shadowColor="rgba(148, 163, 184, 0.4)"
-                  shadowBlur={10}
-                  shadowOpacity={0.6}
-                  shadowEnabled={true}
-                />
-                <Text 
-                  text={nodePositions.grid.label}
-                  align="center"
-                  width={80}
-                  offset={{ x: 40, y: 0 }}
-                  fill="#64748b"
-                  fontStyle="bold"
-                />
-                <Text 
-                  text={nodePositions.grid.value}
-                  align="center"
-                  width={80}
-                  offset={{ x: 40, y: -20 }}
-                  y={20}
-                  fill="#64748b"
-                  fontSize={12}
-                />
-              </Group>
-              
-              {/* Solar Node */}
-              <Group x={nodePositions.solar.x} y={nodePositions.solar.y}>
-                <Circle
-                  radius={40}
-                  fill="white"
-                  stroke={nodePositions.solar.color}
-                  strokeWidth={2}
-                  shadowColor="rgba(245, 158, 11, 0.4)"
-                  shadowBlur={10}
-                  shadowOpacity={0.6}
-                  shadowEnabled={true}
-                />
-                <Text 
-                  text={nodePositions.solar.label}
-                  align="center"
-                  width={80}
-                  offset={{ x: 40, y: 0 }}
-                  fill="#d97706"
-                  fontStyle="bold"
-                />
-                <Text 
-                  text={nodePositions.solar.value}
-                  align="center"
-                  width={80}
-                  offset={{ x: 40, y: -20 }}
-                  y={20}
-                  fill="#d97706"
-                  fontSize={12}
-                />
-              </Group>
-              
-              {/* Home Node */}
-              <Group x={nodePositions.home.x} y={nodePositions.home.y}>
-                <Circle
-                  radius={40}
-                  fill="white"
-                  stroke={nodePositions.home.color}
-                  strokeWidth={2}
-                  shadowColor="rgba(99, 102, 241, 0.4)"
-                  shadowBlur={10}
-                  shadowOpacity={0.6}
-                  shadowEnabled={true}
-                />
-                <Text 
-                  text={nodePositions.home.label}
-                  align="center"
-                  width={80}
-                  offset={{ x: 40, y: 0 }}
-                  fill="#4f46e5"
-                  fontStyle="bold"
-                />
-                <Text 
-                  text={nodePositions.home.value}
-                  align="center"
-                  width={80}
-                  offset={{ x: 40, y: -20 }}
-                  y={20}
-                  fill="#4f46e5"
-                  fontSize={12}
-                />
-              </Group>
-            </Layer>
-          </Stage>
+          <svg 
+            ref={svgRef} 
+            width={size.width} 
+            height={size.height} 
+            className="overflow-visible"
+          />
         </div>
       </CardContent>
     </Card>
