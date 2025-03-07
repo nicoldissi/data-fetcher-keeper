@@ -15,8 +15,37 @@ export const supabase = createClient<Database>(
   {
     realtime: {
       params: {
-        eventsPerSecond: 10
+        eventsPerSecond: 10,
+        maxReconnectAttempts: 10,
+        timeout: 30000
       }
+    },
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true
     }
   }
 );
+
+// Enable realtime subscriptions for the energy_data table
+const setupRealtimeSubscriptions = async () => {
+  try {
+    // Enable realtime for the energy_data table
+    await supabase.channel('energy-data-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'energy_data'
+      }, (payload) => {
+        console.log('Realtime energy_data update:', payload);
+      })
+      .subscribe();
+    
+    console.log('Realtime subscriptions enabled');
+  } catch (error) {
+    console.error('Error setting up realtime subscriptions:', error);
+  }
+};
+
+// Call the function to initialize realtime
+setupRealtimeSubscriptions();
