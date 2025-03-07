@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { formatDistanceToNow } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -46,18 +46,10 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   const color = getColor(selfConsumptionRate);
   
-  // Get the user's local timezone
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
-  // Format timestamp properly using the user's local timezone
+  // Format timestamp in local time
   const formattedTimestamp = data 
-    ? formatDistanceToNow(new Date(data.timestamp), { addSuffix: true })
-    : 'Never';
-
-  // Also create a more precise timestamp for debugging
-  const preciseTimestamp = data
-    ? formatInTimeZone(new Date(data.timestamp), userTimeZone, 'yyyy-MM-dd HH:mm:ss (z)')
-    : 'No data';
+    ? format(new Date(data.timestamp), "'le' dd MMM 'à' HH:mm", { locale: fr })
+    : 'Jamais';
   
   // Calculate grid current without absolute value
   const gridCurrent = data && data.voltage > 0 ? data.power / data.voltage : 0;
@@ -67,15 +59,6 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   // Set current color based on direction
   const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
-  
-  // Log timestamp info for debugging
-  console.log('Timestamp debugging:', {
-    originalTimestamp: data?.timestamp,
-    timestampAsDate: data ? new Date(data.timestamp) : null,
-    userTimeZone,
-    formattedTimestamp,
-    preciseTimestamp
-  });
   
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
@@ -95,7 +78,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
           </div>
           
           <Badge variant="outline" className="px-3 py-1 text-xs">
-            Updated: {formattedTimestamp}
+            Mis à jour: {formattedTimestamp}
           </Badge>
         </div>
         {data && (
@@ -117,8 +100,6 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                 <p className="text-lg font-medium">{(data.production_power / data.voltage).toFixed(2)} A</p>
               </div>
             </div>
-            
-
           </>
         )}
       </CardContent>
