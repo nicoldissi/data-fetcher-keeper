@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sun, Home, Zap } from 'lucide-react';
@@ -183,7 +184,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
             </div>
           </div>
           
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="xMidYMid meet">
             <defs>
               <linearGradient id="gradientGreen" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#34d399" />
@@ -257,40 +258,43 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
               `}
             </style>
             
+            {/* PV to Right Circle - Adjusted */}
             <path 
               className="flow-path-bg" 
-              d="M 200,85 C 240,140 280,180 320,240" 
+              d="M 50%, 85 L 50%, 160 C 150,200 200,220 70%,240" 
               stroke="url(#gradientGreen)" 
             />
             <path 
               className="flow-path" 
-              d="M 200,85 C 240,140 280,180 320,240" 
+              d="M 50%, 85 L 50%, 160 C 150,200 200,220 70%,240" 
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
+            {/* PV to Left Circle - Adjusted */}
             <path 
               className="flow-path-bg" 
-              d="M 200,85 C 160,140 120,180 80,240" 
+              d="M 50%, 85 L 50%, 160 C -50,200 -100,220 30%,240" 
               stroke="url(#gradientGreen)" 
             />
             <path 
               className="flow-path" 
-              d="M 200,85 C 160,140 120,180 80,240" 
+              d="M 50%, 85 L 50%, 160 C -50,200 -100,220 30%,240" 
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
+            {/* Left to Right Circle - Adjusted */}
             <path 
               className="flow-path-bg" 
-              d="M 90,260 C 130,300 270,300 310,260" 
+              d="M 30%, 250 C 30%,300 70%,300 70%,250" 
               stroke="url(#gradientGray)" 
             />
             <path 
               className="flow-path" 
-              d="M 90,260 C 130,300 270,300 310,260" 
+              d="M 30%, 250 C 30%,300 70%,300 70%,250" 
               stroke="url(#gradientGray)" 
               markerEnd="url(#arrowGray)"
               filter="url(#glow)"

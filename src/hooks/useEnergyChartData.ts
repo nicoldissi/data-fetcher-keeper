@@ -49,8 +49,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         if (data && data.length > 0) {
           // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            // Parse ISO string to Date object correctly handling timezone
-            const date = parseISO(item.timestamp);
+            // Parse the timestamp correctly
+            const date = new Date(item.timestamp);
             
             // Ensure consumption = grid + production with positive values
             const grid = Math.round(item.consumption || 0);
@@ -58,8 +58,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
             const consumption = grid + production;
             
             return {
-              // Format in local time with the browser's timezone (French locale)
-              time: format(date, 'HH:mm', { locale: fr }),
+              // Format time directly in local timezone
+              time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
               timestamp: date.getTime(),
               consumption,
               production,
@@ -88,16 +88,17 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     } else if (history.length > 0) {
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-        // Convert timestamp to local time
+        // Use browser's built-in time formatting for local timezone display
         const date = new Date(item.timestamp);
+        
         // Ensure consumption = grid + production
         const grid = Math.round(item.power);
         const production = Math.round(item.production_power || 0);
         const consumption = grid + production;
         
         return {
-          // Format in local time using the browser's timezone
-          time: format(date, 'HH:mm', { locale: fr }),
+          // Use native browser date formatting to ensure local timezone
+          time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
           timestamp: date.getTime(),
           consumption,
           production,

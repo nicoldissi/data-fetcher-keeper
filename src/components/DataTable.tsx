@@ -56,7 +56,9 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                       )}
                     >
                       <td className="px-4 py-3 text-left">
-                        <div className="font-medium">{new Date(item.timestamp).toLocaleTimeString()}</div>
+                        <div className="font-medium">
+                          {new Date(item.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                         <div className="text-xs text-gray-500">{timeAgo}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium">
