@@ -287,43 +287,43 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
               `}
             </style>
             
-            {/* PV to Home (curved, attractive path) */}
+            {/* PV to Home (curved, attractive path) - Adjusted coordinates to align with circles */}
             <path 
               className="flow-path-bg" 
-              d="M 200,80 C 270,120 320,150 330,200" 
+              d="M 200,100 C 250,140 300,180 330,240" 
               stroke="url(#gradientGreen)" 
             />
             <path 
               className="flow-path" 
-              d="M 200,80 C 270,120 320,150 330,200" 
+              d="M 200,100 C 250,140 300,180 330,240" 
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
-            {/* PV to Grid (curved) */}
+            {/* PV to Grid (curved) - Adjusted coordinates to align with circles */}
             <path 
               className="flow-path-bg" 
-              d="M 200,80 C 120,130 70,150 60,200" 
+              d="M 200,100 C 150,140 100,180 70,240" 
               stroke="url(#gradientGreen)" 
             />
             <path 
               className="flow-path" 
-              d="M 200,80 C 120,130 70,150 60,200" 
+              d="M 200,100 C 150,140 100,180 70,240" 
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
-            {/* Grid to Consumption (curved) */}
+            {/* Grid to Consumption (curved) - Adjusted coordinates to align with circles */}
             <path 
               className="flow-path-bg" 
-              d="M 70,220 C 110,260 280,260 330,220" 
+              d="M 80,260 C 120,300 280,300 320,260" 
               stroke="url(#gradientGray)" 
             />
             <path 
               className="flow-path" 
-              d="M 70,220 C 110,260 280,260 330,220" 
+              d="M 80,260 C 120,300 280,300 320,260" 
               stroke="url(#gradientGray)" 
               markerEnd="url(#arrowGray)"
               filter="url(#glow)"
