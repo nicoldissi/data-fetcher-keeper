@@ -41,6 +41,9 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                 {reversedData.map((item, index) => {
                   const timeAgo = formatDistance(new Date(item.timestamp), new Date(), { addSuffix: true });
                   
+                  // Calculate grid current using the same method as DeviceStatus
+                  const gridCurrent = item.voltage > 0 ? Math.abs(item.power) / item.voltage : 0;
+                  
                   // Calculate photovoltaic current (approximation based on power and voltage)
                   const pvCurrent = item.voltage > 0 ? item.production_power / item.voltage : 0;
                   
@@ -66,7 +69,7 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                         {item.voltage.toFixed(1)} V
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {item.current.toFixed(2)} A
+                        {gridCurrent.toFixed(2)} A
                       </td>
                       <td className="px-4 py-3 text-right">
                         {pvCurrent.toFixed(2)} A
