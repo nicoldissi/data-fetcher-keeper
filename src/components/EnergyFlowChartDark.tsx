@@ -62,6 +62,12 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     
     console.log('EnergyFlowChartDark received new data:', data)
     
+    // Utiliser la méthode de conversion UTC fournie
+    const utcTimestamp = data.timestamp + "Z"; // Forcer l'interprétation en UTC
+    const localDate = new Date(utcTimestamp);
+    
+    console.log('Converted timestamp:', localDate.toLocaleString('fr-FR'));
+    
     // Determine flow scenarios
     const isPVProducing = data.production_power > 6 // Minimum threshold for production
     const isGridSupplyingHome = data.power > 0

@@ -40,15 +40,17 @@ export function DataTable({ data, className, configId }: DataTableProps) {
               </thead>
               <tbody>
                 {reversedData.map((item, index) => {
-                  // Garantir que nous avons un objet Date valide
-                  const timeMs = typeof item.timestamp === 'number' ? item.timestamp : parseInt(item.timestamp as any);
-                  const localDate = new Date(timeMs);
+                  // Utiliser la méthode de conversion fournie
+                  const utcTimestamp = item.timestamp + "Z"; // Forcer l'interprétation en UTC
+                  const localDate = new Date(utcTimestamp);
                   
                   // Formater l'heure en utilisant directement toLocaleTimeString avec les options de formatage
-                  const formattedTime = localDate.toLocaleTimeString('fr-FR', { 
-                    hour: '2-digit', 
+                  const formattedTime = localDate.toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
                     minute: '2-digit',
-                    hour12: false // Format 24h pour la France
+                    hour12: false
                   });
                   
                   // Calculer le temps écoulé

@@ -90,9 +90,9 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     } else if (history.length > 0) {
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-        // Ensure we create a local date object from the timestamp
-        const timeMs = typeof item.timestamp === 'number' ? item.timestamp : parseInt(item.timestamp as any);
-        const date = new Date(timeMs);
+        // Utiliser la méthode de conversion fournie
+        const utcTimestamp = item.timestamp + "Z"; // Forcer l'interprétation en UTC
+        const localDate = new Date(utcTimestamp);
         
         // Ensure consumption = grid + production
         const grid = Math.round(item.power);
@@ -100,17 +100,19 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const consumption = grid + production;
         
         return {
-          // Format time using toLocaleTimeString to ensure it's in the user's local timezone
-          time: date.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
+          // Format time using the new date conversion method
+          time: localDate.toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
             minute: '2-digit',
-            hour12: false // Format 24h pour la France
+            hour12: false
           }),
-          timestamp: date.getTime(),
+          timestamp: localDate.getTime(),
           consumption,
           production,
           grid,
-          voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined // Round to 1 decimal place if available
+          voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined
         };
       });
 
