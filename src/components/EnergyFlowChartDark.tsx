@@ -1,108 +1,165 @@
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { Stage, Layer, Circle, Text, Arrow, Group } from 'react-konva'
+import Konva from 'konva'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
   className?: string
 }
 
+interface FlowAnimationState {
+  gridToHome: boolean
+  gridFromHome: boolean
+  solarToHome: boolean
+  solarToGrid: boolean
+}
+
+interface NodePosition {
+  x: number
+  y: number
+  label: string
+  value: string
+  color: string
+}
+
 export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProps) {
-  const svgRef = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [stageSize, setStageSize] = useState({ width: 400, height: 400 })
+  const [flowAnimations, setFlowAnimations] = useState<FlowAnimationState>({
+    gridToHome: false,
+    gridFromHome: false,
+    solarToHome: false,
+    solarToGrid: false
+  })
   
+  // Arrows references for animation
+  const gridToHomeArrowRef = useRef<Konva.Arrow>(null)
+  const gridFromHomeArrowRef = useRef<Konva.Arrow>(null)
+  const solarToHomeArrowRef = useRef<Konva.Arrow>(null)
+  const solarToGridArrowRef = useRef<Konva.Arrow>(null)
+  
+  // Update stage size on window resize
   useEffect(() => {
-    // Only run effect when we have both data and SVG ref
-    if (!data || !svgRef.current) {
-      // Reduce log noise during initialization
-      return;
+    const updateStageSize = () => {
+      if (containerRef.current) {
+        const { offsetWidth, offsetHeight } = containerRef.current;
+        setStageSize({
+          width: offsetWidth, 
+          height: Math.min(400, offsetWidth) // Keeping aspect ratio
+        })
+      }
     }
+    
+    updateStageSize()
+    window.addEventListener('resize', updateStageSize)
+    
+    return () => {
+      window.removeEventListener('resize', updateStageSize)
+    }
+  }, [])
   
-    // Ajout de logs pour déboguer
+  // Update flow animations based on new data
+  useEffect(() => {
+    if (!data) return
+    
     console.log('EnergyFlowChartDark received new data:', data)
-    console.log('Grid power:', data.power, 'W', typeof data.power)
-    console.log('Solar power:', data.production_power, 'W', typeof data.production_power)
-    console.log('Home consumption:', data.power + data.production_power, 'W')
-  
-    // Récupère les valeurs de puissance
-    const gridFlow = data.power
-    const solarFlow = data.production_power
-    const homeConsumption = Math.abs(solarFlow) + Math.abs(gridFlow)
     
-    console.log('Calculated values:', { gridFlow, solarFlow, homeConsumption })
-  
-    // Sélectionne les chemins
-    const gridToHomePath = svgRef.current.querySelector('#gridToHomePath') as SVGPathElement | null
-    const gridFromHomePath = svgRef.current.querySelector('#gridFromHomePath') as SVGPathElement | null
-    const solarToHomePath = svgRef.current.querySelector('#solarToHomePath') as SVGPathElement | null
-    const solarToGridPath = svgRef.current.querySelector('#solarToGridPath') as SVGPathElement | null
+    // Determine flow scenarios
+    const isPVProducing = data.production_power > 6 // Minimum threshold for production
+    const isGridSupplyingHome = data.power > 0
+    const isGridReceivingExcess = data.power < 0
     
-    console.log('SVG paths found:', { 
-      gridToHomePath: !!gridToHomePath, 
-      gridFromHomePath: !!gridFromHomePath, 
-      solarToHomePath: !!solarToHomePath, 
-      solarToGridPath: !!solarToGridPath 
+    // Update animation states
+    setFlowAnimations({
+      gridToHome: isGridSupplyingHome,
+      gridFromHome: isGridReceivingExcess,
+      solarToHome: isPVProducing,
+      solarToGrid: isPVProducing && isGridReceivingExcess
     })
-  
-    if (gridToHomePath && gridFromHomePath && solarToHomePath && solarToGridPath) {
-      // Fonction utilitaire pour ajuster la durée d'animation
-      const getAnimationDuration = (power: number) => {
-        const absValue = Math.abs(power)
-        return Math.max(2, Math.min(10, 20000 / (absValue + 100)))
-      }
-  
-      // Détermine les scénarios de flux d'énergie
-      const isPVProducing = solarFlow > 6 // Seuil minimal pour considérer la production
-      const isGridSupplyingHome = gridFlow > 0
-      const isGridReceivingExcess = gridFlow < 0
-      
-      console.log('Flow scenarios:', { isPVProducing, isGridSupplyingHome, isGridReceivingExcess })
-  
-      // Gestion des chemins et animations en fonction des scénarios
-      
-      // 1. Flux du réseau vers la maison (consommation depuis le réseau)
-      if (isGridSupplyingHome) {
-        gridToHomePath.style.display = 'block'
-        gridToHomePath.style.animation = `flowAnimation ${getAnimationDuration(gridFlow)}s linear infinite`
-        console.log('Grid to home flow active with duration:', getAnimationDuration(gridFlow))
-      } else {
-        gridToHomePath.style.display = 'none'
-        console.log('Grid to home flow inactive')
-      }
-  
-      // 2. Flux de la maison vers le réseau (injection vers le réseau)
-      if (isGridReceivingExcess) {
-        gridFromHomePath.style.display = 'block'
-        gridFromHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
-        console.log('Grid from home flow active with duration:', getAnimationDuration(Math.abs(gridFlow)))
-      } else {
-        gridFromHomePath.style.display = 'none'
-        console.log('Grid from home flow inactive')
-      }
-  
-      // 3. Flux du PV vers la maison (toujours présent si production)
-      if (isPVProducing) {
-        solarToHomePath.style.display = 'block'
-        solarToHomePath.style.animation = `flowAnimation ${getAnimationDuration(Math.min(solarFlow, homeConsumption))}s linear infinite`
-        console.log('Solar to home flow active with duration:', getAnimationDuration(Math.min(solarFlow, homeConsumption)))
-      } else {
-        solarToHomePath.style.display = 'none'
-        console.log('Solar to home flow inactive')
-      }
-  
-      // 4. Flux du PV vers le réseau (excédent de production)
-      if (isPVProducing && isGridReceivingExcess) {
-        solarToGridPath.style.display = 'block'
-        solarToGridPath.style.animation = `flowAnimation ${getAnimationDuration(Math.abs(gridFlow))}s linear infinite`
-        console.log('Solar to grid flow active with duration:', getAnimationDuration(Math.abs(gridFlow)))
-      } else {
-        solarToGridPath.style.display = 'none'
-        console.log('Solar to grid flow inactive')
-      }
-    }
+    
   }, [data])
-  // If no data is available, show a loading or placeholder state
+  
+  // Run arrow animations
+  useEffect(() => {
+    const animateArrow = (
+      arrowRef: React.RefObject<Konva.Arrow>,
+      isActive: boolean,
+      duration: number
+    ) => {
+      if (arrowRef.current && isActive) {
+        // Clear any existing animations
+        arrowRef.current.stopAnimation();
+        
+        // Create the dash animation
+        const amplitude = 10;
+        arrowRef.current.dashOffset(0);
+        
+        const anim = new Konva.Animation((frame) => {
+          if (!frame || !arrowRef.current) return;
+          const dashOffset = -((frame.time / duration) * amplitude) % 20;
+          arrowRef.current.dashOffset(dashOffset);
+          arrowRef.current.opacity(1); // Ensure visible
+        }, arrowRef.current.getLayer());
+        
+        anim.start();
+        
+        return anim;
+      } else if (arrowRef.current) {
+        arrowRef.current.opacity(0); // Hide when inactive
+      }
+    };
+    
+    // Start animations for active flows
+    const animations = [
+      animateArrow(gridToHomeArrowRef, flowAnimations.gridToHome, 500),
+      animateArrow(gridFromHomeArrowRef, flowAnimations.gridFromHome, 500),
+      animateArrow(solarToHomeArrowRef, flowAnimations.solarToHome, 300),
+      animateArrow(solarToGridArrowRef, flowAnimations.solarToGrid, 300)
+    ];
+    
+    // Cleanup function to stop all animations
+    return () => {
+      animations.forEach(anim => anim?.stop());
+    };
+  }, [flowAnimations]);
+  
+  // Node positions based on stage size
+  const getNodePositions = (): Record<string, NodePosition> => {
+    const { width, height } = stageSize;
+    const gridValue = data ? `${data.power.toFixed(1)} W` : '0 W';
+    const solarValue = data ? `${data.production_power.toFixed(1)} W` : '0 W';
+    const homeValue = data ? `${(data.power + data.production_power).toFixed(1)} W` : '0 W';
+    
+    return {
+      grid: {
+        x: width * 0.2,
+        y: height * 0.5,
+        label: 'Réseau',
+        value: gridValue,
+        color: '#94a3b8'
+      },
+      solar: {
+        x: width * 0.5,
+        y: height * 0.2,
+        label: 'PV',
+        value: solarValue,
+        color: '#f59e0b'
+      },
+      home: {
+        x: width * 0.8,
+        y: height * 0.5,
+        label: 'Maison',
+        value: homeValue,
+        color: '#6366f1'
+      }
+    };
+  };
+  
+  // If no data is available, show a loading state
   if (!data) {
     return (
       <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
@@ -122,6 +179,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     );
   }
   
+  const nodePositions = getNodePositions();
+
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
       <CardHeader className="pb-2">
@@ -131,229 +190,194 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         </CardTitle>
       </CardHeader>
       <CardContent className="flex items-center justify-center p-6">
-        <div className="relative w-full max-w-md aspect-square">
-          <svg
-            ref={svgRef}
-            viewBox="0 0 400 400"
-            className="w-full h-full"
-          >
-            <defs>
-              {/* Les filtres « neon » pour l'effet lumineux */}
-              <filter id="neonGrid" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-                <feColorMatrix in="blur" type="matrix"
-                    values="1 0 0 0 0.961   0 1 0 0 0.620   0 0 1 0 0.043  0 0 0 3 0"
+        <div 
+          ref={containerRef} 
+          className="relative w-full max-w-md aspect-square"
+        >
+          <Stage width={stageSize.width} height={stageSize.height}>
+            <Layer>
+              {/* Grid to Home Arrow */}
+              <Arrow
+                ref={gridToHomeArrowRef}
+                points={[
+                  nodePositions.grid.x + 40, nodePositions.grid.y - 10,
+                  (nodePositions.grid.x + nodePositions.home.x) / 2, (nodePositions.grid.y + nodePositions.home.y) / 2 - 20,
+                  nodePositions.home.x - 40, nodePositions.home.y - 10
+                ]}
+                tension={0.4}
+                stroke="#ef4444"
+                strokeWidth={3}
+                dash={[10, 5]}
+                dashEnabled={true}
+                pointerLength={10}
+                pointerWidth={10}
+                opacity={flowAnimations.gridToHome ? 1 : 0}
+                shadowColor="rgba(239, 68, 68, 0.4)"
+                shadowBlur={5}
+                shadowOpacity={0.6}
+                shadowEnabled={true}
+              />
+              
+              {/* Grid from Home Arrow (Injection) */}
+              <Arrow
+                ref={gridFromHomeArrowRef}
+                points={[
+                  nodePositions.home.x - 40, nodePositions.home.y + 10,
+                  (nodePositions.grid.x + nodePositions.home.x) / 2, (nodePositions.grid.y + nodePositions.home.y) / 2 + 20,
+                  nodePositions.grid.x + 40, nodePositions.grid.y + 10
+                ]}
+                tension={0.4}
+                stroke="#10b981"
+                strokeWidth={3}
+                dash={[10, 5]}
+                dashEnabled={true}
+                pointerLength={10}
+                pointerWidth={10}
+                opacity={flowAnimations.gridFromHome ? 1 : 0}
+                shadowColor="rgba(16, 185, 129, 0.4)"
+                shadowBlur={5}
+                shadowOpacity={0.6}
+                shadowEnabled={true}
+              />
+              
+              {/* Solar to Home Arrow */}
+              <Arrow
+                ref={solarToHomeArrowRef}
+                points={[
+                  nodePositions.solar.x + 15, nodePositions.solar.y + 30,
+                  (nodePositions.solar.x + nodePositions.home.x) / 2, (nodePositions.solar.y + nodePositions.home.y) / 2,
+                  nodePositions.home.x - 30, nodePositions.home.y - 20
+                ]}
+                tension={0.4}
+                stroke="#f59e0b"
+                strokeWidth={3}
+                dash={[10, 5]}
+                dashEnabled={true}
+                pointerLength={10}
+                pointerWidth={10}
+                opacity={flowAnimations.solarToHome ? 1 : 0}
+                shadowColor="rgba(245, 158, 11, 0.4)"
+                shadowBlur={5}
+                shadowOpacity={0.6}
+                shadowEnabled={true}
+              />
+              
+              {/* Solar to Grid Arrow */}
+              <Arrow
+                ref={solarToGridArrowRef}
+                points={[
+                  nodePositions.solar.x - 15, nodePositions.solar.y + 30,
+                  (nodePositions.solar.x + nodePositions.grid.x) / 2, (nodePositions.solar.y + nodePositions.grid.y) / 2,
+                  nodePositions.grid.x + 30, nodePositions.grid.y - 20
+                ]}
+                tension={0.4}
+                stroke="#10b981"
+                strokeWidth={3}
+                dash={[10, 5]}
+                dashEnabled={true}
+                pointerLength={10}
+                pointerWidth={10}
+                opacity={flowAnimations.solarToGrid ? 1 : 0}
+                shadowColor="rgba(16, 185, 129, 0.4)"
+                shadowBlur={5}
+                shadowOpacity={0.6}
+                shadowEnabled={true}
+              />
+              
+              {/* Grid Node */}
+              <Group x={nodePositions.grid.x} y={nodePositions.grid.y}>
+                <Circle
+                  radius={40}
+                  fill="white"
+                  stroke={nodePositions.grid.color}
+                  strokeWidth={2}
+                  shadowColor="rgba(148, 163, 184, 0.4)"
+                  shadowBlur={10}
+                  shadowOpacity={0.6}
+                  shadowEnabled={true}
                 />
-              </filter>
-              <filter id="neonSolar" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-                <feColorMatrix in="blur" type="matrix"
-                  values="1 0 0 0 0.961   0 1 0 0 0.620   0 0 1 0 0.043  0 0 0 3 0"
+                <Text 
+                  text={nodePositions.grid.label}
+                  align="center"
+                  width={80}
+                  offset={{ x: 40, y: 0 }}
+                  fill="#64748b"
+                  fontStyle="bold"
                 />
-              </filter>
-              <filter id="neonHome" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-                <feColorMatrix in="blur" type="matrix"
-                  values="1 0 0 0 0.388   0 1 0 0 0.400   0 0 1 0 0.945  0 0 0 3 0"
+                <Text 
+                  text={nodePositions.grid.value}
+                  align="center"
+                  width={80}
+                  offset={{ x: 40, y: -20 }}
+                  y={20}
+                  fill="#64748b"
+                  fontSize={12}
                 />
-              </filter>
+              </Group>
               
-              {/* Gradients pour les chemins de flux */}
-              <linearGradient id="gridToHomeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#ef4444" />
-                <stop offset="100%" stopColor="#f87171" />
-              </linearGradient>
+              {/* Solar Node */}
+              <Group x={nodePositions.solar.x} y={nodePositions.solar.y}>
+                <Circle
+                  radius={40}
+                  fill="white"
+                  stroke={nodePositions.solar.color}
+                  strokeWidth={2}
+                  shadowColor="rgba(245, 158, 11, 0.4)"
+                  shadowBlur={10}
+                  shadowOpacity={0.6}
+                  shadowEnabled={true}
+                />
+                <Text 
+                  text={nodePositions.solar.label}
+                  align="center"
+                  width={80}
+                  offset={{ x: 40, y: 0 }}
+                  fill="#d97706"
+                  fontStyle="bold"
+                />
+                <Text 
+                  text={nodePositions.solar.value}
+                  align="center"
+                  width={80}
+                  offset={{ x: 40, y: -20 }}
+                  y={20}
+                  fill="#d97706"
+                  fontSize={12}
+                />
+              </Group>
               
-              <linearGradient id="gridFromHomeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#34d399" />
-              </linearGradient>
-              
-              <linearGradient id="solarToHomeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#f59e0b" />
-                <stop offset="100%" stopColor="#fbbf24" />
-              </linearGradient>
-              
-              <linearGradient id="solarToGridGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#f59e0b" />
-                <stop offset="100%" stopColor="#10b981" />
-              </linearGradient>
-              
-              {/* Filtre de lueur pour les chemins */}
-              <filter id="flowGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-              
-              {/* Marqueurs de flèche pour les chemins */}
-              <marker
-                id="arrowRed"
-                viewBox="0 0 10 10"
-                refX="5"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-                className="fill-red-500"
-              >
-                <path d="M 0 0 L 10 5 L 0 10 z" />
-              </marker>
-              
-              <marker
-                id="arrowGreen"
-                viewBox="0 0 10 10"
-                refX="5"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-                className="fill-green-500"
-              >
-                <path d="M 0 0 L 10 5 L 0 10 z" />
-              </marker>
-              
-              <marker
-                id="arrowYellow"
-                viewBox="0 0 10 10"
-                refX="5"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-                className="fill-yellow-500"
-              >
-                <path d="M 0 0 L 10 5 L 0 10 z" />
-              </marker>
-            </defs>
-
-            <style>
-              {`
-                @keyframes flowAnimation {
-                  0% { stroke-dashoffset: 1000; }
-                  100% { stroke-dashoffset: 0; }
-                }
-                .flow-path {
-                  stroke-width: 3;
-                  stroke-dasharray: 10, 5;
-                  stroke-linecap: round;
-                  stroke-linejoin: round;
-                  fill: none;
-                  filter: url(#flowGlow);
-                }
-
-                .flow-path-bg {
-                  stroke-width: 4;
-                  fill: none;
-                  stroke-opacity: 0.15;
-                  stroke-linecap: round;
-                }
-
-                .node-circle {
-                  fill: white;
-                  stroke-width: 2;
-                }
-                .node-text {
-                  font-size: 14px;
-                  font-weight: 500;
-                  text-anchor: middle;
-                  dominant-baseline: middle;
-                }
-                .power-text {
-                  font-size: 12px;
-                  font-weight: 400;
-                  text-anchor: middle;
-                  dominant-baseline: middle;
-                }
-              `}
-            </style>
-
-            {/* Grid Node */}
-            <g transform="translate(50, 200)">
-            <circle className="node-circle" cx="0" cy="0" r="40" stroke="#94a3b8" filter="url(#neonGrid)" />
-              <circle className="node-circle" cx="0" cy="0" r="40" stroke="#94a3b8" />
-              <text className="node-text" fill="#64748b">Réseau</text>
-              <text className="power-text" y="20" fill="#64748b">
-                {data ? `${data.power.toFixed(1)} W` : '0 W'}
-              </text>
-            </g>
-
-            {/* Solar Node */}
-            <g transform="translate(200, 50)">
-              <circle className="node-circle" cx="0" cy="0" r="40" stroke="#f59e0b" filter="url(#neonSolar)" />
-              <circle className="node-circle" cx="0" cy="0" r="40" stroke="#f59e0b" />
-              <text className="node-text" fill="#d97706">PV</text>
-              <text className="power-text" y="20" fill="#d97706">
-                {data ? `${data.production_power.toFixed(1)} W` : '0 W'}
-              </text>
-            </g>
-
-            {/* Home Node */}
-            <g transform="translate(350, 200)">
-              <circle className="node-circle" cx="0" cy="0" r="40" stroke="#6366f1" filter="url(#neonHome)" />
-              <circle className="node-circle" cx="0" cy="0" r="40" stroke="#6366f1" />
-              <text className="node-text" fill="#4f46e5">Maison</text>
-              <text className="power-text" y="20" fill="#4f46e5">
-                {data ? `${(data.power + data.production_power).toFixed(1)} W` : '0 W'}
-              </text>
-            </g>
-
-            {/* Flow Paths avec différentes directions et styles améliorés */}
-            {/* 1. Du réseau vers la maison (consommation) */}
-            <path
-              className="flow-path-bg"
-              d="M 80,190 C 150,170 220,170 290,190"
-              stroke="url(#gridToHomeGradient)"
-            />
-            <path
-              id="gridToHomePath"
-              className="flow-path"
-              d="M 80,190 C 150,170 220,170 290,190"
-              stroke="url(#gridToHomeGradient)"
-              markerEnd="url(#arrowRed)"
-            />
-            
-            {/* 2. De la maison vers le réseau (injection) */}
-            <path
-              className="flow-path-bg"
-              d="M 310,210 C 240,230 170,230 100,210"
-              stroke="url(#gridFromHomeGradient)"
-            />
-            <path
-              id="gridFromHomePath"
-              className="flow-path"
-              d="M 310,210 C 240,230 170,230 100,210"
-              stroke="url(#gridFromHomeGradient)"
-              markerEnd="url(#arrowGreen)"
-            />
-            
-            {/* 3. Du PV vers la maison (consommation directe) */}
-            <path
-              className="flow-path-bg"
-              d="M 225,80 C 250,120 280,150 310,180"
-              stroke="url(#solarToHomeGradient)"
-            />
-            <path
-              id="solarToHomePath"
-              className="flow-path"
-              d="M 225,80 C 250,120 280,150 310,180"
-              stroke="url(#solarToHomeGradient)"
-              markerEnd="url(#arrowYellow)"
-            />
-            
-            {/* 4. Du PV vers le réseau (excédent) */}
-            <path
-              className="flow-path-bg"
-              d="M 175,80 C 150,120 120,150 90,180"
-              stroke="url(#solarToGridGradient)"
-            />
-            <path
-              id="solarToGridPath"
-              className="flow-path"
-              d="M 175,80 C 150,120 120,150 90,180"
-              stroke="url(#solarToGridGradient)"
-              markerEnd="url(#arrowGreen)"
-            />
-          </svg>
+              {/* Home Node */}
+              <Group x={nodePositions.home.x} y={nodePositions.home.y}>
+                <Circle
+                  radius={40}
+                  fill="white"
+                  stroke={nodePositions.home.color}
+                  strokeWidth={2}
+                  shadowColor="rgba(99, 102, 241, 0.4)"
+                  shadowBlur={10}
+                  shadowOpacity={0.6}
+                  shadowEnabled={true}
+                />
+                <Text 
+                  text={nodePositions.home.label}
+                  align="center"
+                  width={80}
+                  offset={{ x: 40, y: 0 }}
+                  fill="#4f46e5"
+                  fontStyle="bold"
+                />
+                <Text 
+                  text={nodePositions.home.value}
+                  align="center"
+                  width={80}
+                  offset={{ x: 40, y: -20 }}
+                  y={20}
+                  fill="#4f46e5"
+                  fontSize={12}
+                />
+              </Group>
+            </Layer>
+          </Stage>
         </div>
       </CardContent>
     </Card>

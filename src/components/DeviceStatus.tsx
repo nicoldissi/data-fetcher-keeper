@@ -4,9 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
-import { fr } from 'date-fns/locale';
+import { Stage, Layer, Arc, Text, Group } from 'react-konva';
+import { useEffect, useState, useRef } from 'react';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -18,6 +17,21 @@ interface DeviceStatusProps {
 export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceStatusProps) {
   const isOnline = data?.is_valid ?? false;
   const { dailyTotals, loading } = useDailyEnergyTotals(configId);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState(100);
+  
+  // Update stage size based on container size
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        setStageSize(Math.min(100, containerRef.current.offsetWidth));
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
   
   // Calculate self-consumption rate using daily totals
   const calculateSelfConsumptionRate = () => {
@@ -104,6 +118,67 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                 <p className="text-xs text-gray-500">Current PV</p>
                 <p className="text-lg font-medium">{(data.production_power / data.voltage).toFixed(2)} A</p>
               </div>
+            </div>
+            
+            {/* React Konva Gauge for Self-Consumption */}
+            <div className="mt-6 flex justify-center" ref={containerRef}>
+              <Stage width={stageSize} height={stageSize}>
+                <Layer>
+                  {/* Background Arc */}
+                  <Arc
+                    x={stageSize/2}
+                    y={stageSize/2}
+                    innerRadius={30}
+                    outerRadius={45}
+                    angle={360}
+                    fill="#e5e7eb"
+                    rotation={-90}
+                  />
+                  
+                  {/* Value Arc */}
+                  <Arc
+                    x={stageSize/2}
+                    y={stageSize/2}
+                    innerRadius={30}
+                    outerRadius={45}
+                    angle={3.6 * selfConsumptionRate}
+                    fill={color}
+                    rotation={-90}
+                  />
+                  
+                  {/* Center Text Group */}
+                  <Group>
+                    <Text
+                      x={stageSize/2}
+                      y={stageSize/2 - 10}
+                      text={`${formattedRate}%`}
+                      fontSize={16}
+                      fontStyle="bold"
+                      align="center"
+                      verticalAlign="middle"
+                      width={stageSize}
+                      offset={{
+                        x: stageSize/2,
+                        y: 0
+                      }}
+                    />
+                    <Text
+                      x={stageSize/2}
+                      y={stageSize/2 + 10}
+                      text="Auto-conso"
+                      fontSize={10}
+                      align="center"
+                      verticalAlign="middle"
+                      fill="#6b7280"
+                      width={stageSize}
+                      offset={{
+                        x: stageSize/2,
+                        y: 0
+                      }}
+                    />
+                  </Group>
+                </Layer>
+              </Stage>
             </div>
           </>
         )}
