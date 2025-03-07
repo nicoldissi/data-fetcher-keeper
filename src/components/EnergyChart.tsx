@@ -104,12 +104,12 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle>Historique d'Énergie</CardTitle>
+            <CardTitle>Historique de Consommation et Production</CardTitle>
             <CardDescription>
-              Évolution de la consommation et production sur la journée
+              Évolution de la consommation et production d'énergie
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Toggle 
               pressed={showConsumption} 
               onPressedChange={setShowConsumption}
@@ -161,19 +161,15 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   <defs>
                     <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#f97316" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0.1}/>
                     </linearGradient>
                     <linearGradient id="colorProduction" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
                     </linearGradient>
                     <linearGradient id="colorGridPos" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                    </linearGradient>
-                    <linearGradient id="colorGridNeg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -185,7 +181,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   />
                   <YAxis 
                     domain={[minValue < 0 ? 1.1 * minValue : -500, 1.1 * maxValue]}
-                    tickFormatter={(value) => `${value} W`}
+                    tickFormatter={(value) => `${value}`}
                     label={{ 
                       value: 'Watts', 
                       angle: -90, 
@@ -195,47 +191,51 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     }}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="top" height={36} />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    wrapperStyle={{ paddingTop: '10px' }}
+                    formatter={(value, entry, index) => {
+                      return <span style={{ color: entry.color, fontWeight: 'bold' }}>{value}</span>;
+                    }}
+                  />
                   <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
                   
                   {/* Only show relevant graphs based on selected tab */}
                   {(activeTab === 'combined' || activeTab === 'grid') && showGrid && (
-                    <Area
+                    <Line
                       type="monotone"
                       dataKey="grid"
                       name="Réseau"
                       stroke="#3b82f6"
-                      fillOpacity={1}
-                      fill="url(#colorGridPos)"
-                      strokeWidth={2}
+                      strokeWidth={2.5}
+                      dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showGrid}
                     />
                   )}
                   
                   {(activeTab === 'combined' || activeTab === 'production') && showProduction && (
-                    <Area
+                    <Line
                       type="monotone"
                       dataKey="production"
                       name="Production"
                       stroke="#10b981"
-                      fillOpacity={1}
-                      fill="url(#colorProduction)"
-                      strokeWidth={2}
+                      strokeWidth={2.5}
+                      dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showProduction}
                     />
                   )}
                   
                   {(activeTab === 'combined' || activeTab === 'consumption') && showConsumption && (
-                    <Area
+                    <Line
                       type="monotone"
                       dataKey="consumption"
                       name="Consommation"
                       stroke="#f97316"
-                      fillOpacity={1}
-                      fill="url(#colorConsumption)"
-                      strokeWidth={2}
+                      strokeWidth={2.5}
+                      dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showConsumption}
                     />
@@ -248,6 +248,8 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     stroke="#8884d8"
                     tickFormatter={(tick) => tick}
                     y={320}
+                    fill="#f5f5f5"
+                    startIndex={Math.max(0, chartData.length - Math.min(chartData.length, 50))}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
