@@ -44,8 +44,11 @@ export function useDailyEnergyTotals(configId?: string) {
         setLoading(true);
         setError(null);
 
-        const startOfToday = startOfDay(new Date()).toISOString();
-        console.log('Fetching daily energy totals from Supabase since:', startOfToday);
+        // Utiliser startOfDay pour obtenir le début de la journée locale
+        const todayStart = startOfDay(new Date());
+        const startOfTodayISO = todayStart.toISOString();
+        
+        console.log('Fetching daily energy totals from Supabase since:', startOfTodayISO);
 
         // Ensure configId is provided to prevent mixing data from different devices
         if (!configId) {
@@ -60,7 +63,7 @@ export function useDailyEnergyTotals(configId?: string) {
           .from('energy_data')
           .select('consumption, production, grid_total, grid_total_returned, production_total, timestamp')
           .eq('shelly_config_id', configId)
-          .gte('timestamp', startOfToday)
+          .gte('timestamp', startOfTodayISO)
           .order('timestamp', { ascending: true });
 
         if (queryError) throw new Error(queryError.message);

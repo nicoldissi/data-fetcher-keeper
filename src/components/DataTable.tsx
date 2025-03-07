@@ -3,6 +3,7 @@ import { ShellyEMData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatDistance } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface DataTableProps {
   data: ShellyEMData[];
@@ -39,7 +40,12 @@ export function DataTable({ data, className, configId }: DataTableProps) {
               </thead>
               <tbody>
                 {reversedData.map((item, index) => {
-                  const timeAgo = formatDistance(new Date(item.timestamp), new Date(), { addSuffix: true });
+                  // Créer une date locale à partir du timestamp
+                  const localDate = new Date(item.timestamp);
+                  const timeAgo = formatDistance(localDate, new Date(), { 
+                    addSuffix: true,
+                    locale: fr 
+                  });
                   
                   // Calculate grid current using the same method as DeviceStatus
                   const gridCurrent = item.voltage > 0 ? Math.abs(item.power) / item.voltage : 0;
@@ -57,7 +63,7 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                     >
                       <td className="px-4 py-3 text-left">
                         <div className="font-medium">
-                          {new Date(item.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {localDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="text-xs text-gray-500">{timeAgo}</div>
                       </td>

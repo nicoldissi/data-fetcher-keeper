@@ -48,8 +48,12 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
 
     // Map Supabase data to ShellyEMData format
     const energyData = data[0];
+    
+    // Créer une date locale à partir du timestamp
+    const timestamp = new Date(energyData.timestamp).getTime();
+    
     const shellyData: ShellyEMData = {
-      timestamp: new Date(energyData.timestamp).getTime(),
+      timestamp,
       power: energyData.consumption || 0,
       reactive: 0, // Not available in Supabase
       production_power: energyData.production || 0,

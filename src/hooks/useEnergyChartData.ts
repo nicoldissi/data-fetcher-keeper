@@ -1,8 +1,5 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { ShellyEMData } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 
 // Define the type for the chart data points
@@ -49,7 +46,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         if (data && data.length > 0) {
           // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            // Parse the timestamp correctly
+            // Ensure we create a local date object from the timestamp
             const date = new Date(item.timestamp);
             
             // Ensure consumption = grid + production with positive values
@@ -88,7 +85,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     } else if (history.length > 0) {
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-        // Use browser's built-in time formatting for local timezone display
+        // Ensure we create a local date object from the timestamp
         const date = new Date(item.timestamp);
         
         // Ensure consumption = grid + production
@@ -97,7 +94,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const consumption = grid + production;
         
         return {
-          // Use native browser date formatting to ensure local timezone
+          // Format time directly in local timezone
           time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
           timestamp: date.getTime(),
           consumption,

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import { fr } from 'date-fns/locale';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -48,10 +49,10 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   const formattedTimestamp = data 
     ? new Date(data.timestamp).toLocaleString('fr-FR', {
         day: '2-digit',
-        month: 'short',
+        month: 'short', 
         hour: '2-digit',
         minute: '2-digit'
-      }).replace(',', ' à')
+      })
     : 'Jamais';
   
   // Calculate grid current without absolute value

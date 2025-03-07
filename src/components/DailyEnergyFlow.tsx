@@ -112,7 +112,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
           
           {/* Grid Gauge (Bottom Left) */}
           <div className={cn(
-            "absolute bottom-0 left-0 transform w-40 text-center",
+            "absolute bottom-0 transform w-40 text-center",
             isMobile ? "left-0" : "left-1/4 -translate-x-1/2"
           )}>
             <div className="text-sm font-semibold mb-1">Réseau</div>
@@ -151,7 +151,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
           
           {/* Consumption Gauge (Bottom Right) */}
           <div className={cn(
-            "absolute bottom-0 right-0 transform w-40 text-center",
+            "absolute bottom-0 transform w-40 text-center",
             isMobile ? "right-0" : "right-1/4 translate-x-1/2"
           )}>
             <div className="text-sm font-semibold mb-1">Consommation</div>
@@ -283,12 +283,12 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
               `}
             </style>
             
-            {/* PV to Consumption (Right) Flow */}
+            {/* PV to Consumption (Right) Flow - Centered points */}
             <path 
               className="flow-path-bg" 
               d={isMobile 
                 ? "M 50,30 C 50,55 80,55 80,70" 
-                : "M 50,30 C 50,50 70,50 75,70"
+                : "M 50,30 C 50,50 62.5,50 75,70"
               }
               stroke="url(#gradientGreen)" 
             />
@@ -296,19 +296,19 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
               className="flow-path" 
               d={isMobile 
                 ? "M 50,30 C 50,55 80,55 80,70" 
-                : "M 50,30 C 50,50 70,50 75,70"
+                : "M 50,30 C 50,50 62.5,50 75,70"
               }
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
               filter="url(#glow)"
             />
             
-            {/* PV to Grid (Left) Flow */}
+            {/* PV to Grid (Left) Flow - Centered points */}
             <path 
               className="flow-path-bg" 
               d={isMobile 
                 ? "M 50,30 C 50,55 20,55 20,70" 
-                : "M 50,30 C 50,50 30,50 25,70"
+                : "M 50,30 C 50,50 37.5,50 25,70"
               }
               stroke="url(#gradientGreen)" 
             />
@@ -316,7 +316,7 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
               className="flow-path" 
               d={isMobile 
                 ? "M 50,30 C 50,55 20,55 20,70" 
-                : "M 50,30 C 50,50 30,50 25,70"
+                : "M 50,30 C 50,50 37.5,50 25,70"
               }
               stroke="url(#gradientGreen)" 
               markerEnd="url(#arrowGreen)"
