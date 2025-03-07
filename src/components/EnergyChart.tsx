@@ -74,7 +74,8 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
           // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
             const date = new Date(item.timestamp);
-            const consumption = Math.round(Math.abs(item.consumption || 0) + (item.production || 0));
+            // Fix consumption calculation: Grid + Production
+            const consumption = Math.round(Math.max(0, item.consumption || 0) + (item.production || 0));
             const production = Math.round(item.production || 0);
             const grid = Math.round(item.consumption || 0);
             
@@ -108,7 +109,8 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
         const date = new Date(item.timestamp);
-        const consumption = Math.round(Math.abs(item.power) + (item.production_power || 0));
+        // Fix consumption calculation: Grid + Production
+        const consumption = Math.round(Math.max(0, item.power) + (item.production_power || 0));
         const production = Math.round(item.production_power || 0);
         const grid = Math.round(item.power);
         
@@ -308,7 +310,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                         name="Réseau"
                         fill="url(#colorGridPos)"
                         stroke="#3b82f6"
-                        strokeWidth={3}
+                        strokeWidth={2}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         hide={!showGrid}
@@ -323,7 +325,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       name="Production"
                       fill="url(#colorProduction)"
                       stroke="#10b981"
-                      strokeWidth={3}
+                      strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showProduction}
@@ -337,7 +339,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       name="Consommation"
                       fill="url(#colorConsumption)"
                       stroke="#f97316"
-                      strokeWidth={3}
+                      strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
                       hide={!showConsumption}
