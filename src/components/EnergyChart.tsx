@@ -5,7 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, Area, ComposedChart, ReferenceLine 
 } from 'recharts';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { Toggle } from '@/components/ui/toggle';
@@ -73,15 +73,17 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
         if (data && data.length > 0) {
           // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            const date = new Date(item.timestamp);
-            // Fix consumption calculation: Grid + Production
-            const consumption = Math.round(Math.max(0, item.consumption || 0) + (item.production || 0));
-            const production = Math.round(item.production || 0);
+            // Parse ISO string to Date object for proper local time formatting
+            const date = parseISO(item.timestamp);
+            // Ensure consumption = grid + production with positive values
             const grid = Math.round(item.consumption || 0);
+            const production = Math.round(item.production || 0);
+            const consumption = grid + production;
             
             return {
+              // Format in local time
               time: format(date, 'HH:mm', { locale: fr }),
-              timestamp: new Date(item.timestamp).getTime(),
+              timestamp: date.getTime(),
               consumption,
               production,
               grid
@@ -108,13 +110,15 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     } else if (history.length > 0) {
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
+        // Convert timestamp to local time
         const date = new Date(item.timestamp);
-        // Fix consumption calculation: Grid + Production
-        const consumption = Math.round(Math.max(0, item.power) + (item.production_power || 0));
-        const production = Math.round(item.production_power || 0);
+        // Ensure consumption = grid + production
         const grid = Math.round(item.power);
+        const production = Math.round(item.production_power || 0);
+        const consumption = grid + production;
         
         return {
+          // Format in local time
           time: format(date, 'HH:mm', { locale: fr }),
           timestamp: item.timestamp,
           consumption,
@@ -260,14 +264,15 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   <XAxis 
                     dataKey="time" 
                     minTickGap={60}
-                    tick={{ fontSize: 12, fontWeight: 'bold' }}
+                    tick={{ fontSize: 12, fontWeight: 'bold', fontFamily: 'inherit' }}
                     tickMargin={10}
                     label={{
                       value: 'Heure',
                       position: 'insideBottomRight',
                       offset: -10,
                       fontSize: 14,
-                      fontWeight: 'bold'
+                      fontWeight: 'bold',
+                      fontFamily: 'inherit'
                     }}
                   />
                   <YAxis 
@@ -280,11 +285,12 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       style: { 
                         textAnchor: 'middle',
                         fontSize: 14,
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        fontFamily: 'inherit'
                       },
                       offset: 0
                     }}
-                    tick={{ fontSize: 12, fontWeight: 'bold' }}
+                    tick={{ fontSize: 12, fontWeight: 'bold', fontFamily: 'inherit' }}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend 
@@ -293,10 +299,11 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     wrapperStyle={{ 
                       fontSize: 14,
                       fontWeight: 'bold',
+                      fontFamily: 'inherit',
                       paddingTop: '10px'
                     }}
                     formatter={(value, entry, index) => {
-                      return <span style={{ color: entry.color, fontWeight: 'bold' }}>{value}</span>;
+                      return <span style={{ color: entry.color, fontWeight: 'bold', fontFamily: 'inherit' }}>{value}</span>;
                     }}
                   />
                   <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
