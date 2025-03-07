@@ -1,15 +1,13 @@
+
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { getShellyConfigs, updateShellyConfig, deleteShellyConfig } from "@/lib/api";
 import { ShellyConfig } from "@/lib/types";
-import { PlusCircle, Trash2, Save } from "lucide-react";
+import { UserProfileCard } from "@/components/profile/UserProfileCard";
+import { ShellyConfigList } from "@/components/profile/ShellyConfigList";
+import { PreferencesCard } from "@/components/profile/PreferencesCard";
 
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -60,35 +58,6 @@ export default function Profile() {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  const handleChangePassword = async () => {
-    if (!userEmail) return;
-
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Email envoyé",
-        description: "Vérifiez votre email pour réinitialiser votre mot de passe",
-      });
-    } catch (error) {
-      console.error("Error sending password reset:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'envoi de l'email",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleUpdateConfig = async (index: number) => {
     const config = shellyConfigs[index];
@@ -198,139 +167,23 @@ export default function Profile() {
       <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Profil utilisateur</h1>
       
       <div className="grid grid-cols-1 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informations de compte</CardTitle>
-            <CardDescription>
-              Consultez et modifiez les informations de votre compte
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" value={userEmail || ""} readOnly />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleChangePassword} disabled={loading}>
-              {loading ? "Traitement..." : "Changer le mot de passe"}
-            </Button>
-          </CardFooter>
-        </Card>
+        <UserProfileCard 
+          userEmail={userEmail} 
+          loading={loading} 
+          setLoading={setLoading} 
+        />
         
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Appareils Shelly</h2>
-            <Button onClick={handleAddNewConfig} variant="outline" className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" /> Ajouter un appareil
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {shellyConfigs.map((config, index) => (
-              <Card key={config.id || `new-${index}`}>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <Input 
-                          className="font-semibold text-lg h-8 w-full"
-                          value={config.name || `Appareil ${index + 1}`}
-                          onChange={(e) => updateConfigField(index, 'name', e.target.value)}
-                          placeholder="Nom de l'appareil"
-                        />
-                      </div>
-                    </CardTitle>
-                  </div>
-                  <CardDescription>
-                    Paramètres de connexion à votre appareil Shelly
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`deviceId-${index}`}>ID de l'appareil</Label>
-                    <Input
-                      id={`deviceId-${index}`}
-                      placeholder="shellyem3-XXXXXXXXXXXX"
-                      value={config.deviceId}
-                      onChange={(e) => updateConfigField(index, 'deviceId', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`apiKey-${index}`}>Clé API</Label>
-                    <Input
-                      id={`apiKey-${index}`}
-                      type="password"
-                      placeholder="MWRiNzA1dWlk1234567890EXAMPLE"
-                      value={config.apiKey}
-                      onChange={(e) => updateConfigField(index, 'apiKey', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`serverUrl-${index}`}>URL du serveur</Label>
-                    <Input
-                      id={`serverUrl-${index}`}
-                      placeholder="https://shelly-12-eu.shelly.cloud"
-                      value={config.serverUrl}
-                      onChange={(e) => updateConfigField(index, 'serverUrl', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`deviceType-${index}`}>Type d'appareil</Label>
-                    <Select
-                      value={config.deviceType || 'ShellyEM'}
-                      onValueChange={(value) => updateConfigField(index, 'deviceType', value)}
-                    >
-                      <SelectTrigger id={`deviceType-${index}`}>
-                        <SelectValue placeholder="Sélectionnez le type d'appareil" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ShellyEM">Shelly EM</SelectItem>
-                        <SelectItem value="ShellyProEM">Shelly Pro EM</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button 
-                    onClick={() => handleUpdateConfig(index)} 
-                    disabled={savingConfig === (config.id || "new")}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    {savingConfig === (config.id || "new") ? "Enregistrement..." : "Enregistrer"}
-                  </Button>
-                  
-                  {config.id && (
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => handleDeleteConfig(config.id!, index)}
-                      disabled={deletingConfig === config.id}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      {deletingConfig === config.id ? "Suppression..." : "Supprimer"}
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
+        <ShellyConfigList
+          shellyConfigs={shellyConfigs}
+          savingConfig={savingConfig}
+          deletingConfig={deletingConfig}
+          updateConfigField={updateConfigField}
+          handleUpdateConfig={handleUpdateConfig}
+          handleDeleteConfig={handleDeleteConfig}
+          handleAddNewConfig={handleAddNewConfig}
+        />
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Préférences</CardTitle>
-            <CardDescription>
-              Personnalisez vos préférences d'affichage
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Fonctionnalités à venir dans une future mise à jour.
-            </p>
-          </CardContent>
-        </Card>
+        <PreferencesCard />
       </div>
     </div>
   );
