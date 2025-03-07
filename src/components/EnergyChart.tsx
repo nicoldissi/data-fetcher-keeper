@@ -174,7 +174,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-sm text-muted-foreground">{entry.name}:</span>
-              <span className="font-medium">{`${Math.abs(entry.value)} W`}</span>
+              <span className="font-medium">{`${Math.abs(Math.round(entry.value))} W`}</span>
             </div>
           ))}
         </div>
@@ -185,7 +185,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
 
   // Common font styling for the chart
   const fontStyle = {
-    fontFamily: 'inherit',
+    fontFamily: 'system-ui, sans-serif',
     fontSize: 12,
     fontWeight: 'bold'
   };
@@ -212,7 +212,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
               onPressedChange={setShowConsumption}
               className={`${showConsumption ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100' : ''}`}
             >
-              <div className="w-3 h-3 rounded-full bg-orange-500 mr-2" />
+              <div className="w-3 h-3 rounded-full bg-[#F97415] mr-2" />
               Consommation
             </Toggle>
             <Toggle 
@@ -220,7 +220,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
               onPressedChange={setShowProduction}
               className={`${showProduction ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : ''}`}
             >
-              <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
+              <div className="w-3 h-3 rounded-full bg-[#00FF59] mr-2" />
               Production
             </Toggle>
             <Toggle 
@@ -257,12 +257,12 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                 >
                   <defs>
                     <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0.1}/>
+                      <stop offset="5%" stopColor="#F97415" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#F97415" stopOpacity={0.1}/>
                     </linearGradient>
                     <linearGradient id="colorProduction" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                      <stop offset="5%" stopColor="#00FF59" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#00FF59" stopOpacity={0.1}/>
                     </linearGradient>
                     <linearGradient id="colorGridPos" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
@@ -288,7 +288,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   />
                   <YAxis 
                     domain={calculateYAxisDomain()}
-                    tickFormatter={(value) => `${value}`}
+                    tickFormatter={(value) => `${Math.round(value)}`}
                     label={{ 
                       value: 'Watts', 
                       angle: -90, 
@@ -303,13 +303,13 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                     verticalAlign="bottom"
                     height={36}
                     wrapperStyle={{ 
-                      fontFamily: 'inherit',
+                      fontFamily: 'system-ui, sans-serif',
                       fontSize: 14,
                       fontWeight: 'bold',
                       paddingTop: '10px'
                     }}
                     formatter={(value, entry, index) => {
-                      return <span style={{ color: entry.color, fontWeight: 'bold', fontFamily: 'inherit' }}>{value}</span>;
+                      return <span style={{ color: entry.color, fontWeight: 'bold', fontFamily: 'system-ui, sans-serif' }}>{value}</span>;
                     }}
                   />
                   <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
@@ -337,7 +337,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       dataKey="production"
                       name="Production"
                       fill="url(#colorProduction)"
-                      stroke="#10b981"
+                      stroke="#00FF59"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
@@ -351,7 +351,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                       dataKey="consumption"
                       name="Consommation"
                       fill="url(#colorConsumption)"
-                      stroke="#f97316"
+                      stroke="#F97415"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 6, strokeWidth: 2 }}
