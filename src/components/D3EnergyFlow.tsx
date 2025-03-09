@@ -193,11 +193,14 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
           .duration(800)
           .attrTween("d", function() {
             const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
-            return (t: number) => d3.arc()
-                      .innerRadius(outerRadius - thickness)
-                      .outerRadius(outerRadius)
-                      .startAngle(0)
-                      .endAngle(interpolate(t))() as string;
+            return (t: number) => {
+              // Fix: Make sure to pass all required arguments to the arc function
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(0)
+                .endAngle(interpolate(t))({} as any) as string;
+            };
           });
 
         d3.select(this).append("path")
@@ -208,11 +211,14 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
           .attrTween("d", function() {
             const start = d.ratio * 2 * Math.PI;
             const interpolate = d3.interpolate(start, 2 * Math.PI);
-            return (t: number) => d3.arc()
-                      .innerRadius(outerRadius - thickness)
-                      .outerRadius(outerRadius)
-                      .startAngle(start)
-                      .endAngle(interpolate(t))() as string;
+            return (t: number) => {
+              // Fix: Make sure to pass all required arguments to the arc function
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(start)
+                .endAngle(interpolate(t))({} as any) as string;
+            };
           });
       } else {
         let fillColor = "";
@@ -226,7 +232,10 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
           .duration(800)
           .attrTween("d", function() {
             const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
-            return (t: number) => (arcValue as any).endAngle(interpolate(t))();
+            return (t: number) => {
+              // Fix: Make sure to pass all required arguments to the arc function
+              return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
+            };
           });
       }
     });
