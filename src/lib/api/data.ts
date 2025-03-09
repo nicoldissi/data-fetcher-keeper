@@ -55,14 +55,14 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
     const shellyData: ShellyEMData = {
       timestamp,
       power: energyData.consumption || 0,
-      reactive: 0, // Not available in Supabase
+      reactive: 0, // Not available in Supabase - this is the issue
       production_power: energyData.production || 0,
       total_energy: energyData.grid_total || 0,
       production_energy: energyData.production_total || 0,
       grid_returned: energyData.grid_total_returned || 0,
-      voltage: energyData.voltage || 0, //Now available
+      voltage: energyData.voltage || 0,
       current: 0, // Not available in Supabase
-      pf: 0, // Not available in Supabase
+      pf: 0, // Not available in Supabase - this is the issue
       temperature: 0, // Not available in Supabase
       is_valid: true, // Assuming data in Supabase is valid
       channel: 0, // Not available in Supabase

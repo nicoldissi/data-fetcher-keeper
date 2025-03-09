@@ -29,6 +29,9 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   
   const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
   
+  // Log the data to see what we're getting from the API
+  console.log('DeviceStatus data:', data);
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full w-full", className)}>
       <CardContent className="p-6">
