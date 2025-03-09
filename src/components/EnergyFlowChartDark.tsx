@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils'
 import * as d3 from 'd3'
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react'
-import ReactDOM from 'react-dom'
+import * as ReactDOM from 'react-dom'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
@@ -163,17 +162,17 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
       
       if (key === "solar") {
         ReactDOM.render(
-          Sun({ size: 24, color: iconColor, strokeWidth: 2 }),
+          <Sun size={24} color={iconColor} strokeWidth={2} />,
           container
         );
       } else if (key === "home") {
         ReactDOM.render(
-          HousePlug({ size: 24, color: iconColor, strokeWidth: 2 }),
+          <HousePlug size={24} color={iconColor} strokeWidth={2} />,
           container
         );
       } else if (key === "grid") {
         ReactDOM.render(
-          Zap({ size: 24, color: iconColor, strokeWidth: 2 }),
+          <Zap size={24} color={iconColor} strokeWidth={2} />,
           container
         );
       }
@@ -320,7 +319,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           .attr('font-size', 12)
           .attr('fill', path.color)
           .text(() => {
-            // Calculate power for this path
             let power = 0
             if (path.id === 'gridToHome') power = data.power
             else if (path.id === 'gridFromHome') power = -data.power
