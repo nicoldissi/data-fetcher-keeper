@@ -68,7 +68,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     
     console.log('Converted timestamp:', formattedTime)
     
-    const isPVProducing = data.production_power > 6
+    const isPVProducing = data.pv_power > 6
     const isGridSupplyingHome = data.power > 0
     const isGridReceivingExcess = data.power < 0
     
@@ -108,7 +108,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         x: width * 0.5,
         y: height * 0.2,
         label: 'PV',
-        value: `${data.production_power.toFixed(1)} W`,
+        value: `${data.pv_power.toFixed(1)} W`,
         color: '#66BB6A'
       },
       grid: {
@@ -122,7 +122,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         x: width * 0.85, // Moved further right (was 0.8)
         y: height * 0.7,  // Moved slightly lower (was 0.65)
         label: 'Maison',
-        value: `${(data.power + data.production_power).toFixed(1)} W`,
+        value: `${(data.power + data.pv_power).toFixed(1)} W`,
         color: '#F97316'
       }
     }
@@ -229,7 +229,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         active: flowAnimations.solarToHome,
         color: "#66BB6A",
         curveOffset: 0,
-        power: Math.min(data.production_power, data.production_power + data.power)
+        power: Math.min(data.pv_power, data.pv_power + data.power)
       },
       {
         id: "solarToGrid",
@@ -325,7 +325,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
             else if (path.id === 'gridFromHome') power = -data.power
             else if (path.id === 'solarToHome') {
               const toGrid = data.power < 0 ? -data.power : 0
-              power = data.production_power - toGrid
+              power = data.pv_power - toGrid
             }
             else if (path.id === 'solarToGrid') power = -data.power
             

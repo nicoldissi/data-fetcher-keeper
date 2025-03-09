@@ -23,7 +23,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
     : 'Jamais';
   
   const gridCurrent = data && data.voltage > 0 ? data.power / data.voltage : 0;
-  const pvCurrent = data && data.voltage > 0 ? data.production_power / data.voltage : 0;
+  const pvCurrent = data && data.voltage > 0 ? data.pv_power / data.voltage : 0;
   
   const isExporting = data && data.power < 0;
   
@@ -107,7 +107,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">Puissance:</p>
                     <p className="font-medium text-green-600">
-                      {data.production_power.toFixed(0)} W
+                      {data.pv_power.toFixed(0)} W
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -118,11 +118,11 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">PF:</p>
-                    <p className="font-medium">{data.production_pf ? data.production_pf.toFixed(2) : "-"}</p>
+                    <p className="font-medium">{data.pv_pf ? data.pv_pf.toFixed(2) : "-"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">Réactif:</p>
-                    <p className="font-medium">{data.production_reactive ? data.production_reactive.toFixed(0) : "-"} VAR</p>
+                    <p className="font-medium">{data.pv_reactive ? data.pv_reactive.toFixed(0) : "-"} VAR</p>
                   </div>
                 </div>
               </div>

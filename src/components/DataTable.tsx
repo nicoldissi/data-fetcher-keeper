@@ -1,3 +1,4 @@
+
 import { ShellyEMData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -50,7 +51,7 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                   
                   const gridCurrent = item.voltage > 0 ? Math.abs(item.power) / item.voltage : 0;
                   
-                  const pvCurrent = item.voltage > 0 ? item.production_power / item.voltage : 0;
+                  const pvCurrent = item.voltage > 0 ? item.pv_power / item.voltage : 0;
                   
                   return (
                     <tr 
@@ -70,7 +71,7 @@ export function DataTable({ data, className, configId }: DataTableProps) {
                         {item.power.toFixed(1)} W
                       </td>
                       <td className="px-4 py-3 text-right font-medium">
-                        {item.production_power.toFixed(1)} W
+                        {item.pv_power.toFixed(1)} W
                       </td>
                       <td className="px-4 py-3 text-right">
                         {item.voltage.toFixed(1)} V

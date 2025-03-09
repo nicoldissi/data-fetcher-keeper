@@ -14,15 +14,15 @@ export type Database = {
           consumption: number
           created_at: string | null
           frequency: number | null
+          grid_pf: number | null
+          grid_reactive: number | null
           grid_total: number
           grid_total_returned: number
           id: number
-          pf: number | null
           production: number
           production_total: number
           pv_pf: number | null
           pv_reactive: number | null
-          reactive: number | null
           shelly_config_id: string | null
           timestamp: string
           voltage: number | null
@@ -31,15 +31,15 @@ export type Database = {
           consumption: number
           created_at?: string | null
           frequency?: number | null
+          grid_pf?: number | null
+          grid_reactive?: number | null
           grid_total?: number
           grid_total_returned?: number
           id?: number
-          pf?: number | null
           production: number
           production_total?: number
           pv_pf?: number | null
           pv_reactive?: number | null
-          reactive?: number | null
           shelly_config_id?: string | null
           timestamp: string
           voltage?: number | null
@@ -48,15 +48,15 @@ export type Database = {
           consumption?: number
           created_at?: string | null
           frequency?: number | null
+          grid_pf?: number | null
+          grid_reactive?: number | null
           grid_total?: number
           grid_total_returned?: number
           id?: number
-          pf?: number | null
           production?: number
           production_total?: number
           pv_pf?: number | null
           pv_reactive?: number | null
-          reactive?: number | null
           shelly_config_id?: string | null
           timestamp?: string
           voltage?: number | null

@@ -286,8 +286,8 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
         shelly_config_id: configData.id,
         voltage: shellyData.voltage,
         frequency: shellyData.frequency,
-        pf: shellyData.pf || 0,
-        reactive: shellyData.reactive || 0,
+        grid_pf: shellyData.pf || 0,
+        grid_reactive: shellyData.reactive || 0,
         pv_pf: shellyData.pv_pf || 0,
         pv_reactive: shellyData.pv_reactive || 0
       }]);

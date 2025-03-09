@@ -18,8 +18,8 @@ interface DbEnergyData {
     frequency?: number;
     
     // Champs uniformisés
-    pf?: number;                  // Facteur de puissance pour le réseau (grid)
-    reactive?: number;            // Puissance réactive pour le réseau (grid)
+    grid_pf?: number;             // Facteur de puissance pour le réseau (grid)
+    grid_reactive?: number;       // Puissance réactive pour le réseau (grid)
     pv_pf?: number;               // Facteur de puissance pour le solaire (pv)
     pv_reactive?: number;         // Puissance réactive pour le solaire (pv)
 }
@@ -61,16 +61,16 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
     const shellyData: ShellyEMData = {
       timestamp,
       power: energyData.consumption || 0,
-      reactive: energyData.reactive || 0,
+      reactive: energyData.grid_reactive || 0,
+      pf: energyData.grid_pf || 0,
       pv_power: energyData.production || 0,
       pv_reactive: energyData.pv_reactive || 0,
+      pv_pf: energyData.pv_pf || 0,
       total_energy: energyData.grid_total || 0,
       pv_energy: energyData.production_total || 0,
       grid_returned: energyData.grid_total_returned || 0,
       voltage: energyData.voltage || 0,
       current: 0, // Non disponible dans Supabase
-      pf: energyData.pf || 0,
-      pv_pf: energyData.pv_pf || 0,
       temperature: 0, // Non disponible dans Supabase
       is_valid: true, // On suppose que les données dans Supabase sont valides
       channel: 0, // Non disponible dans Supabase
@@ -127,8 +127,8 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
         last.grid_total === data.total_energy &&
         last.grid_total_returned === data.grid_returned &&
         last.production_total === data.pv_energy &&
-        last.pf === data.pf &&
-        last.reactive === data.reactive &&
+        last.grid_pf === data.pf &&
+        last.grid_reactive === data.reactive &&
         last.pv_pf === data.pv_pf &&
         last.pv_reactive === data.pv_reactive
       )) {
@@ -147,8 +147,8 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       production_total: data.pv_energy,
       voltage: data.voltage,
       frequency: data.frequency,
-      pf: data.pf,
-      reactive: data.reactive,
+      grid_pf: data.pf,
+      grid_reactive: data.reactive,
       pv_pf: data.pv_pf,
       pv_reactive: data.pv_reactive
     };
