@@ -95,13 +95,13 @@ export function useD3EnergyFlowVisualization({
     // Create flux paths between nodes
     const fluxPaths = createFluxPaths(svg, fluxData, centers, outerRadius);
 
-    // Create donut charts with icons inside
+    // Create donut charts with icons on top
     createDonutCharts(svg, donutsData, centers, outerRadius, thickness);
 
-    // Create icons for the power grid node only
+    // Create icon for the power grid node only (without circle)
     createIcons(svg, centers);
 
-    // Create the power grid group with import/export indicators
+    // Create the power grid group (without SVG)
     createReseauGroup(svg, centers.RESEAU, gridImportTotal, gridExportTotal);
 
     // Ajouter un titre

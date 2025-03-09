@@ -195,43 +195,18 @@ export function createDonutCharts(
     }
   });
 
-  // Ajouter le texte de pourcentage - centré avec text-anchor="middle"
-  donutGroup.append("text")
-    .attr("fill", "#555")
-    .attr("font-size", 16)
-    .attr("text-anchor", "middle") // Assure que le texte est centré
-    .attr("dy", -5)
-    .text((d: DonutData) => {
-      if (d.id === "PV" || d.id === "MAISON") {
-        return `${Math.round(d.ratio * 100)} %`;
-      } else {
-        return "";
-      }
-    });
-
-  // Ajouter le texte du total kWh - centré avec text-anchor="middle"
-  donutGroup.append("text")
-    .attr("fill", "#555")
-    .attr("font-size", 14)
-    .attr("text-anchor", "middle") // Assure que le texte est centré
-    .attr("dy", 15)
-    .text((d: DonutData) => {
-      if (d.id === "PV" || d.id === "MAISON") {
-        return `${d.totalKwh.toFixed(1)} kWh`;
-      } else {
-        return "";
-      }
-    });
-
-  // Créer des conteneurs pour les icônes à l'intérieur des jauges
+  // Ajouter les icônes au-dessus des jauges
   donutGroup.each(function(d: DonutData) {
+    // Position de l'icône au-dessus du donut
+    const iconY = -(outerRadius + 30);
+    
     // Créer un conteneur pour l'icône
     const foreignObject = d3.select(this)
       .append("foreignObject")
-      .attr("width", 24)
-      .attr("height", 24)
-      .attr("x", -12)
-      .attr("y", -12);
+      .attr("width", 28)
+      .attr("height", 28)
+      .attr("x", -14)
+      .attr("y", iconY);
     
     const container = document.createElement('div');
     container.style.display = 'flex';
@@ -245,23 +220,51 @@ export function createDonutCharts(
     // Rendre l'icône appropriée
     if (d.id === "PV") {
       ReactDOM.render(
-        React.createElement(Sun, { size: 18, color: "#66BB6A", strokeWidth: 2 }),
+        React.createElement(Sun, { size: 24, color: "#66BB6A", strokeWidth: 2 }),
         container
       );
     } else if (d.id === "MAISON") {
       ReactDOM.render(
-        React.createElement(HousePlug, { size: 18, color: "#6366f1", strokeWidth: 2 }),
+        React.createElement(HousePlug, { size: 24, color: "#6366f1", strokeWidth: 2 }),
         container
       );
     }
   });
+
+  // Ajouter le texte de pourcentage - centré avec text-anchor="middle"
+  donutGroup.append("text")
+    .attr("fill", "#555")
+    .attr("font-size", 16)
+    .attr("text-anchor", "middle") 
+    .attr("dy", -5)
+    .text((d: DonutData) => {
+      if (d.id === "PV" || d.id === "MAISON") {
+        return `${Math.round(d.ratio * 100)} %`;
+      } else {
+        return "";
+      }
+    });
+
+  // Ajouter le texte du total kWh - centré avec text-anchor="middle"
+  donutGroup.append("text")
+    .attr("fill", "#555")
+    .attr("font-size", 14)
+    .attr("text-anchor", "middle")
+    .attr("dy", 15)
+    .text((d: DonutData) => {
+      if (d.id === "PV" || d.id === "MAISON") {
+        return `${d.totalKwh.toFixed(1)} kWh`;
+      } else {
+        return "";
+      }
+    });
 }
 
 export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Ajouter uniquement l'icône pour le réseau (pas de icônes pour PV et MAISON, car elles sont dans les jauges)
+  // Ajouter uniquement l'icône pour le réseau sans cercle
   const reseauContainer = document.createElement('div');
   reseauContainer.style.display = 'flex';
   reseauContainer.style.justifyContent = 'center';
@@ -272,33 +275,6 @@ export function createIcons(
   // Créer un groupe pour l'icône du réseau
   const reseauGroup = svg.append("g")
     .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
-  
-  // Ajouter un cercle de fond avec dégradé pour le réseau
-  const reseauGradient = svg.append("defs")
-    .append("radialGradient")
-    .attr("id", "gridGradient")
-    .attr("cx", "50%")
-    .attr("cy", "50%")
-    .attr("r", "50%");
-  
-  reseauGradient
-    .append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "#ffffff")
-    .attr("stop-opacity", 0.9);
-  
-  reseauGradient
-    .append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", "#42A5F5")
-    .attr("stop-opacity", 0.1);
-  
-  reseauGroup.append("circle")
-    .attr("r", 38)
-    .attr("fill", "url(#gridGradient)")
-    .attr("stroke", "#42A5F5")
-    .attr("stroke-width", 2)
-    .attr("opacity", 0.9);
   
   // Ajouter un foreignObject pour contenir l'icône React
   const reseauForeign = reseauGroup.append("foreignObject")
@@ -322,20 +298,9 @@ export function createReseauGroup(
   gridImportTotal: number,
   gridExportTotal: number
 ) {
-  // Ajouter le groupe pour le pylône électrique
+  // Ajouter le groupe pour le réseau (sans pylône électrique)
   const reseauGroup = svg.append("g")
     .attr("transform", `translate(${center.x}, ${center.y - 30})`);
-
-  // Dessiner un pylône électrique simplifié
-  reseauGroup.append("path")
-    .attr("d", `
-      M-10,30 L-10,0 L-20,-20 L20,-20 L10,0 L10,30 Z
-      M-20,-20 L-30,-30 M20,-20 L30,-30
-      M-15,-10 L15,-10
-    `)
-    .attr("stroke", "#42A5F5")
-    .attr("stroke-width", 2)
-    .attr("fill", "none");
 
   // Ajouter les flèches et les valeurs pour l'importation
   reseauGroup.append("text")
