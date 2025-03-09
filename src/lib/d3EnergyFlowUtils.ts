@@ -27,7 +27,6 @@ export function createFluxPaths(
   centers: Record<string, Center>,
   outerRadius: number
 ) {
-  // Échelle pour les largeurs de traits des flux
   const kwhValues = fluxData.map(f => f.kwh);
   const maxKwh = Math.max(...kwhValues);
   const minKwh = Math.min(...kwhValues);
@@ -42,7 +41,6 @@ export function createFluxPaths(
     return "#888";
   }
 
-  // Créer les chemins de flux
   const fluxPaths = svg.selectAll(".flux")
     .data(fluxData)
     .enter()
@@ -72,7 +70,6 @@ export function createFluxPaths(
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
     });
 
-  // Fonction d'animation des flux
   function animateFlux() {
     fluxPaths
       .transition()
@@ -83,21 +80,18 @@ export function createFluxPaths(
   }
   animateFlux();
 
-  // Déterminer quelle couleur de bordure utiliser en fonction de la source du flux
   function getBorderColor(d: FluxData) {
-    if(d.source === "PV") return "#4CAF50"; // Bordure verte pour PV
-    if(d.source === "RESEAU") return "#2196F3"; // Bordure bleue pour Réseau
-    return "#888"; // Couleur par défaut
+    if(d.source === "PV") return "#4CAF50";
+    if(d.source === "RESEAU") return "#2196F3";
+    return "#888";
   }
 
-  // Déterminer quelle couleur de texte utiliser en fonction de la source du flux
   function getTextColor(d: FluxData) {
-    if(d.source === "PV") return "#4CAF50"; // Texte vert pour PV
-    if(d.source === "RESEAU") return "#2196F3"; // Texte bleu pour Réseau
-    return "#555"; // Couleur par défaut
+    if(d.source === "PV") return "#4CAF50";
+    if(d.source === "RESEAU") return "#2196F3";
+    return "#555";
   }
 
-  // Ajouter les étiquettes de flux avec un style amélioré
   svg.selectAll(".flux-label-container")
     .data(fluxData)
     .enter()
@@ -107,13 +101,11 @@ export function createFluxPaths(
       const s = centers[d.source as keyof typeof centers];
       const t = centers[d.target as keyof typeof centers];
       const mx = (s.x + t.x) / 2;
-      const my = (s.y + t.y) / 2 + 20; // Positionner en dessous du flux
-      
-      // Obtenir les couleurs de style en fonction de la source
+      const my = (s.y + t.y) / 2 + 20;
+
       const borderColor = getBorderColor(d);
       const textColor = getTextColor(d);
-      
-      // Créer un fond pour l'étiquette
+
       d3.select(this)
         .append("rect")
         .attr("x", mx - 40)
@@ -127,8 +119,7 @@ export function createFluxPaths(
         .attr("stroke-width", 1)
         .attr("fill-opacity", 0.9)
         .attr("filter", "drop-shadow(0px 1px 2px rgba(0,0,0,0.1))");
-      
-      // Ajouter le texte
+
       d3.select(this)
         .append("text")
         .attr("x", mx)
@@ -151,7 +142,6 @@ export function createDonutCharts(
   outerRadius: number,
   thickness: number
 ) {
-  // Définir les arcs pour les donuts
   const arcBg = d3.arc()
     .innerRadius(outerRadius - thickness)
     .outerRadius(outerRadius)
@@ -163,7 +153,6 @@ export function createDonutCharts(
     .outerRadius(outerRadius)
     .startAngle(0);
 
-  // Créer les groupes de donuts
   const donutGroup = svg.selectAll(".donut")
     .data(donutsData)
     .enter()
@@ -174,13 +163,22 @@ export function createDonutCharts(
       return `translate(${c.x}, ${c.y})`;
     });
 
-  // Ajouter les fonds des donuts
   donutGroup.append("path")
     .attr("d", arcBg({} as any) as string)
     .attr("fill", "#eee");
 
-  // Ajouter les valeurs des donuts
   donutGroup.each(function(d: DonutData) {
+    let fillColor = "";
+    let textColor = "";
+    
+    if(d.id === "PV") {
+      fillColor = "#66BB6A";
+      textColor = "#4CAF50";
+    } else if(d.id === "MAISON") {
+      fillColor = "#F97316";
+      textColor = "#EA580C";
+    }
+    
     if(d.id === "MAISON") {
       d3.select(this).append("path")
         .attr("class", "arc-pv")
@@ -215,10 +213,6 @@ export function createDonutCharts(
           };
         });
     } else {
-      let fillColor = "";
-      if(d.id === "PV") {
-        fillColor = "#66BB6A";
-      }
       d3.select(this).append("path")
         .attr("class", "arc-value")
         .attr("fill", fillColor)
@@ -231,14 +225,9 @@ export function createDonutCharts(
           };
         });
     }
-  });
-
-  // Ajouter les icônes au-dessus des jauges
-  donutGroup.each(function(d: DonutData) {
-    // Position de l'icône au-dessus du donut
-    const iconY = -(outerRadius + 30);
     
-    // Créer un conteneur pour l'icône
+    const iconY = -20;
+    
     const foreignObject = d3.select(this)
       .append("foreignObject")
       .attr("width", 28)
@@ -255,54 +244,51 @@ export function createDonutCharts(
     
     foreignObject.node()?.appendChild(container);
     
-    // Rendre l'icône appropriée
     if (d.id === "PV") {
       ReactDOM.render(
-        React.createElement(Sun, { size: 24, color: "#66BB6A", strokeWidth: 2 }),
+        React.createElement(Sun, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
     } else if (d.id === "MAISON") {
       ReactDOM.render(
-        React.createElement(HousePlug, { size: 24, color: "#6366f1", strokeWidth: 2 }),
+        React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
     }
+
+    d3.select(this).append("text")
+      .attr("fill", textColor)
+      .attr("font-size", 16)
+      .attr("font-weight", "bold")
+      .attr("text-anchor", "middle") 
+      .attr("dy", 10)
+      .text((d: DonutData) => {
+        if (d.id === "PV" || d.id === "MAISON") {
+          return `${Math.round(d.ratio * 100)}%`;
+        } else {
+          return "";
+        }
+      });
+
+    d3.select(this).append("text")
+      .attr("fill", textColor)
+      .attr("font-size", 14)
+      .attr("text-anchor", "middle")
+      .attr("dy", 30)
+      .text((d: DonutData) => {
+        if (d.id === "PV" || d.id === "MAISON") {
+          return `${d.totalKwh.toFixed(1)} kWh`;
+        } else {
+          return "";
+        }
+      });
   });
-
-  // Ajouter le texte de pourcentage - centré avec text-anchor="middle"
-  donutGroup.append("text")
-    .attr("fill", "#555")
-    .attr("font-size", 16)
-    .attr("text-anchor", "middle") 
-    .attr("dy", -5)
-    .text((d: DonutData) => {
-      if (d.id === "PV" || d.id === "MAISON") {
-        return `${Math.round(d.ratio * 100)} %`;
-      } else {
-        return "";
-      }
-    });
-
-  // Ajouter le texte du total kWh - centré avec text-anchor="middle"
-  donutGroup.append("text")
-    .attr("fill", "#555")
-    .attr("font-size", 14)
-    .attr("text-anchor", "middle")
-    .attr("dy", 15)
-    .text((d: DonutData) => {
-      if (d.id === "PV" || d.id === "MAISON") {
-        return `${d.totalKwh.toFixed(1)} kWh`;
-      } else {
-        return "";
-      }
-    });
 }
 
 export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Ajouter uniquement l'icône pour le réseau sans cercle
   const reseauContainer = document.createElement('div');
   reseauContainer.style.display = 'flex';
   reseauContainer.style.justifyContent = 'center';
@@ -310,11 +296,9 @@ export function createIcons(
   reseauContainer.style.width = '100%';
   reseauContainer.style.height = '100%';
   
-  // Créer un groupe pour l'icône du réseau
   const reseauGroup = svg.append("g")
     .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
   
-  // Ajouter un foreignObject pour contenir l'icône React
   const reseauForeign = reseauGroup.append("foreignObject")
     .attr("width", 60)
     .attr("height", 60)
@@ -323,7 +307,6 @@ export function createIcons(
   
   reseauForeign.node()?.appendChild(reseauContainer);
   
-  // Rendre l'icône du réseau
   ReactDOM.render(
     React.createElement(Zap, { size: 32, color: "#42A5F5", strokeWidth: 2 }),
     reseauContainer
@@ -336,11 +319,9 @@ export function createReseauGroup(
   gridImportTotal: number,
   gridExportTotal: number
 ) {
-  // Ajouter le groupe pour le réseau (sans pylône électrique)
   const reseauGroup = svg.append("g")
     .attr("transform", `translate(${center.x}, ${center.y - 30})`);
 
-  // Ajouter les flèches et les valeurs pour l'importation
   reseauGroup.append("text")
     .attr("class", "arrow")
     .attr("x", 0)
@@ -358,7 +339,6 @@ export function createReseauGroup(
     .attr("font-size", 14)
     .text(`${gridImportTotal.toFixed(1)} kWh`);
 
-  // Ajouter les flèches et les valeurs pour l'exportation
   reseauGroup.append("text")
     .attr("class", "arrow")
     .attr("x", 0)
