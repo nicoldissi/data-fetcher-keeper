@@ -30,7 +30,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
   
   return (
-    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
+    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full w-full", className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -89,11 +89,11 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">PF:</p>
-                    <p className="font-medium">{data.pf.toFixed(2)}</p>
+                    <p className="font-medium">{data.pf ? data.pf.toFixed(2) : "-"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">Réactif:</p>
-                    <p className="font-medium">{data.reactive.toFixed(0)} VAR</p>
+                    <p className="font-medium">{data.reactive ? data.reactive.toFixed(0) : "-"} VAR</p>
                   </div>
                 </div>
               </div>
