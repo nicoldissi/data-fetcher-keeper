@@ -1,10 +1,9 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay } from 'date-fns';
 import { shouldFetchData } from '@/lib/dataUtils';
 
-interface DailyTotals {
+export interface DailyTotals {
   consumption: number;
   production: number;
   injection: number;
@@ -35,7 +34,6 @@ export function useDailyEnergyTotals(configId?: string) {
 
   useEffect(() => {
     const fetchDailyTotals = async () => {
-      // Check if we should fetch new data based on cache duration
       if (!shouldFetchData(lastFetchTimeRef.current, CACHE_DURATION)) {
         return; // Use cached data
       }
@@ -44,15 +42,12 @@ export function useDailyEnergyTotals(configId?: string) {
         setLoading(true);
         setError(null);
 
-        // Utiliser startOfDay pour obtenir le début de la journée locale
         const todayStart = startOfDay(new Date());
         const startOfTodayISO = todayStart.toISOString();
         
         console.log('Fetching daily energy totals from Supabase since:', startOfTodayISO);
 
-        // Ensure configId is provided to prevent mixing data from different devices
         if (!configId) {
-          // Set default values and skip fetch without logging warnings
           setDailyTotals({ consumption: 0, production: 0, injection: 0, importFromGrid: 0 });
           setDailyData([]);
           setLoading(false);
@@ -71,7 +66,6 @@ export function useDailyEnergyTotals(configId?: string) {
         console.log(`Supabase returned ${data?.length || 0} energy data records for today`);
 
         if (data && data.length > 0) {
-          // Validate data points
           const validData = data.filter(reading => {
             return typeof reading.grid_total === 'number' &&
                    typeof reading.grid_total_returned === 'number' &&
@@ -81,20 +75,16 @@ export function useDailyEnergyTotals(configId?: string) {
                    !isNaN(reading.production_total);
           });
 
-          // Use all data points without sampling
           setDailyData(validData);
 
           if (validData.length >= 2) {
             const firstReading = validData[0];
             const lastReading = validData[validData.length - 1];
 
-            // Calculer les totaux de base
             const consumption = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
             const injection = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
             const production = Math.max(0, (lastReading.production_total - firstReading.production_total));
             
-            // Calculer l'importation du réseau
-            // Importation = Consommation - (Production - Injection)
             const consumedFromProduction = Math.max(0, production - injection);
             const importFromGrid = Math.max(0, consumption - consumedFromProduction);
 
@@ -105,10 +95,8 @@ export function useDailyEnergyTotals(configId?: string) {
               importFromGrid
             };
 
-            // Validate calculated totals
             const MAX_REASONABLE_VALUE = 100000; // 100 kWh maximum
             
-            // Cap any unreasonable values
             Object.entries(totals).forEach(([key, value]) => {
               if (value > MAX_REASONABLE_VALUE) {
                 console.warn(`Unreasonably high ${key} value detected: ${value}Wh, capping at ${MAX_REASONABLE_VALUE}Wh`);
@@ -138,7 +126,6 @@ export function useDailyEnergyTotals(configId?: string) {
 
     fetchDailyTotals();
     
-    // Set up a real-time subscription for new energy_data records
     const channel = supabase
       .channel('daily-totals-updates')
       .on(
@@ -156,7 +143,7 @@ export function useDailyEnergyTotals(configId?: string) {
       )
       .subscribe();
 
-    const interval = setInterval(fetchDailyTotals, 60000); // Fallback update every minute
+    const interval = setInterval(fetchDailyTotals, 60000);
 
     return () => {
       clearInterval(interval);
