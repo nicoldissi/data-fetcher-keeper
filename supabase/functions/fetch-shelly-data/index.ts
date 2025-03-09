@@ -168,6 +168,13 @@ async function processShellyConfig(configData, supabaseClient) {
   }
 }
 
+// Calculate reactive power using the formula Q = √(S² - P²)
+function calculateReactivePower(apparentPower, activePower) {
+  // Safety check to ensure we don't calculate negative values under the square root
+  const underRoot = Math.pow(apparentPower, 2) - Math.pow(activePower, 2);
+  return underRoot > 0 ? Math.sqrt(underRoot) : 0;
+}
+
 // Helper function to process a single Shelly configuration without creating a Response
 async function processShellyConfigWithoutResponse(configData, supabaseClient) {
   // Construct the Shelly Cloud URL
@@ -208,9 +215,23 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
           total_returned: 0
         };
       } else {
+        // For Shelly Pro EM, extract active power and apparent power to calculate reactive power
+        const activePower = deviceStatus['em1:0'].act_power || 0;
+        const apparentPower = deviceStatus['em1:0'].aprt_power || 0;
+        
+        // Calculate reactive power using the formula Q = √(S² - P²)
+        // where S is apparent power and P is active power
+        const reactivePower = calculateReactivePower(apparentPower, activePower);
+        
+        console.log('Pro EM calculated values:', {
+          activePower,
+          apparentPower,
+          reactivePower
+        });
+        
         gridMeter = {
-          power: deviceStatus['em1:0'].act_power || 0,
-          reactive: deviceStatus['em1:0'].aprt_power || 0, // Storing reactive power for Pro EM
+          power: activePower,
+          reactive: reactivePower, // Use the calculated reactive power
           voltage: deviceStatus['em1:0'].voltage || 0,
           total: deviceStatus['em1data:0']?.total_act_energy || 0,
           pf: deviceStatus['em1:0'].pf || 0,
@@ -222,9 +243,14 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       if (!deviceStatus['em1:1']) {
         productionMeter = null;
       } else {
+        // Similarly for PV (production meter)
+        const pvActivePower = deviceStatus['em1:1'].act_power || 0;
+        const pvApparentPower = deviceStatus['em1:1'].aprt_power || 0;
+        const pvReactivePower = calculateReactivePower(pvApparentPower, pvActivePower);
+        
         productionMeter = {
-          power: deviceStatus['em1:1'].act_power || 0,
-          reactive: deviceStatus['em1:1'].aprt_power || 0, // PV reactive power
+          power: pvActivePower,
+          reactive: pvReactivePower, // Use the calculated reactive power
           total: deviceStatus['em1data:1']?.total_act_energy || 0,
           pf: deviceStatus['em1:1'].pf || 0 // PV power factor
         };

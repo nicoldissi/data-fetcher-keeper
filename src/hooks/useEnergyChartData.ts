@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,7 +95,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const localDate = new Date(item.timestamp);
         
         const grid = Math.round(item.power);
-        const production = Math.round(item.pv_power || 0);
+        const production = Math.round(item.pv_power || 0); // Use pv_power instead of production
         const consumption = grid + production;
         
         return {
