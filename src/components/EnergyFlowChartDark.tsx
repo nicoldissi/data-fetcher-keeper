@@ -1,9 +1,12 @@
+
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils'
 import * as d3 from 'd3'
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react'
+import ReactDOM from 'react-dom'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
@@ -85,114 +88,152 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 40
+    const nodeRadius = 60 // Increased node size to match D3EnergyFlow
     
+    // Add filter definition for glow effect
+    const defs = svg.append("defs")
+    defs.append("filter")
+      .attr("id", "glow")
+      .html(`
+        <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      `)
+    
+    // Define node positions similar to D3EnergyFlow
     const nodes = {
-      grid: {
-        x: width * 0.2,
-        y: height * 0.5,
-        label: 'Réseau',
-        value: `${data.power.toFixed(1)} W`,
-        color: '#94a3b8'
-      },
       solar: {
         x: width * 0.5,
         y: height * 0.2,
         label: 'PV',
         value: `${data.production_power.toFixed(1)} W`,
-        color: '#f59e0b'
+        color: '#66BB6A'
+      },
+      grid: {
+        x: width * 0.2,
+        y: height * 0.65,
+        label: 'Réseau',
+        value: `${Math.abs(data.power).toFixed(1)} W`,
+        color: '#42A5F5'
       },
       home: {
         x: width * 0.8,
-        y: height * 0.5,
+        y: height * 0.65,
         label: 'Maison',
         value: `${(data.power + data.production_power).toFixed(1)} W`,
-        color: '#6366f1'
+        color: '#F97316'
       }
     }
     
+    // Create node circles with icon on top
     Object.entries(nodes).forEach(([key, node]) => {
       const nodeGroup = svg.append('g')
         .attr('transform', `translate(${node.x}, ${node.y})`)
         .attr('class', `node-${key}`)
       
+      // Background circle
       nodeGroup.append('circle')
         .attr('r', nodeRadius)
         .attr('fill', 'white')
         .attr('stroke', node.color)
-        .attr('stroke-width', 2)
+        .attr('stroke-width', 3)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
+      // Create icon container at the top of circle - moved up 15px
+      const iconY = -35; // Positioned at top
+      
+      const foreignObject = nodeGroup.append("foreignObject")
+        .attr("width", 28)
+        .attr("height", 28)
+        .attr("x", -14)
+        .attr("y", iconY);
+      
+      const container = document.createElement('div');
+      container.style.display = 'flex';
+      container.style.justifyContent = 'center';
+      container.style.alignItems = 'center';
+      container.style.width = '100%';
+      container.style.height = '100%';
+      
+      foreignObject.node()?.appendChild(container);
+      
+      let iconColor = node.color;
+      
+      if (key === "solar") {
+        ReactDOM.render(
+          Sun({ size: 24, color: iconColor, strokeWidth: 2 }),
+          container
+        );
+      } else if (key === "home") {
+        ReactDOM.render(
+          HousePlug({ size: 24, color: iconColor, strokeWidth: 2 }),
+          container
+        );
+      } else if (key === "grid") {
+        ReactDOM.render(
+          Zap({ size: 24, color: iconColor, strokeWidth: 2 }),
+          container
+        );
+      }
+      
+      // Power value text
       nodeGroup.append('text')
         .attr('text-anchor', 'middle')
-        .attr('dy', '0em')
-        .attr('fill', key === 'grid' ? '#64748b' : (key === 'solar' ? '#d97706' : '#4f46e5'))
+        .attr('dy', '5px')
+        .attr('fill', node.color)
         .attr('font-weight', 'bold')
+        .attr('font-size', '16px')
         .text(node.label)
       
       nodeGroup.append('text')
         .attr('text-anchor', 'middle')
-        .attr('dy', '1.5em')
-        .attr('fill', key === 'grid' ? '#64748b' : (key === 'solar' ? '#d97706' : '#4f46e5'))
-        .attr('font-size', '12px')
+        .attr('dy', '30px')
+        .attr('fill', node.color)
+        .attr('font-size', '14px')
         .text(node.value)
     })
     
-    const arrowPaths = {
-      gridToHome: {
-        path: createCurvedPath(
-          nodes.grid.x + nodeRadius, nodes.grid.y - 10,
-          nodes.home.x - nodeRadius, nodes.home.y - 10,
-          0.3, -20
-        ),
+    // Create flow paths between nodes with animations
+    const arrowPaths = [
+      {
+        id: "gridToHome",
+        source: "grid",
+        target: "home",
         active: flowAnimations.gridToHome,
-        color: '#ef4444'
+        color: "#ef4444",
+        curveOffset: -20
       },
-      gridFromHome: {
-        path: createCurvedPath(
-          nodes.home.x - nodeRadius, nodes.home.y + 10,
-          nodes.grid.x + nodeRadius, nodes.grid.y + 10,
-          0.3, 20
-        ),
+      {
+        id: "gridFromHome",
+        source: "home", 
+        target: "grid",
         active: flowAnimations.gridFromHome,
-        color: '#10b981'
+        color: "#388E3C",
+        curveOffset: 20
       },
-      solarToHome: {
-        path: createCurvedPath(
-          nodes.solar.x + 15, nodes.solar.y + nodeRadius,
-          nodes.home.x - nodeRadius, nodes.home.y - 20,
-          0.5, 0
-        ),
+      {
+        id: "solarToHome",
+        source: "solar",
+        target: "home",
         active: flowAnimations.solarToHome,
-        color: '#f59e0b'
+        color: "#66BB6A",
+        curveOffset: 0
       },
-      solarToGrid: {
-        path: createCurvedPath(
-          nodes.solar.x - 15, nodes.solar.y + nodeRadius,
-          nodes.grid.x + nodeRadius, nodes.grid.y - 20,
-          0.5, 0
-        ),
+      {
+        id: "solarToGrid",
+        source: "solar",
+        target: "grid",
         active: flowAnimations.solarToGrid,
-        color: '#10b981'
+        color: "#388E3C",
+        curveOffset: 0
       }
-    }
+    ]
     
-    function createCurvedPath(
-      x1: number, y1: number, 
-      x2: number, y2: number, 
-      curvature: number,
-      heightOffset: number
-    ) {
-      const midX = (x1 + x2) / 2
-      const midY = (y1 + y2) / 2 + heightOffset
-      return `M${x1},${y1} Q${midX},${midY} ${x2},${y2}`
-    }
-    
-    const colors = ['#ef4444', '#10b981', '#f59e0b']
-    const defs = svg.append('defs')
-    
-    colors.forEach(color => {
-      const markerId = `arrowMarker-${color.substring(1)}`
+    // Add arrow markers for path ends
+    arrowPaths.forEach(path => {
+      const markerId = `arrowMarker-${path.id}`
       defs.append('marker')
         .attr('id', markerId)
         .attr('viewBox', '0 -5 10 10')
@@ -203,35 +244,94 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('orient', 'auto')
         .append('path')
         .attr('d', 'M0,-5L10,0L0,5')
-        .attr('fill', color)
+        .attr('fill', path.color)
     })
     
-    Object.entries(arrowPaths).forEach(([key, arrow]) => {
-      const path = svg.append('path')
-        .attr('d', arrow.path)
-        .attr('fill', 'none')
-        .attr('stroke', arrow.color)
-        .attr('stroke-width', 3)
-        .attr('stroke-dasharray', '10,5')
-        .attr('marker-end', `url(#arrowMarker-${arrow.color.substring(1)})`)
-        .attr('opacity', arrow.active ? 1 : 0)
-        .style('filter', `drop-shadow(0px 2px 3px ${arrow.color}80)`)
-      
-      if (arrow.active) {
+    // Create paths with curved lines like in D3EnergyFlow
+    arrowPaths.forEach(path => {
+      if (path.active) {
+        const sourceNode = nodes[path.source as keyof typeof nodes]
+        const targetNode = nodes[path.target as keyof typeof nodes]
+        
+        // Calculate path points
+        const dx = targetNode.x - sourceNode.x
+        const dy = targetNode.y - sourceNode.y
+        const dist = Math.sqrt(dx*dx + dy*dy)
+        
+        // Start and end points with offset from circle edge
+        const offset = nodeRadius + 5
+        const ratioStart = offset / dist
+        const ratioEnd = (dist - offset) / dist
+        
+        const x1 = sourceNode.x + dx * ratioStart
+        const y1 = sourceNode.y + dy * ratioStart
+        const x2 = sourceNode.x + dx * ratioEnd
+        const y2 = sourceNode.y + dy * ratioEnd
+        
+        // Control point for curve
+        const mx = (x1 + x2) / 2
+        const my = (y1 + y2) / 2 + path.curveOffset
+        
+        // Create the path
+        const flowPath = svg.append('path')
+          .attr('d', `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`)
+          .attr('fill', 'none')
+          .attr('stroke', path.color)
+          .attr('stroke-width', 3)
+          .attr('stroke-dasharray', '8 8')
+          .attr('marker-end', `url(#arrowMarker-${path.id})`)
+          .attr('filter', 'url(#glow)')
+        
+        // Animate the dash offset for flowing effect
         function animateDash() {
-          path.transition()
-            .duration(500)
+          flowPath.transition()
+            .duration(1500)
             .ease(d3.easeLinear)
-            .attrTween('stroke-dashoffset', function() {
-              const length = (this as SVGPathElement).getTotalLength()
-              return function(t) {
-                return String(length * (1 - t))
-              }
-            })
+            .attrTween('stroke-dashoffset', () => d3.interpolate(0, -16) as any)
             .on('end', animateDash)
         }
         
         animateDash()
+        
+        // Add kWh labels on paths
+        const labelX = mx
+        const labelY = my + (path.curveOffset > 0 ? 20 : -20)
+        
+        const labelGroup = svg.append('g')
+          .attr('class', `path-label-${path.id}`)
+        
+        labelGroup.append('rect')
+          .attr('x', labelX - 40)
+          .attr('y', labelY - 15)
+          .attr('width', 80)
+          .attr('height', 24)
+          .attr('rx', 12)
+          .attr('ry', 12)
+          .attr('fill', 'white')
+          .attr('stroke', path.color)
+          .attr('stroke-width', 1)
+          .attr('fill-opacity', 0.9)
+        
+        labelGroup.append('text')
+          .attr('x', labelX)
+          .attr('y', labelY)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .attr('font-size', 12)
+          .attr('fill', path.color)
+          .text(() => {
+            // Calculate power for this path
+            let power = 0
+            if (path.id === 'gridToHome') power = data.power
+            else if (path.id === 'gridFromHome') power = -data.power
+            else if (path.id === 'solarToHome') {
+              const toGrid = data.power < 0 ? -data.power : 0
+              power = data.production_power - toGrid
+            }
+            else if (path.id === 'solarToGrid') power = -data.power
+            
+            return `${Math.abs(power).toFixed(1)} W`
+          })
       }
     })
     
