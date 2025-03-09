@@ -226,76 +226,168 @@ export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Solar Panel icon for PV
+  // Create improved Solar Panel icon for PV
   const solarPanel = svg.append("g")
     .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`)
     .attr("fill", "#66BB6A");
   
-  // Cadre du panneau
+  // Main panel frame
   solarPanel.append("rect")
-    .attr("x", -12)
-    .attr("y", -12)
-    .attr("width", 24)
-    .attr("height", 24)
-    .attr("stroke", "#66BB6A")
+    .attr("x", -20)
+    .attr("y", -18)
+    .attr("width", 40)
+    .attr("height", 30)
+    .attr("rx", 2)
+    .attr("stroke", "#2E7D32")
     .attr("stroke-width", 1.5)
-    .attr("fill", "none");
+    .attr("fill", "#66BB6A");
   
-  // Lignes verticales
-  for (let i = -8; i <= 8; i += 8) {
-    solarPanel.append("line")
-      .attr("x1", i)
-      .attr("y1", -12)
-      .attr("x2", i)
-      .attr("y2", 12)
-      .attr("stroke", "#66BB6A")
-      .attr("stroke-width", 1);
+  // Solar cells
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 4; col++) {
+      solarPanel.append("rect")
+        .attr("x", -17 + col * 9)
+        .attr("y", -15 + row * 8)
+        .attr("width", 7)
+        .attr("height", 6)
+        .attr("rx", 1)
+        .attr("fill", "#43A047")
+        .attr("stroke", "#2E7D32")
+        .attr("stroke-width", 0.5);
+    }
   }
   
-  // Lignes horizontales
-  for (let i = -8; i <= 8; i += 8) {
-    solarPanel.append("line")
-      .attr("x1", -12)
-      .attr("y1", i)
-      .attr("x2", 12)
-      .attr("y2", i)
-      .attr("stroke", "#66BB6A")
-      .attr("stroke-width", 1);
-  }
+  // Support stand
+  solarPanel.append("path")
+    .attr("d", "M-5,12 L5,12 L5,25 L-5,25 Z")
+    .attr("fill", "#4CAF50")
+    .attr("stroke", "#2E7D32")
+    .attr("stroke-width", 1);
 
-  // House icon for MAISON
+  // Improved House icon for MAISON
   const houseGroup = svg.append("g")
     .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`)
     .attr("fill", "#FFA500");
   
-  // Toit
+  // Roof
   houseGroup.append("path")
-    .attr("d", "M-15,0 L0,-15 L15,0 Z")
-    .attr("fill", "#FFA500");
+    .attr("d", "M-20,2 L0,-18 L20,2 Z")
+    .attr("fill", "#E65100")
+    .attr("stroke", "#BF360C")
+    .attr("stroke-width", 1.5);
   
-  // Corps de la maison
+  // House body
   houseGroup.append("rect")
-    .attr("x", -12)
-    .attr("y", 0)
-    .attr("width", 24)
-    .attr("height", 18)
-    .attr("fill", "#FFA500");
+    .attr("x", -15)
+    .attr("y", 2)
+    .attr("width", 30)
+    .attr("height", 22)
+    .attr("fill", "#FFB74D")
+    .attr("stroke", "#E65100")
+    .attr("stroke-width", 1.5);
   
-  // Porte
+  // Door
   houseGroup.append("rect")
     .attr("x", -4)
-    .attr("y", 10)
+    .attr("y", 14)
     .attr("width", 8)
-    .attr("height", 8)
-    .attr("fill", "#7E5109");
+    .attr("height", 10)
+    .attr("rx", 1)
+    .attr("fill", "#5D4037")
+    .attr("stroke", "#3E2723")
+    .attr("stroke-width", 1);
   
-  // Fenêtre
+  // Door knob
+  houseGroup.append("circle")
+    .attr("cx", 2)
+    .attr("cy", 19)
+    .attr("r", 1)
+    .attr("fill", "#FFC107");
+  
+  // Left window
   houseGroup.append("rect")
-    .attr("x", -9)
-    .attr("y", 3)
+    .attr("x", -12)
+    .attr("y", 6)
     .attr("width", 6)
     .attr("height", 6)
-    .attr("fill", "#87CEEB");
+    .attr("fill", "#BBDEFB")
+    .attr("stroke", "#1976D2")
+    .attr("stroke-width", 1);
+  
+  // Window cross
+  houseGroup.append("path")
+    .attr("d", "M-9,6 V12 M-12,9 H-6")
+    .attr("stroke", "#1976D2")
+    .attr("stroke-width", 1);
+  
+  // Right window
+  houseGroup.append("rect")
+    .attr("x", 6)
+    .attr("y", 6)
+    .attr("width", 6)
+    .attr("height", 6)
+    .attr("fill", "#BBDEFB")
+    .attr("stroke", "#1976D2")
+    .attr("stroke-width", 1);
+  
+  // Window cross
+  houseGroup.append("path")
+    .attr("d", "M9,6 V12 M6,9 H12")
+    .attr("stroke", "#1976D2")
+    .attr("stroke-width", 1);
+
+  // Improved Electricity pylon for RESEAU
+  const pylonGroup = svg.append("g")
+    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`)
+    .attr("fill", "none")
+    .attr("stroke", "#42A5F5")
+    .attr("stroke-width", 1.5);
+  
+  // Main structure
+  pylonGroup.append("path")
+    .attr("d", `
+      M-14,25 L-7,0 L-15,-15 L15,-15 L7,0 L14,25
+      M-15,-15 L15,-15
+      M-7,0 L7,0
+      M-14,25 L14,25
+    `)
+    .attr("stroke", "#1976D2")
+    .attr("stroke-width", 2);
+  
+  // Cross supports
+  pylonGroup.append("path")
+    .attr("d", `
+      M-11,-7 L11,-7
+      M-10,8 L10,8
+      M-12,16 L12,16
+    `)
+    .attr("stroke", "#1976D2");
+  
+  // Power lines
+  pylonGroup.append("path")
+    .attr("d", `
+      M-15,-15 L-25,-20 M15,-15 L25,-20
+      M-14,25 L-24,30 M14,25 L24,30
+    `)
+    .attr("stroke", "#42A5F5")
+    .attr("stroke-dasharray", "3,2");
+  
+  // Insulators
+  for (let i = -10; i <= 10; i += 10) {
+    pylonGroup.append("circle")
+      .attr("cx", i)
+      .attr("cy", -15)
+      .attr("r", 2)
+      .attr("fill", "#90CAF9");
+  }
+  
+  for (let i = -10; i <= 10; i += 10) {
+    pylonGroup.append("circle")
+      .attr("cx", i * 0.9)
+      .attr("cy", 25)
+      .attr("r", 2)
+      .attr("fill", "#90CAF9");
+  }
 }
 
 export function createReseauGroup(
