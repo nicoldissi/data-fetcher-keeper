@@ -28,10 +28,12 @@ export function useD3EnergyFlowVisualization({
   useEffect(() => {
     if (!isClient || loading || !svgRef.current) return;
 
-    // Cleanup function to unmount React components
+    // Cleanup function to remove all SVG elements and React components
     const cleanup = () => {
-      const svg = d3.select(svgRef.current);
-      svg.selectAll("foreignObject").remove();
+      if (svgRef.current) {
+        const svg = d3.select(svgRef.current);
+        svg.selectAll("*").remove();
+      }
     };
 
     // Préparer les données pour les donuts - convertir Wh en kWh

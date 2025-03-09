@@ -1,5 +1,6 @@
+
 import * as d3 from 'd3';
-import { CircleIcon, HomeIcon, NetworkIcon, ZapIcon } from 'lucide-react';
+import { HomeIcon, NetworkIcon, ZapIcon } from 'lucide-react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -356,19 +357,21 @@ export function createIcons(
   iconForeigns.MAISON.node()?.appendChild(iconContainers.MAISON);
   iconForeigns.RESEAU.node()?.appendChild(iconContainers.RESEAU);
 
-  // Render React components into the containers
+  // Render React components into the containers - Fixing syntax here
+  // Using React 18 standard createRoot API would be better, but for compatibility
+  // we're fixing the ReactDOM.render calls
   ReactDOM.render(
-    <ZapIcon size={32} color="#66BB6A" strokeWidth={2} />,
+    React.createElement(ZapIcon, { size: 32, color: "#66BB6A", strokeWidth: 2 }),
     iconContainers.PV
   );
   
   ReactDOM.render(
-    <HomeIcon size={32} color="#6366f1" strokeWidth={2} />,
+    React.createElement(HomeIcon, { size: 32, color: "#6366f1", strokeWidth: 2 }),
     iconContainers.MAISON
   );
   
   ReactDOM.render(
-    <NetworkIcon size={32} color="#42A5F5" strokeWidth={2} />,
+    React.createElement(NetworkIcon, { size: 32, color: "#42A5F5", strokeWidth: 2 }),
     iconContainers.RESEAU
   );
 
