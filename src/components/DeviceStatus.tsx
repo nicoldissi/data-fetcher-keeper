@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { formatLocalDate } from '@/lib/dateUtils';
+import { Label } from '@/components/ui/label';
 
 interface DeviceStatusProps {
   data: ShellyEMData | null;
@@ -22,6 +23,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
     : 'Jamais';
   
   const gridCurrent = data && data.voltage > 0 ? data.power / data.voltage : 0;
+  const pvCurrent = data && data.voltage > 0 ? data.production_power / data.voltage : 0;
   
   const isExporting = data && data.power < 0;
   
@@ -48,24 +50,79 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
             Mis à jour: {formattedTimestamp}
           </Badge>
         </div>
+        
         {data && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500">Voltage</p>
-              <p className="text-lg font-medium">{data.voltage.toFixed(1)} V</p>
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center space-x-4">
+              <Label className="text-xs text-gray-500 min-w-16">Tension:</Label>
+              <span className="text-lg font-medium">{data.voltage.toFixed(1)} V</span>
             </div>
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500">Current Grid</p>
-              <p className={cn("text-lg font-medium", currentColor)}>
-                {Math.abs(gridCurrent).toFixed(2)} A
-                {isExporting ? 
-                  <span className="text-xs align-super ml-1">export</span> : 
-                  <span className="text-xs align-super ml-1">import</span>}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500">Current PV</p>
-              <p className="text-lg font-medium">{(data.production_power / data.voltage).toFixed(2)} A</p>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">Linky</h4>
+                  {isExporting && (
+                    <Badge variant="outline" className="px-2 py-0.5 text-xs text-blue-500 border-blue-200">
+                      <span className="text-xs align-middle">export</span>
+                    </Badge>
+                  )}
+                  {!isExporting && (
+                    <Badge variant="outline" className="px-2 py-0.5 text-xs text-red-500 border-red-200">
+                      <span className="text-xs align-middle">import</span>
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">Puissance</p>
+                    <p className={cn("font-medium", currentColor)}>
+                      {Math.abs(data.power).toFixed(0)} W
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">Courant</p>
+                    <p className={cn("font-medium", currentColor)}>
+                      {Math.abs(gridCurrent).toFixed(2)} A
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">PF</p>
+                    <p className="font-medium">{data.pf.toFixed(2)}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">Réactif</p>
+                    <p className="font-medium">{data.reactive.toFixed(0)} VAR</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-3">
+                <h4 className="font-medium mb-2">PV</h4>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">Puissance</p>
+                    <p className="font-medium text-green-600">
+                      {data.production_power.toFixed(0)} W
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">Courant</p>
+                    <p className="font-medium text-green-600">
+                      {pvCurrent.toFixed(2)} A
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">PF</p>
+                    <p className="font-medium">-</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-gray-500">Réactif</p>
+                    <p className="font-medium">-</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
