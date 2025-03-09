@@ -216,7 +216,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       } else {
         gridMeter = {
           power: deviceStatus['em1:0'].act_power || 0,
-          reactive: 0, // Not available in the response
+          reactive: deviceStatus['em1:0'].aprt_power || 0, // Storing reactive power for Pro EM
           voltage: deviceStatus['em1:0'].voltage || 0,
           total: deviceStatus['em1data:0']?.total_act_energy || 0,
           pf: deviceStatus['em1:0'].pf || 0,
@@ -267,7 +267,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       production_energy: productionMeter ? (productionMeter.total || 0) : 0,
       grid_returned: gridMeter.total_returned || 0,
       voltage: gridMeter.voltage || 0,
-      current: 0,
+      current: 0, // Not available directly from Shelly API
       pf: gridMeter.pf || 0,
       temperature: deviceStatus.temperature?.tC || 0,
       is_valid: gridMeter.is_valid || false,
@@ -286,7 +286,9 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
         production_total: shellyData.production_energy,
         shelly_config_id: configData.id,
         voltage: shellyData.voltage,
-        frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null
+        frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null,
+        pf: shellyData.pf || 0,
+        reactive: shellyData.reactive || 0
       }]);
 
     if (storeError) {

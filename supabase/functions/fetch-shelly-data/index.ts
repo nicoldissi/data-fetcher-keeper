@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -50,9 +51,7 @@ serve(async (req) => {
 
     // Parse the request data
     const requestBody = await req.json();
-
     
-     
     const { configId } = requestBody || {};
 
     console.log('Request received:', { configId, isServiceRole, authHeader: authHeader ? 'present' : 'missing' });
@@ -221,7 +220,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       } else {
         gridMeter = {
           power: deviceStatus['em1:0'].act_power || 0,
-          reactive: 0, // Not available in the response
+          reactive: deviceStatus['em1:0'].aprt_power || 0, // Récupération de la puissance réactive pour Pro EM
           voltage: deviceStatus['em1:0'].voltage || 0,
           total: deviceStatus['em1data:0']?.total_act_energy || 0,
           pf: deviceStatus['em1:0'].pf || 0,
@@ -291,7 +290,9 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
         production_total: shellyData.production_energy,
         shelly_config_id: configData.id,
         voltage: shellyData.voltage,
-        frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null
+        frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null,
+        pf: shellyData.pf || 0,
+        reactive: shellyData.reactive || 0
       }]);
 
     if (storeError) {

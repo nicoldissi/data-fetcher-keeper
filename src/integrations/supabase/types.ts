@@ -17,8 +17,10 @@ export type Database = {
           grid_total: number
           grid_total_returned: number
           id: number
+          pf: number | null
           production: number
           production_total: number
+          reactive: number | null
           shelly_config_id: string | null
           timestamp: string
           voltage: number | null
@@ -30,8 +32,10 @@ export type Database = {
           grid_total?: number
           grid_total_returned?: number
           id?: number
+          pf?: number | null
           production: number
           production_total?: number
+          reactive?: number | null
           shelly_config_id?: string | null
           timestamp: string
           voltage?: number | null
@@ -43,8 +47,10 @@ export type Database = {
           grid_total?: number
           grid_total_returned?: number
           id?: number
+          pf?: number | null
           production?: number
           production_total?: number
+          reactive?: number | null
           shelly_config_id?: string | null
           timestamp?: string
           voltage?: number | null
