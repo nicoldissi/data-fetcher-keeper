@@ -194,6 +194,13 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .text(node.value)
     })
     
+    // Helper function to normalize power values to stroke widths
+    const getStrokeWidth = (power: number) => {
+      const absValue = Math.abs(power);
+      // Min 2, max 10, with a logarithmic scale to better visualize different power levels
+      return Math.max(2, Math.min(10, 2 + 8 * Math.log10(1 + absValue / 100)));
+    };
+    
     // Create flow paths between nodes with animations
     const arrowPaths = [
       {
@@ -202,7 +209,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "home",
         active: flowAnimations.gridToHome,
         color: "#ef4444",
-        curveOffset: -20
+        curveOffset: -30, // Increased offset to prevent truncation
+        power: data.power
       },
       {
         id: "gridFromHome",
@@ -210,7 +218,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "grid",
         active: flowAnimations.gridFromHome,
         color: "#388E3C",
-        curveOffset: 20
+        curveOffset: 30, // Increased offset to prevent truncation
+        power: -data.power
       },
       {
         id: "solarToHome",
@@ -218,7 +227,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "home",
         active: flowAnimations.solarToHome,
         color: "#66BB6A",
-        curveOffset: 0
+        curveOffset: 0,
+        power: Math.min(data.production_power, data.production_power + data.power)
       },
       {
         id: "solarToGrid",
@@ -226,7 +236,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "grid",
         active: flowAnimations.solarToGrid,
         color: "#388E3C",
-        curveOffset: 0
+        curveOffset: 0,
+        power: Math.max(0, -data.power)
       }
     ]
     
@@ -271,12 +282,15 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         const mx = (x1 + x2) / 2
         const my = (y1 + y2) / 2 + path.curveOffset
         
+        // Get appropriate stroke width based on power
+        const strokeWidth = getStrokeWidth(path.power);
+        
         // Create the path
         const flowPath = svg.append('path')
           .attr('d', `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`)
           .attr('fill', 'none')
           .attr('stroke', path.color)
-          .attr('stroke-width', 3)
+          .attr('stroke-width', strokeWidth)
           .attr('stroke-dasharray', '8 8')
           .attr('marker-end', `url(#arrowMarker-${path.id})`)
           .attr('filter', 'url(#glow)')
