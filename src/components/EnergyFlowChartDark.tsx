@@ -87,7 +87,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 60 // Increased node size to match D3EnergyFlow
+    const nodeRadius = 40 // Decreased node size from 60 to 40
     
     // Add filter definition for glow effect
     const defs = svg.append("defs")
@@ -141,7 +141,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
       // Create icon container at the top of circle - moved up 15px
-      const iconY = -35; // Positioned at top
+      const iconY = -25; // Moved up slightly from -35 to be proportional to smaller circles
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -209,7 +209,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "home",
         active: flowAnimations.gridToHome,
         color: "#ef4444",
-        curveOffset: -30, // Increased offset to prevent truncation
+        curveOffset: -30,
         power: data.power
       },
       {
@@ -218,7 +218,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "grid",
         active: flowAnimations.gridFromHome,
         color: "#388E3C",
-        curveOffset: 30, // Increased offset to prevent truncation
+        curveOffset: 30,
         power: -data.power
       },
       {
@@ -292,7 +292,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           .attr('stroke', path.color)
           .attr('stroke-width', strokeWidth)
           .attr('stroke-dasharray', '8 8')
-          .attr('marker-end', `url(#arrowMarker-${path.id})`)
           .attr('filter', 'url(#glow)')
         
         // Animate the dash offset for flowing effect
