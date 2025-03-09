@@ -3,14 +3,16 @@ export interface ShellyEMData {
   id?: string;
   timestamp: number;
   power: number;
-  reactive:number;          // Current power consumption in Watts (grid)
+  reactive: number;          // Current power consumption in Watts (grid)
   production_power: number; // Solar production power in Watts
+  production_reactive: number; // Reactive power for solar production
   total_energy: number;   // Total energy consumed in Watt-hours
   production_energy: number; // Total energy produced in Watt-hours
   grid_returned: number;  // Total energy returned to grid in Watt-hours
   voltage: number;        // Current voltage (V)
   current: number;        // Current amperage (A)
   pf: number;             // Power factor
+  production_pf: number;  // Power factor for solar production
   temperature: number;    // Device temperature
   is_valid: boolean;      // Whether the reading is valid
   channel: number;        // Which channel (0 or 1) the data comes from

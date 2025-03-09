@@ -118,11 +118,11 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">PF:</p>
-                    <p className="font-medium">-</p>
+                    <p className="font-medium">{data.production_pf ? data.production_pf.toFixed(2) : "-"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">Réactif:</p>
-                    <p className="font-medium">-</p>
+                    <p className="font-medium">{data.production_reactive ? data.production_reactive.toFixed(0) : "-"} VAR</p>
                   </div>
                 </div>
               </div>

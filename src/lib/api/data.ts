@@ -18,6 +18,8 @@ interface DbEnergyData {
     frequency?: number;
     pf?: number;
     reactive?: number;
+    production_pf?: number;
+    production_reactive?: number;
 }
 
 export const fetchShellyData = async (configId?: string): Promise<ShellyEMData | null> => {
@@ -57,14 +59,16 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
     const shellyData: ShellyEMData = {
       timestamp,
       power: energyData.consumption || 0,
-      reactive: energyData.reactive || 0, // Maintenant disponible dans Supabase
+      reactive: energyData.reactive || 0,
       production_power: energyData.production || 0,
+      production_reactive: energyData.production_reactive || 0,
       total_energy: energyData.grid_total || 0,
       production_energy: energyData.production_total || 0,
       grid_returned: energyData.grid_total_returned || 0,
       voltage: energyData.voltage || 0,
       current: 0, // Not available in Supabase
-      pf: energyData.pf || 0, // Maintenant disponible dans Supabase
+      pf: energyData.pf || 0,
+      production_pf: energyData.production_pf || 0,
       temperature: 0, // Not available in Supabase
       is_valid: true, // Assuming data in Supabase is valid
       channel: 0, // Not available in Supabase
@@ -122,7 +126,9 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
         last.grid_total_returned === data.grid_returned &&
         last.production_total === data.production_energy &&
         last.pf === data.pf &&
-        last.reactive === data.reactive
+        last.reactive === data.reactive &&
+        last.production_pf === data.production_pf &&
+        last.production_reactive === data.production_reactive
       )) {
         console.log('Skipping storage: data too recent or unchanged from last record');
         return true;
@@ -140,7 +146,9 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       voltage: data.voltage,
       frequency: data.frequency,
       pf: data.pf,
-      reactive: data.reactive
+      reactive: data.reactive,
+      production_pf: data.production_pf,
+      production_reactive: data.production_reactive
     };
 
     // Only add shelly_config_id if config.id exists

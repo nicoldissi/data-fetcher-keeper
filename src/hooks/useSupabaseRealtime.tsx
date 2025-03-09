@@ -193,14 +193,16 @@ export function useSupabaseRealtime(configId?: string) {
     return {
       timestamp,
       power: record.consumption || 0,
-      reactive: record.reactive || 0, // Maintenant récupéré depuis la base de données
+      reactive: record.reactive || 0,
       production_power: record.production || 0,
+      production_reactive: record.production_reactive || 0,
       total_energy: record.grid_total || 0,
       production_energy: record.production_total || 0,
       grid_returned: record.grid_total_returned || 0,
       voltage: record.voltage || 0,
       current: 0, // Not stored in the database
-      pf: record.pf || 0, // Maintenant récupéré depuis la base de données
+      pf: record.pf || 0,
+      production_pf: record.production_pf || 0,
       temperature: 0, // Not stored in the database
       is_valid: true,
       channel: 0,
