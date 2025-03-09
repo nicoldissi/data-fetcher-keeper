@@ -194,16 +194,16 @@ export function useSupabaseRealtime(configId?: string) {
       timestamp,
       power: record.consumption || 0,
       reactive: record.reactive || 0,
-      production_power: record.production || 0,
-      production_reactive: record.production_reactive || 0,
+      pv_power: record.production || 0,          // Renommé de production_power à pv_power
+      pv_reactive: record.pv_reactive || 0,      // Renommé de production_reactive à pv_reactive
       total_energy: record.grid_total || 0,
-      production_energy: record.production_total || 0,
+      pv_energy: record.production_total || 0,   // Renommé de production_energy à pv_energy
       grid_returned: record.grid_total_returned || 0,
       voltage: record.voltage || 0,
-      current: 0, // Not stored in the database
+      current: 0, // Non stocké dans la base de données
       pf: record.pf || 0,
-      production_pf: record.production_pf || 0,
-      temperature: 0, // Not stored in the database
+      pv_pf: record.pv_pf || 0,                  // Renommé de production_pf à pv_pf
+      temperature: 0, // Non stocké dans la base de données
       is_valid: true,
       channel: 0,
       shelly_config_id: configId,

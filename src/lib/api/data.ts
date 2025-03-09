@@ -3,23 +3,25 @@ import { ShellyEMData } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { getShellyConfig } from './config';
 
-// Interface for database representation of EnergyData
+// Interface pour la représentation des données énergétiques dans la base de données
 interface DbEnergyData {
     id?: number;
     timestamp: string;
-    consumption: number;
-    production: number;
-    grid_total: number;
-    grid_total_returned: number;
-    production_total: number;
+    consumption: number;          // Consommation du réseau (grid)
+    production: number;           // Production solaire (pv)
+    grid_total: number;           // Énergie totale consommée du réseau
+    grid_total_returned: number;  // Énergie totale retournée au réseau
+    production_total: number;     // Énergie totale produite
     shelly_config_id?: string;
     created_at?: string;
     voltage?: number;
     frequency?: number;
-    pf?: number;
-    reactive?: number;
-    production_pf?: number;
-    production_reactive?: number;
+    
+    // Champs uniformisés
+    pf?: number;                  // Facteur de puissance pour le réseau (grid)
+    reactive?: number;            // Puissance réactive pour le réseau (grid)
+    pv_pf?: number;               // Facteur de puissance pour le solaire (pv)
+    pv_reactive?: number;         // Puissance réactive pour le solaire (pv)
 }
 
 export const fetchShellyData = async (configId?: string): Promise<ShellyEMData | null> => {
@@ -60,19 +62,19 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
       timestamp,
       power: energyData.consumption || 0,
       reactive: energyData.reactive || 0,
-      production_power: energyData.production || 0,
-      production_reactive: energyData.production_reactive || 0,
+      pv_power: energyData.production || 0,
+      pv_reactive: energyData.pv_reactive || 0,  // Utiliser pv_reactive au lieu de production_reactive
       total_energy: energyData.grid_total || 0,
-      production_energy: energyData.production_total || 0,
+      pv_energy: energyData.production_total || 0,
       grid_returned: energyData.grid_total_returned || 0,
       voltage: energyData.voltage || 0,
-      current: 0, // Not available in Supabase
+      current: 0, // Non disponible dans Supabase
       pf: energyData.pf || 0,
-      production_pf: energyData.production_pf || 0,
-      temperature: 0, // Not available in Supabase
-      is_valid: true, // Assuming data in Supabase is valid
-      channel: 0, // Not available in Supabase
-      shelly_config_id: configId, // Add the config ID to ensure proper tracking
+      pv_pf: energyData.pv_pf || 0,  // Utiliser pv_pf au lieu de production_pf
+      temperature: 0, // Non disponible dans Supabase
+      is_valid: true, // On suppose que les données dans Supabase sont valides
+      channel: 0, // Non disponible dans Supabase
+      shelly_config_id: configId, // Ajouter l'ID de config pour assurer un suivi approprié
       frequency: energyData.frequency || 0
     };
 
@@ -85,10 +87,10 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
 
 export const storeEnergyData = async (data: ShellyEMData, configId?: string): Promise<boolean> => {
   try {
-    // Get the corresponding Shelly config to add its ID to the stored data
+    // Obtenir la configuration Shelly correspondante pour ajouter son ID aux données stockées
     const config = await getShellyConfig(configId);
 
-    // Get the last stored record to compare values
+    // Récupérer le dernier enregistrement stocké pour comparer les valeurs
     const { data: lastRecord, error: fetchError } = await supabase
       .from('energy_data')
       .select('*')
@@ -100,58 +102,58 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       return false;
     }
 
-    // Ensure timestamp is a valid date
+    // S'assurer que le timestamp est une date valide
     let timestamp: string;
     if (typeof data.timestamp === 'number') {
-      // Convert timestamp to UTC ISO string for Supabase
+      // Convertir le timestamp en chaîne ISO UTC pour Supabase
       const date = new Date(data.timestamp);
       timestamp = date.toISOString();
     } else {
       console.error('Invalid timestamp format:', data.timestamp);
-      timestamp = new Date().toISOString(); // Use current time as fallback
+      timestamp = new Date().toISOString(); // Utiliser l'heure actuelle comme fallback
     }
 
-    // Compare current values with last stored values and check time threshold
+    // Comparer les valeurs actuelles avec les dernières valeurs stockées et vérifier le seuil de temps
     if (lastRecord && lastRecord.length > 0) {
       const last = lastRecord[0];
       const lastTimestamp = new Date(last.timestamp).getTime() / 1000;
       const currentTimestamp = data.timestamp;
       const timeDiff = currentTimestamp - lastTimestamp;
 
-      // Skip if data is too recent (less than 30 seconds) or if all values are identical
+      // Ignorer si les données sont trop récentes (moins de 30 secondes) ou si toutes les valeurs sont identiques
       if (timeDiff < 30 || (
         last.consumption === data.power &&
-        last.production === data.production_power &&
+        last.production === data.pv_power &&
         last.grid_total === data.total_energy &&
         last.grid_total_returned === data.grid_returned &&
-        last.production_total === data.production_energy &&
+        last.production_total === data.pv_energy &&
         last.pf === data.pf &&
         last.reactive === data.reactive &&
-        last.production_pf === data.production_pf &&
-        last.production_reactive === data.production_reactive
+        last.pv_pf === data.pv_pf &&
+        last.pv_reactive === data.pv_reactive
       )) {
         console.log('Skipping storage: data too recent or unchanged from last record');
         return true;
       }
     }
 
-    // Prepare the data object to insert
+    // Préparer l'objet de données à insérer
     const dataToInsert: DbEnergyData = {
       timestamp,
       consumption: data.power,
-      production: data.production_power,
+      production: data.pv_power,
       grid_total: data.total_energy,
       grid_total_returned: data.grid_returned,
-      production_total: data.production_energy,
+      production_total: data.pv_energy,
       voltage: data.voltage,
       frequency: data.frequency,
       pf: data.pf,
       reactive: data.reactive,
-      production_pf: data.production_pf,
-      production_reactive: data.production_reactive
+      pv_pf: data.pv_pf,
+      pv_reactive: data.pv_reactive
     };
 
-    // Only add shelly_config_id if config.id exists
+    // Ajouter shelly_config_id uniquement si config.id existe
     if (config.id) {
       console.log('Associating energy data with Shelly config ID:', config.id);
       dataToInsert['shelly_config_id'] = config.id;

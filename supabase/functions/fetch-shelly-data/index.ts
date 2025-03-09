@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -234,7 +233,9 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       } else {
         productionMeter = {
           power: deviceStatus['em1:1'].act_power || 0,
-          total: deviceStatus['em1data:1']?.total_act_energy || 0
+          reactive: deviceStatus['em1:1'].aprt_power || 0, // Ajout de la puissance réactive pour le PV
+          total: deviceStatus['em1data:1']?.total_act_energy || 0,
+          pf: deviceStatus['em1:1'].pf || 0 // Ajout du facteur de puissance pour le PV
         };
       }
     } else {
@@ -261,38 +262,42 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
     const deviceDate = new Date(deviceStatus._updated + 'Z');
     const timestamp = deviceDate.getTime();
 
-    // Format the data
+    // Format the data with renamed fields
     const shellyData = {
       timestamp,
       power: gridMeter.power || 0,
       reactive: gridMeter.reactive || 0,
-      production_power: productionMeter ? (productionMeter.power || 0) : 0,
+      pv_power: productionMeter ? (productionMeter.power || 0) : 0,
+      pv_reactive: productionMeter ? (productionMeter.reactive || 0) : 0,
       total_energy: gridMeter.total || 0,
-      production_energy: productionMeter ? (productionMeter.total || 0) : 0,
+      pv_energy: productionMeter ? (productionMeter.total || 0) : 0,
       grid_returned: gridMeter.total_returned || 0,
       voltage: gridMeter.voltage || 0,
       current: 0,
       pf: gridMeter.pf || 0,
+      pv_pf: productionMeter ? (productionMeter.pf || 0) : 0,
       temperature: deviceStatus.temperature?.tC || 0,
       is_valid: gridMeter.is_valid || false,
       channel: 0
     };
 
-    // Store the data in the database
+    // Store the data in the database with the new field names
     const { error: storeError } = await supabaseClient
       .from('energy_data')
       .insert([{
         timestamp: new Date(timestamp).toISOString(),
         consumption: shellyData.power,
-        production: shellyData.production_power,
+        production: shellyData.pv_power,
         grid_total: shellyData.total_energy,
         grid_total_returned: shellyData.grid_returned,
-        production_total: shellyData.production_energy,
+        production_total: shellyData.pv_energy,
         shelly_config_id: configData.id,
         voltage: shellyData.voltage,
         frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null,
         pf: shellyData.pf || 0,
-        reactive: shellyData.reactive || 0
+        reactive: shellyData.reactive || 0,
+        pv_pf: shellyData.pv_pf || 0,
+        pv_reactive: shellyData.pv_reactive || 0
       }]);
 
     if (storeError) {
