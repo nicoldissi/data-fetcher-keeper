@@ -91,7 +91,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           hour12: false
         });
         
-        const localDate = parseToLocalDate(item.timestamp);
+        const localDate = new Date(item.timestamp);
         
         const grid = Math.round(item.power);
         const production = Math.round(item.pv_power || 0);
