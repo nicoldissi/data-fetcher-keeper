@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
@@ -14,7 +15,7 @@ import { SelfProductionCard } from './SelfProductionCard';
 import { PowerTriangleCard } from './PowerTriangleCard';
 import { UserMenu } from './UserMenu';
 import { ShellyConfig } from '@/lib/types';
-import { DailyEnergyFlow } from './DailyEnergyFlow';
+import { D3EnergyFlow } from './D3EnergyFlow';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -142,7 +143,7 @@ export function ShellyDashboard() {
         </div>
         
         <div className="mb-6">
-          <DailyEnergyFlow configId={activeConfigId} />
+          <D3EnergyFlow configId={activeConfigId} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
