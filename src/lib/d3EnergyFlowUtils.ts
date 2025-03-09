@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -248,8 +247,8 @@ export function createDonutCharts(
         });
     }
     
-    // Create icon container at the top of donut - Moving it up by 10 pixels
-    const iconY = -30; // Changed from -20 to -30 to move up by 10 pixels
+    // Create icon container at the top of donut - Moving it up by 15 pixels total (10+5)
+    const iconY = -35; // Changed from -30 to -35 to move up by another 5 pixels
     
     const foreignObject = d3.select(this)
       .append("foreignObject")
