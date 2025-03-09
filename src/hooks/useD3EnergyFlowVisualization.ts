@@ -86,8 +86,8 @@ export function useD3EnergyFlowVisualization({
     // Définir les positions des centres avec plus d'écart
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
-      RESEAU: { x: svgWidth / 2 - 220,  y: 380 }, // Déplacé plus à gauche (était -180)
-      MAISON: { x: svgWidth / 2 + 220,  y: 380 }  // Déplacé plus à droite (était +180)
+      RESEAU: { x: svgWidth / 2 - 240,  y: 380 }, // Écarté encore plus à gauche (était -220)
+      MAISON: { x: svgWidth / 2 + 240,  y: 380 }  // Écarté encore plus à droite (était +220)
     };
 
     // Définir les dimensions des donuts

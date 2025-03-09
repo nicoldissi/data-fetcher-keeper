@@ -122,9 +122,9 @@ export function createFluxPaths(
       const my = (y1 + y2) / 2 - 40;
       
       // Calculate point at t=0.5 on the Bezier curve for perfect centering
-      const t = 0.5;
-      const bezierX = (1-t)*(1-t)*x1 + 2*(1-t)*t*mx + t*t*x2;
-      const bezierY = (1-t)*(1-t)*y1 + 2*(1-t)*t*my + t*t*y2;
+      const tParam = 0.5; // Renamed from 't' to avoid redeclaration
+      const bezierX = (1-tParam)*(1-tParam)*x1 + 2*(1-tParam)*tParam*mx + tParam*tParam*x2;
+      const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
 
       const borderColor = getBorderColor(d);
       const textColor = getTextColor(d);
