@@ -83,23 +83,61 @@ export function createFluxPaths(
   }
   animateFlux();
 
-  // Ajouter les étiquettes de flux
-  svg.selectAll(".flux-label")
+  // Déterminer quelle couleur de bordure utiliser en fonction de la source du flux
+  function getBorderColor(d: FluxData) {
+    if(d.source === "PV") return "#4CAF50"; // Bordure verte pour PV
+    if(d.source === "RESEAU") return "#2196F3"; // Bordure bleue pour Réseau
+    return "#888"; // Couleur par défaut
+  }
+
+  // Déterminer quelle couleur de texte utiliser en fonction de la source du flux
+  function getTextColor(d: FluxData) {
+    if(d.source === "PV") return "#4CAF50"; // Texte vert pour PV
+    if(d.source === "RESEAU") return "#2196F3"; // Texte bleu pour Réseau
+    return "#555"; // Couleur par défaut
+  }
+
+  // Ajouter les étiquettes de flux avec un style amélioré
+  svg.selectAll(".flux-label-container")
     .data(fluxData)
     .enter()
-    .append("text")
-    .attr("class", "flux-label")
-    .attr("font-size", 12)
-    .attr("fill", "#555")
-    .attr("text-anchor", "middle")
+    .append("g")
+    .attr("class", "flux-label-container")
     .each(function(d: FluxData) {
       const s = centers[d.source as keyof typeof centers];
       const t = centers[d.target as keyof typeof centers];
       const mx = (s.x + t.x) / 2;
       const my = (s.y + t.y) / 2 + 20; // Positionner en dessous du flux
+      
+      // Obtenir les couleurs de style en fonction de la source
+      const borderColor = getBorderColor(d);
+      const textColor = getTextColor(d);
+      
+      // Créer un fond pour l'étiquette
       d3.select(this)
+        .append("rect")
+        .attr("x", mx - 40)
+        .attr("y", my - 15)
+        .attr("width", 80)
+        .attr("height", 24)
+        .attr("rx", 12)
+        .attr("ry", 12)
+        .attr("fill", "white")
+        .attr("stroke", borderColor)
+        .attr("stroke-width", 1)
+        .attr("fill-opacity", 0.9)
+        .attr("filter", "drop-shadow(0px 1px 2px rgba(0,0,0,0.1))");
+      
+      // Ajouter le texte
+      d3.select(this)
+        .append("text")
         .attr("x", mx)
         .attr("y", my)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("font-size", 12)
+        .attr("font-weight", "medium")
+        .attr("fill", textColor)
         .text(`${d.kwh.toFixed(1)} kWh`);
     });
 
