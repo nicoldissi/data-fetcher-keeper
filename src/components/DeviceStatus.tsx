@@ -64,35 +64,35 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
                   <h4 className="font-medium">Linky</h4>
                   {isExporting && (
                     <Badge variant="outline" className="px-2 py-0.5 text-xs text-blue-500 border-blue-200">
-                      <span className="text-xs align-middle">export</span>
+                      <span className="text-[10px] align-middle">export</span>
                     </Badge>
                   )}
                   {!isExporting && (
                     <Badge variant="outline" className="px-2 py-0.5 text-xs text-red-500 border-red-200">
-                      <span className="text-xs align-middle">import</span>
+                      <span className="text-[10px] align-middle">import</span>
                     </Badge>
                   )}
                 </div>
                 
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">Puissance</p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">Puissance:</p>
                     <p className={cn("font-medium", currentColor)}>
                       {Math.abs(data.power).toFixed(0)} W
                     </p>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">Courant</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">Courant:</p>
                     <p className={cn("font-medium", currentColor)}>
                       {Math.abs(gridCurrent).toFixed(2)} A
                     </p>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">PF</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">PF:</p>
                     <p className="font-medium">{data.pf.toFixed(2)}</p>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">Réactif</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">Réactif:</p>
                     <p className="font-medium">{data.reactive.toFixed(0)} VAR</p>
                   </div>
                 </div>
@@ -100,25 +100,25 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
               
               <div className="border rounded-lg p-3">
                 <h4 className="font-medium mb-2">PV</h4>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">Puissance</p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">Puissance:</p>
                     <p className="font-medium text-green-600">
                       {data.production_power.toFixed(0)} W
                     </p>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">Courant</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">Courant:</p>
                     <p className="font-medium text-green-600">
                       {pvCurrent.toFixed(2)} A
                     </p>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">PF</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">PF:</p>
                     <p className="font-medium">-</p>
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-gray-500">Réactif</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500">Réactif:</p>
                     <p className="font-medium">-</p>
                   </div>
                 </div>
