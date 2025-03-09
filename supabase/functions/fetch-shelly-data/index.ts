@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -31,13 +32,7 @@ serve(async (req) => {
       );
     }
 
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization');
-    
-    const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`;
-
-    // Create a Supabase client
-    const clientKey = isServiceRole ? serviceRoleKey : anonKey;
+    // Create a Supabase client with the service role key
     const supabaseClient = createClient(
       supabaseUrl,
       serviceRoleKey,
@@ -49,19 +44,15 @@ serve(async (req) => {
     );
 
     // Parse the request data
-    const requestBody = await req.json();
-    
+    const requestBody = await req.json().catch(() => ({}));
     const { configId } = requestBody || {};
 
-    console.log('Request received:', { configId, isServiceRole, authHeader: authHeader ? 'present' : 'missing' });
+    console.log('Request received:', { configId, method: req.method });
 
     // Get the Shelly configuration(s)
     let query = supabaseClient
       .from('shelly_configs')
       .select('*');
-
-    // No need to check user_id since devices can be shared
-    console.log('Query to be executed:', query);
 
     if (configId) {
       query = query.eq('id', configId);
@@ -98,7 +89,7 @@ serve(async (req) => {
 
       console.log('configsData:', configsData);
       if (!configsData || configsData.length === 0) {
-        console.warn('No configurations found:', { isServiceRole });
+        console.warn('No configurations found');
         return new Response(
           JSON.stringify({ message: 'No Shelly configurations found' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -219,7 +210,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       } else {
         gridMeter = {
           power: deviceStatus['em1:0'].act_power || 0,
-          reactive: deviceStatus['em1:0'].aprt_power || 0, // Récupération de la puissance réactive pour Pro EM
+          reactive: deviceStatus['em1:0'].aprt_power || 0, // Storing reactive power for Pro EM
           voltage: deviceStatus['em1:0'].voltage || 0,
           total: deviceStatus['em1data:0']?.total_act_energy || 0,
           pf: deviceStatus['em1:0'].pf || 0,
@@ -233,9 +224,9 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       } else {
         productionMeter = {
           power: deviceStatus['em1:1'].act_power || 0,
-          reactive: deviceStatus['em1:1'].aprt_power || 0, // Ajout de la puissance réactive pour le PV
+          reactive: deviceStatus['em1:1'].aprt_power || 0, // PV reactive power
           total: deviceStatus['em1data:1']?.total_act_energy || 0,
-          pf: deviceStatus['em1:1'].pf || 0 // Ajout du facteur de puissance pour le PV
+          pf: deviceStatus['em1:1'].pf || 0 // PV power factor
         };
       }
     } else {
@@ -273,12 +264,13 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       pv_energy: productionMeter ? (productionMeter.total || 0) : 0,
       grid_returned: gridMeter.total_returned || 0,
       voltage: gridMeter.voltage || 0,
-      current: 0,
+      current: 0, // Not available directly from Shelly API
       pf: gridMeter.pf || 0,
       pv_pf: productionMeter ? (productionMeter.pf || 0) : 0,
       temperature: deviceStatus.temperature?.tC || 0,
       is_valid: gridMeter.is_valid || false,
-      channel: 0
+      channel: 0,
+      frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null
     };
 
     // Store the data in the database with the new field names
@@ -293,7 +285,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
         production_total: shellyData.pv_energy,
         shelly_config_id: configData.id,
         voltage: shellyData.voltage,
-        frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null,
+        frequency: shellyData.frequency,
         pf: shellyData.pf || 0,
         reactive: shellyData.reactive || 0,
         pv_pf: shellyData.pv_pf || 0,
