@@ -28,6 +28,12 @@ export function useD3EnergyFlowVisualization({
   useEffect(() => {
     if (!isClient || loading || !svgRef.current) return;
 
+    // Cleanup function to unmount React components
+    const cleanup = () => {
+      const svg = d3.select(svgRef.current);
+      svg.selectAll("foreignObject").remove();
+    };
+
     // Préparer les données pour les donuts - convertir Wh en kWh
     const pvTotal = dailyTotals.production / 1000;
     const gridImportTotal = dailyTotals.importFromGrid / 1000;
@@ -106,5 +112,7 @@ export function useD3EnergyFlowVisualization({
       .attr("fill", "#555")
       .text("Bilan Énergétique Journalier");
 
+    // Return cleanup function to prevent memory leaks
+    return cleanup;
   }, [dailyTotals, loading, isClient, svgRef]);
 }

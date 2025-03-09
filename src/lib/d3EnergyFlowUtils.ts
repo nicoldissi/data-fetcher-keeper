@@ -1,4 +1,7 @@
 import * as d3 from 'd3';
+import { CircleIcon, HomeIcon, NetworkIcon, ZapIcon } from 'lucide-react';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 interface Center {
   x: number;
@@ -225,148 +228,158 @@ export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Create modern Solar Panel icon for PV
-  const solarGroup = svg.append("g")
-    .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`);
+  // Create container for React icons
+  const iconContainers = {
+    PV: document.createElement('div'),
+    MAISON: document.createElement('div'),
+    RESEAU: document.createElement('div')
+  };
+
+  // Create sleek background gradients
+  const iconGradients = {
+    PV: svg.append("defs")
+      .append("radialGradient")
+      .attr("id", "solarGradient")
+      .attr("cx", "50%")
+      .attr("cy", "50%")
+      .attr("r", "50%"),
+    
+    MAISON: svg.append("defs")
+      .append("radialGradient")
+      .attr("id", "houseGradient")
+      .attr("cx", "50%")
+      .attr("cy", "50%")
+      .attr("r", "50%"),
+    
+    RESEAU: svg.append("defs")
+      .append("radialGradient")
+      .attr("id", "gridGradient")
+      .attr("cx", "50%")
+      .attr("cy", "50%")
+      .attr("r", "50%")
+  };
   
-  // Background circle with gradient
-  const solarGradient = svg.append("defs")
-    .append("radialGradient")
-    .attr("id", "solarGradient")
-    .attr("cx", "50%")
-    .attr("cy", "50%")
-    .attr("r", "50%")
-    .attr("fx", "50%")
-    .attr("fy", "50%");
-    
-  solarGradient.append("stop")
+  // Configure gradient stops
+  iconGradients.PV
+    .append("stop")
     .attr("offset", "0%")
-    .attr("stop-color", "#fff")
-    .attr("stop-opacity", 0.1);
-    
-  solarGradient.append("stop")
+    .attr("stop-color", "#ffffff")
+    .attr("stop-opacity", 0.9);
+  
+  iconGradients.PV
+    .append("stop")
     .attr("offset", "100%")
     .attr("stop-color", "#66BB6A")
-    .attr("stop-opacity", 0.05);
+    .attr("stop-opacity", 0.1);
   
-  // Modern background circle
-  solarGroup.append("circle")
-    .attr("r", 35)
+  iconGradients.MAISON
+    .append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#ffffff")
+    .attr("stop-opacity", 0.9);
+  
+  iconGradients.MAISON
+    .append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#6366f1")
+    .attr("stop-opacity", 0.1);
+  
+  iconGradients.RESEAU
+    .append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#ffffff")
+    .attr("stop-opacity", 0.9);
+  
+  iconGradients.RESEAU
+    .append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#42A5F5")
+    .attr("stop-opacity", 0.1);
+
+  // Create icon background circles
+  const iconGroups = {
+    PV: svg.append("g")
+      .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`),
+    
+    MAISON: svg.append("g")
+      .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`),
+    
+    RESEAU: svg.append("g")
+      .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`)
+  };
+
+  // Add circular backgrounds with gradients
+  iconGroups.PV.append("circle")
+    .attr("r", 38)
     .attr("fill", "url(#solarGradient)")
     .attr("stroke", "#66BB6A")
     .attr("stroke-width", 2)
     .attr("opacity", 0.9);
   
-  // Modern sun icon
-  solarGroup.append("circle")
-    .attr("r", 12)
-    .attr("fill", "#66BB6A");
-    
-  // Sun rays
-  const rayLength = 9;
-  for (let i = 0; i < 8; i++) {
-    const angle = (i * Math.PI) / 4;
-    const x1 = Math.cos(angle) * 13;
-    const y1 = Math.sin(angle) * 13;
-    const x2 = Math.cos(angle) * (13 + rayLength);
-    const y2 = Math.sin(angle) * (13 + rayLength);
-    
-    solarGroup.append("line")
-      .attr("x1", x1)
-      .attr("y1", y1)
-      .attr("x2", x2)
-      .attr("y2", y2)
-      .attr("stroke", "#66BB6A")
-      .attr("stroke-width", 3)
-      .attr("stroke-linecap", "round");
-  }
-
-  // Modern House icon
-  const houseGroup = svg.append("g")
-    .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`);
-  
-  // Background circle with gradient
-  const houseGradient = svg.append("defs")
-    .append("radialGradient")
-    .attr("id", "houseGradient")
-    .attr("cx", "50%")
-    .attr("cy", "50%")
-    .attr("r", "50%")
-    .attr("fx", "50%")
-    .attr("fy", "50%");
-    
-  houseGradient.append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "#fff")
-    .attr("stop-opacity", 0.1);
-    
-  houseGradient.append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", "#6366f1")
-    .attr("stop-opacity", 0.05);
-  
-  // Modern background circle
-  houseGroup.append("circle")
-    .attr("r", 35)
+  iconGroups.MAISON.append("circle")
+    .attr("r", 38)
     .attr("fill", "url(#houseGradient)")
     .attr("stroke", "#6366f1")
     .attr("stroke-width", 2)
     .attr("opacity", 0.9);
   
-  // Modern house
-  houseGroup.append("path")
-    .attr("d", "M-15,8 L-15,-2 L0,-15 L15,-2 L15,8 Z")
-    .attr("fill", "#6366f1")
-    .attr("stroke", "#6366f1")
-    .attr("stroke-width", 1);
-    
-  // Door
-  houseGroup.append("rect")
-    .attr("x", -5)
-    .attr("y", -2)
-    .attr("width", 10)
-    .attr("height", 10)
-    .attr("fill", "#fff")
-    .attr("opacity", 0.9);
-
-  // Modern Power Grid icon
-  const gridGroup = svg.append("g")
-    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
-  
-  // Background circle with gradient
-  const gridGradient = svg.append("defs")
-    .append("radialGradient")
-    .attr("id", "gridGradient")
-    .attr("cx", "50%")
-    .attr("cy", "50%")
-    .attr("r", "50%")
-    .attr("fx", "50%")
-    .attr("fy", "50%");
-    
-  gridGradient.append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "#fff")
-    .attr("stop-opacity", 0.1);
-    
-  gridGradient.append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", "#42A5F5")
-    .attr("stop-opacity", 0.05);
-  
-  // Modern background circle
-  gridGroup.append("circle")
-    .attr("r", 35)
+  iconGroups.RESEAU.append("circle")
+    .attr("r", 38)
     .attr("fill", "url(#gridGradient)")
     .attr("stroke", "#42A5F5")
     .attr("stroke-width", 2)
     .attr("opacity", 0.9);
+
+  // Add SVG foreign objects to hold React components
+  const iconForeigns = {
+    PV: iconGroups.PV.append("foreignObject")
+      .attr("width", 60)
+      .attr("height", 60)
+      .attr("x", -30)
+      .attr("y", -30),
+    
+    MAISON: iconGroups.MAISON.append("foreignObject")
+      .attr("width", 60)
+      .attr("height", 60)
+      .attr("x", -30)
+      .attr("y", -30),
+    
+    RESEAU: iconGroups.RESEAU.append("foreignObject")
+      .attr("width", 60)
+      .attr("height", 60)
+      .attr("x", -30)
+      .attr("y", -30)
+  };
+
+  // Append container divs to the foreignObjects
+  iconForeigns.PV.node()?.appendChild(iconContainers.PV);
+  iconForeigns.MAISON.node()?.appendChild(iconContainers.MAISON);
+  iconForeigns.RESEAU.node()?.appendChild(iconContainers.RESEAU);
+
+  // Render React components into the containers
+  ReactDOM.render(
+    <ZapIcon size={32} color="#66BB6A" strokeWidth={2} />,
+    iconContainers.PV
+  );
   
-  // Modern lightning bolt
-  gridGroup.append("path")
-    .attr("d", "M0,-15 L-6,0 L0,0 L-3,15 L3,2 L-3,2 Z")
-    .attr("fill", "#42A5F5")
-    .attr("stroke", "#42A5F5")
-    .attr("stroke-width", 1);
+  ReactDOM.render(
+    <HomeIcon size={32} color="#6366f1" strokeWidth={2} />,
+    iconContainers.MAISON
+  );
+  
+  ReactDOM.render(
+    <NetworkIcon size={32} color="#42A5F5" strokeWidth={2} />,
+    iconContainers.RESEAU
+  );
+
+  // Add container styles
+  Object.values(iconContainers).forEach(container => {
+    container.style.display = 'flex';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
+    container.style.width = '100%';
+    container.style.height = '100%';
+  });
 }
 
 export function createReseauGroup(
