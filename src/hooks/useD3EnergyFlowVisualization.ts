@@ -2,7 +2,7 @@
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { DailyTotals } from './useDailyEnergyTotals';
-import { createFluxPaths, createDonutCharts, createIcons, createReseauGroup } from '@/lib/d3EnergyFlowUtils';
+import { createFluxPaths, createDonutCharts } from '@/lib/d3EnergyFlowUtils';
 
 interface UseD3EnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -45,10 +45,12 @@ export function useD3EnergyFlowVisualization({
     const pvToHome = pvTotal - gridExportTotal;
     const pvToHomeRatio = pvTotal > 0 ? pvToHome / pvTotal : 0;
     const homeFromPvRatio = consumptionTotal > 0 ? pvToHome / consumptionTotal : 0;
+    const gridTotalFlux = gridImportTotal + gridExportTotal;
 
     const donutsData = [
       { id: "PV", label: "Photovoltaïque", totalKwh: pvTotal, ratio: pvToHomeRatio },
-      { id: "MAISON", label: "Maison", totalKwh: consumptionTotal, ratio: homeFromPvRatio }
+      { id: "MAISON", label: "Maison", totalKwh: consumptionTotal, ratio: homeFromPvRatio },
+      { id: "RESEAU", label: "Réseau", totalKwh: gridTotalFlux, ratio: 1, importTotal: gridImportTotal, exportTotal: gridExportTotal }
     ];
 
     const fluxData = [
@@ -97,12 +99,6 @@ export function useD3EnergyFlowVisualization({
 
     // Create donut charts with icons on top
     createDonutCharts(svg, donutsData, centers, outerRadius, thickness);
-
-    // Create icon for the power grid node only (without circle)
-    createIcons(svg, centers);
-
-    // Create the power grid group (without SVG)
-    createReseauGroup(svg, centers.RESEAU, gridImportTotal, gridExportTotal);
 
     // Ajouter un titre
     svg.append("text")

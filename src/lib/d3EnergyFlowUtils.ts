@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap } from 'lucide-react';
 import React from 'react';
@@ -19,6 +20,8 @@ interface DonutData {
   label: string;
   totalKwh: number;
   ratio: number;
+  importTotal?: number;
+  exportTotal?: number;
 }
 
 export function createFluxPaths(
@@ -165,21 +168,26 @@ export function createDonutCharts(
 
   donutGroup.append("path")
     .attr("d", arcBg({} as any) as string)
-    .attr("fill", "#eee");
+    .attr("fill", (d: DonutData) => {
+      return d.id === "RESEAU" ? "#F1F1F1" : "#eee";
+    });
 
   donutGroup.each(function(d: DonutData) {
     let fillColor = "";
     let textColor = "";
     
-    if(d.id === "PV") {
+    if (d.id === "PV") {
       fillColor = "#66BB6A";
       textColor = "#4CAF50";
-    } else if(d.id === "MAISON") {
+    } else if (d.id === "MAISON") {
       fillColor = "#F97316";
       textColor = "#EA580C";
+    } else if (d.id === "RESEAU") {
+      fillColor = "#42A5F5";
+      textColor = "#2196F3";
     }
     
-    if(d.id === "MAISON") {
+    if (d.id === "MAISON") {
       d3.select(this).append("path")
         .attr("class", "arc-pv")
         .attr("fill", "#66BB6A")
@@ -212,6 +220,20 @@ export function createDonutCharts(
               .endAngle(interpolate(t))({} as any) as string;
           };
         });
+    } else if (d.id === "RESEAU") {
+      // For RESEAU, simply show a transparent/white gauge with network information
+      d3.select(this).append("path")
+        .attr("class", "arc-value")
+        .attr("fill", fillColor)
+        .attr("fill-opacity", 0.4)
+        .transition()
+        .duration(800)
+        .attrTween("d", function() {
+          const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
+          return (t: number) => {
+            return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
+          };
+        });
     } else {
       d3.select(this).append("path")
         .attr("class", "arc-value")
@@ -226,6 +248,7 @@ export function createDonutCharts(
         });
     }
     
+    // Create icon container at the top of donut
     const iconY = -20;
     
     const foreignObject = d3.select(this)
@@ -254,105 +277,54 @@ export function createDonutCharts(
         React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
+    } else if (d.id === "RESEAU") {
+      ReactDOM.render(
+        React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
+        container
+      );
     }
 
-    d3.select(this).append("text")
-      .attr("fill", textColor)
-      .attr("font-size", 16)
-      .attr("font-weight", "bold")
-      .attr("text-anchor", "middle") 
-      .attr("dy", 10)
-      .text((d: DonutData) => {
-        if (d.id === "PV" || d.id === "MAISON") {
-          return `${Math.round(d.ratio * 100)}%`;
-        } else {
-          return "";
-        }
-      });
+    // Percentage text (in the center)
+    if (d.id === "PV" || d.id === "MAISON") {
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 16)
+        .attr("font-weight", "bold")
+        .attr("text-anchor", "middle") 
+        .attr("dy", 10)
+        .text(`${Math.round(d.ratio * 100)}%`);
 
-    d3.select(this).append("text")
-      .attr("fill", textColor)
-      .attr("font-size", 14)
-      .attr("text-anchor", "middle")
-      .attr("dy", 30)
-      .text((d: DonutData) => {
-        if (d.id === "PV" || d.id === "MAISON") {
-          return `${d.totalKwh.toFixed(1)} kWh`;
-        } else {
-          return "";
-        }
-      });
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 14)
+        .attr("text-anchor", "middle")
+        .attr("dy", 30)
+        .text(`${d.totalKwh.toFixed(1)} kWh`);
+    } else if (d.id === "RESEAU") {
+      // For RESEAU, display the import and export values
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 16)
+        .attr("font-weight", "bold")
+        .attr("text-anchor", "middle") 
+        .attr("dy", 5)
+        .text("Réseau");
+
+      if (d.importTotal !== undefined && d.exportTotal !== undefined) {
+        d3.select(this).append("text")
+          .attr("fill", textColor)
+          .attr("font-size", 12)
+          .attr("text-anchor", "middle")
+          .attr("dy", 25)
+          .text(`↓ ${d.importTotal.toFixed(1)} kWh`);
+
+        d3.select(this).append("text")
+          .attr("fill", "#388E3C")
+          .attr("font-size", 12)
+          .attr("text-anchor", "middle")
+          .attr("dy", 42)
+          .text(`↑ ${d.exportTotal.toFixed(1)} kWh`);
+      }
+    }
   });
-}
-
-export function createIcons(
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  centers: Record<string, Center>
-) {
-  const reseauContainer = document.createElement('div');
-  reseauContainer.style.display = 'flex';
-  reseauContainer.style.justifyContent = 'center';
-  reseauContainer.style.alignItems = 'center';
-  reseauContainer.style.width = '100%';
-  reseauContainer.style.height = '100%';
-  
-  const reseauGroup = svg.append("g")
-    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
-  
-  const reseauForeign = reseauGroup.append("foreignObject")
-    .attr("width", 60)
-    .attr("height", 60)
-    .attr("x", -30)
-    .attr("y", -30);
-  
-  reseauForeign.node()?.appendChild(reseauContainer);
-  
-  ReactDOM.render(
-    React.createElement(Zap, { size: 32, color: "#42A5F5", strokeWidth: 2 }),
-    reseauContainer
-  );
-}
-
-export function createReseauGroup(
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  center: Center,
-  gridImportTotal: number,
-  gridExportTotal: number
-) {
-  const reseauGroup = svg.append("g")
-    .attr("transform", `translate(${center.x}, ${center.y - 30})`);
-
-  reseauGroup.append("text")
-    .attr("class", "arrow")
-    .attr("x", 0)
-    .attr("y", 50)
-    .attr("text-anchor", "middle")
-    .attr("fill", "#42A5F5")
-    .attr("font-size", 18)
-    .attr("font-weight", "bold")
-    .text("→");
-
-  reseauGroup.append("text")
-    .attr("x", 40)
-    .attr("y", 50)
-    .attr("fill", "#42A5F5")
-    .attr("font-size", 14)
-    .text(`${gridImportTotal.toFixed(1)} kWh`);
-
-  reseauGroup.append("text")
-    .attr("class", "arrow")
-    .attr("x", 0)
-    .attr("y", 70)
-    .attr("text-anchor", "middle")
-    .attr("fill", "#388E3C")
-    .attr("font-size", 18)
-    .attr("font-weight", "bold")
-    .text("←");
-
-  reseauGroup.append("text")
-    .attr("x", 40)
-    .attr("y", 70)
-    .attr("fill", "#388E3C")
-    .attr("font-size", 14)
-    .text(`${gridExportTotal.toFixed(1)} kWh`);
 }
