@@ -19,6 +19,8 @@ export type Database = {
           id: number
           pf: number | null
           production: number
+          production_pf: number | null
+          production_reactive: number | null
           production_total: number
           reactive: number | null
           shelly_config_id: string | null
@@ -34,6 +36,8 @@ export type Database = {
           id?: number
           pf?: number | null
           production: number
+          production_pf?: number | null
+          production_reactive?: number | null
           production_total?: number
           reactive?: number | null
           shelly_config_id?: string | null
@@ -49,6 +53,8 @@ export type Database = {
           id?: number
           pf?: number | null
           production?: number
+          production_pf?: number | null
+          production_reactive?: number | null
           production_total?: number
           reactive?: number | null
           shelly_config_id?: string | null
