@@ -28,7 +28,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
   const currentColor = isExporting ? 'text-blue-500' : 'text-red-500';
   
   return (
-    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
+    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">

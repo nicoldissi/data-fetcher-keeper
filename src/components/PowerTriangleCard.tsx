@@ -69,7 +69,7 @@ export function PowerTriangleCard({
   return (
     <Card
       className={cn(
-        "overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md",
+        "overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full",
         className
       )}
     >

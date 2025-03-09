@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -210,7 +209,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "home",
         active: flowAnimations.gridToHome,
         color: "#ef4444",
-        curveOffset: -50, // Increased offset to prevent truncation
+        curveOffset: -70, // Further increased offset to prevent truncation
         power: data.power
       },
       {
@@ -219,7 +218,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "grid",
         active: flowAnimations.gridFromHome,
         color: "#388E3C",
-        curveOffset: 50, // Increased offset to prevent truncation
+        curveOffset: 70, // Further increased offset to prevent truncation
         power: -data.power
       },
       {
@@ -241,22 +240,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         power: Math.max(0, -data.power)
       }
     ]
-    
-    // Add arrow markers for path ends
-    arrowPaths.forEach(path => {
-      const markerId = `arrowMarker-${path.id}`
-      defs.append('marker')
-        .attr('id', markerId)
-        .attr('viewBox', '0 -5 10 10')
-        .attr('refX', 8)
-        .attr('refY', 0)
-        .attr('markerWidth', 6)
-        .attr('markerHeight', 6)
-        .attr('orient', 'auto')
-        .append('path')
-        .attr('d', 'M0,-5L10,0L0,5')
-        .attr('fill', path.color)
-    })
     
     // Create paths with curved lines like in D3EnergyFlow
     arrowPaths.forEach(path => {
@@ -351,7 +334,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
   
   if (!data) {
     return (
-      <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
+      <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium flex items-center">
             <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>
@@ -369,7 +352,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
   }
 
   return (
-    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
+    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium flex items-center">
           <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>

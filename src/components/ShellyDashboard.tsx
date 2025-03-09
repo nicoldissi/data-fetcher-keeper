@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
@@ -114,29 +115,30 @@ export function ShellyDashboard() {
 
         <Separator className="my-6" />
 
+        {/* Modified this section to ensure proper alignment */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="md:col-span-1 space-y-6">
+          <div className="md:col-span-1 flex flex-col">
             <DeviceStatus
               data={currentData}
               lastUpdated={lastUpdated}
               configId={activeConfigId}
+              className="mb-6"
             />
 
             {currentData && (
-              <div className="grid grid-cols-1 gap-6">
-                <PowerTriangleCard
-                  title="Power Triangle - Grid"
-                  activePower={currentData.power}
-                  reactivePower={currentData.reactive}
-                  powerFactor={currentData.pf}
-                  emeterIndex={0}
-                />
-              </div>
+              <PowerTriangleCard
+                title="Power Triangle - Grid"
+                activePower={currentData.power}
+                reactivePower={currentData.reactive}
+                powerFactor={currentData.pf}
+                emeterIndex={0}
+                className="flex-grow"
+              />
             )}
           </div>
 
-          <div className="md:col-span-2">
-            <EnergyFlowChartDark data={currentData} />
+          <div className="md:col-span-2 flex">
+            <EnergyFlowChartDark data={currentData} className="w-full" />
           </div>
         </div>
         
