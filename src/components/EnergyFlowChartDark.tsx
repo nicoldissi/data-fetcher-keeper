@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -87,7 +88,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 50 // Updated node size to 50 pixels
+    const nodeRadius = 50 // Keeping the circle size at 50 pixels
     
     // Add filter definition for glow effect
     const defs = svg.append("defs")
@@ -101,7 +102,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         </feMerge>
       `)
     
-    // Define node positions similar to D3EnergyFlow
+    // Define node positions with more spacing between them
     const nodes = {
       solar: {
         x: width * 0.5,
@@ -111,15 +112,15 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         color: '#66BB6A'
       },
       grid: {
-        x: width * 0.2,
-        y: height * 0.65,
+        x: width * 0.15, // Moved further left (was 0.2)
+        y: height * 0.7,  // Moved slightly lower (was 0.65)
         label: 'Réseau',
         value: `${Math.abs(data.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
-        x: width * 0.8,
-        y: height * 0.65,
+        x: width * 0.85, // Moved further right (was 0.8)
+        y: height * 0.7,  // Moved slightly lower (was 0.65)
         label: 'Maison',
         value: `${(data.power + data.production_power).toFixed(1)} W`,
         color: '#F97316'
@@ -140,8 +141,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('stroke-width', 3)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
-      // Create icon container at the top of circle
-      const iconY = -30; // Adjusted for 50px circle
+      // Create icon container at the top of circle - moved 5px higher
+      const iconY = -35; // Changed from -30 to -35 to move up by 5px
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -209,7 +210,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "home",
         active: flowAnimations.gridToHome,
         color: "#ef4444",
-        curveOffset: -70, // Further increased offset to prevent truncation
+        curveOffset: -80, // Increased offset for wider spacing
         power: data.power
       },
       {
@@ -218,7 +219,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "grid",
         active: flowAnimations.gridFromHome,
         color: "#388E3C",
-        curveOffset: 70, // Further increased offset to prevent truncation
+        curveOffset: 80, // Increased offset for wider spacing
         power: -data.power
       },
       {
@@ -289,16 +290,19 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         
         animateDash()
         
-        // Add kWh labels on paths
-        const labelX = mx
-        const labelY = my + (path.curveOffset > 0 ? 20 : -20)
+        // Calculate position exactly on the flow path for the label
+        // First, find a point on the quadratic Bezier curve
+        // We want the label to be centered on the path
+        const t = 0.5; // Parameter t for the Bezier curve (0.5 = middle)
+        const bezierX = (1-t)*(1-t)*x1 + 2*(1-t)*t*mx + t*t*x2;
+        const bezierY = (1-t)*(1-t)*y1 + 2*(1-t)*t*my + t*t*y2;
         
         const labelGroup = svg.append('g')
           .attr('class', `path-label-${path.id}`)
         
         labelGroup.append('rect')
-          .attr('x', labelX - 40)
-          .attr('y', labelY - 15)
+          .attr('x', bezierX - 40)
+          .attr('y', bezierY - 15)
           .attr('width', 80)
           .attr('height', 24)
           .attr('rx', 12)
@@ -309,8 +313,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           .attr('fill-opacity', 0.9)
         
         labelGroup.append('text')
-          .attr('x', labelX)
-          .attr('y', labelY)
+          .attr('x', bezierX)
+          .attr('y', bezierY)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', 12)

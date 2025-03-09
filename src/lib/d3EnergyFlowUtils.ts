@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -94,6 +95,7 @@ export function createFluxPaths(
     return "#555";
   }
 
+  // Calculate position exactly on the flow path for the labels
   svg.selectAll(".flux-label-container")
     .data(fluxData)
     .enter()
@@ -102,16 +104,35 @@ export function createFluxPaths(
     .each(function(d: FluxData) {
       const s = centers[d.source as keyof typeof centers];
       const t = centers[d.target as keyof typeof centers];
-      const mx = (s.x + t.x) / 2;
-      const my = (s.y + t.y) / 2 + 20;
+      
+      // Use Bezier curve calculations to find the exact midpoint of the curve
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const offset = outerRadius + 5;
+      const ratioStart = offset / dist;
+      const x1 = s.x + dx * ratioStart;
+      const y1 = s.y + dy * ratioStart;
+      const ratioEnd = (dist - offset) / dist;
+      const x2 = s.x + dx * ratioEnd;
+      const y2 = s.y + dy * ratioEnd;
+      
+      // Control point
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 40;
+      
+      // Calculate point at t=0.5 on the Bezier curve for perfect centering
+      const t = 0.5;
+      const bezierX = (1-t)*(1-t)*x1 + 2*(1-t)*t*mx + t*t*x2;
+      const bezierY = (1-t)*(1-t)*y1 + 2*(1-t)*t*my + t*t*y2;
 
       const borderColor = getBorderColor(d);
       const textColor = getTextColor(d);
 
       d3.select(this)
         .append("rect")
-        .attr("x", mx - 40)
-        .attr("y", my - 15)
+        .attr("x", bezierX - 40)
+        .attr("y", bezierY - 15)
         .attr("width", 80)
         .attr("height", 24)
         .attr("rx", 12)
@@ -124,8 +145,8 @@ export function createFluxPaths(
 
       d3.select(this)
         .append("text")
-        .attr("x", mx)
-        .attr("y", my)
+        .attr("x", bezierX)
+        .attr("y", bezierY)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
         .attr("font-size", 12)
@@ -247,8 +268,8 @@ export function createDonutCharts(
         });
     }
     
-    // Create icon container at the top of donut - Moving it up by 15 pixels total (10+5)
-    const iconY = -35; // Changed from -30 to -35 to move up by another 5 pixels
+    // Create icon container at the top of donut - Moving it up by 5 more pixels
+    const iconY = -40; // Changed from -35 to -40 to move up by another 5 pixels
     
     const foreignObject = d3.select(this)
       .append("foreignObject")
