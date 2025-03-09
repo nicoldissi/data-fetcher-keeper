@@ -61,8 +61,8 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
     const shellyData: ShellyEMData = {
       timestamp,
       power: energyData.consumption || 0,
-      reactive: energyData.grid_reactive || 0,
-      pf: energyData.grid_pf || 0,
+      reactive: energyData.grid_reactive || 0, // Corriger pour utiliser grid_reactive
+      pf: energyData.grid_pf || 0, // Corriger pour utiliser grid_pf
       pv_power: energyData.production || 0,
       pv_reactive: energyData.pv_reactive || 0,
       pv_pf: energyData.pv_pf || 0,

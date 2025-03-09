@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -193,17 +192,17 @@ export function useSupabaseRealtime(configId?: string) {
     return {
       timestamp,
       power: record.consumption || 0,
-      reactive: record.reactive || 0,
+      reactive: record.grid_reactive || 0,
       pv_power: record.production || 0,
       pv_reactive: record.pv_reactive || 0,
       total_energy: record.grid_total || 0,
       pv_energy: record.production_total || 0,
       grid_returned: record.grid_total_returned || 0,
       voltage: record.voltage || 0,
-      current: 0, // Non stocké dans la base de données
-      pf: record.pf || 0,
+      current: 0,
+      pf: record.grid_pf || 0,
       pv_pf: record.pv_pf || 0,
-      temperature: 0, // Non stocké dans la base de données
+      temperature: 0,
       is_valid: true,
       channel: 0,
       shelly_config_id: configId,
