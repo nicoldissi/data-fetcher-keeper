@@ -58,7 +58,9 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
               <p className="text-xs text-gray-500">Current Grid</p>
               <p className={cn("text-lg font-medium", currentColor)}>
                 {Math.abs(gridCurrent).toFixed(2)} A
-                {isExporting ? ' (export)' : ' (import)'}
+                {isExporting ? 
+                  <span className="text-xs align-super ml-1">(export)</span> : 
+                  <span className="text-xs align-super ml-1">(import)</span>}
               </p>
             </div>
             <div className="space-y-1">
