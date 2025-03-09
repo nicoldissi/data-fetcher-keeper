@@ -90,6 +90,12 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
     console.log('Attempting to store energy data in Supabase with configId:', configId);
     console.log('Data to store:', JSON.stringify(data, null, 2));
     
+    // Vérification plus stricte de la configuration
+    if (!configId) {
+      console.error('ConfigId is missing for storeEnergyData');
+      return false;
+    }
+    
     // Obtenir la configuration Shelly correspondante pour ajouter son ID aux données stockées
     const config = await getShellyConfig(configId);
     
@@ -104,30 +110,42 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       // Convertir le timestamp en chaîne ISO UTC pour Supabase
       const date = new Date(data.timestamp);
       timestamp = date.toISOString();
+      console.log('Converted timestamp to ISO string:', timestamp);
     } else {
       console.error('Invalid timestamp format:', data.timestamp);
       timestamp = new Date().toISOString(); // Utiliser l'heure actuelle comme fallback
+      console.log('Using current time as fallback for timestamp:', timestamp);
     }
 
-    // Préparer l'objet de données à insérer
+    // Vérification des données numériques
+    const validateNumber = (value: any, name: string): number => {
+      if (typeof value !== 'number' || isNaN(value)) {
+        console.warn(`Invalid ${name} value:`, value, 'using 0 instead');
+        return 0;
+      }
+      return value;
+    };
+
+    // Préparer l'objet de données à insérer avec validation des valeurs numériques
     const dataToInsert: DbEnergyData = {
       timestamp,
-      consumption: data.power,
-      production: data.pv_power,
-      grid_total: data.total_energy,
-      grid_total_returned: data.grid_returned,
-      production_total: data.pv_energy,
-      voltage: data.voltage,
-      frequency: data.frequency,
-      grid_pf: data.pf,
-      grid_reactive: data.reactive,
-      pv_pf: data.pv_pf,
-      pv_reactive: data.pv_reactive,
+      consumption: validateNumber(data.power, 'power'),
+      production: validateNumber(data.pv_power, 'pv_power'),
+      grid_total: validateNumber(data.total_energy, 'total_energy'),
+      grid_total_returned: validateNumber(data.grid_returned, 'grid_returned'),
+      production_total: validateNumber(data.pv_energy, 'pv_energy'),
+      voltage: validateNumber(data.voltage, 'voltage'),
+      frequency: validateNumber(data.frequency, 'frequency'),
+      grid_pf: validateNumber(data.pf, 'pf'),
+      grid_reactive: validateNumber(data.reactive, 'reactive'),
+      pv_pf: validateNumber(data.pv_pf, 'pv_pf'),
+      pv_reactive: validateNumber(data.pv_reactive, 'pv_reactive'),
       shelly_config_id: config.id
     };
 
     console.log('Inserting data into Supabase:', JSON.stringify(dataToInsert, null, 2));
 
+    // Tenter d'insérer les données avec retour des données insérées pour vérification
     const { error, data: insertedData } = await supabase
       .from('energy_data')
       .insert([dataToInsert])
@@ -135,6 +153,24 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
 
     if (error) {
       console.error('Error storing data in Supabase:', error);
+      
+      // Vérification supplémentaire de l'accès à la table
+      try {
+        console.log('Testing table access...');
+        const { data: testData, error: testError } = await supabase
+          .from('energy_data')
+          .select('id')
+          .limit(1);
+          
+        if (testError) {
+          console.error('Test query also failed, possible permission issue:', testError);
+        } else {
+          console.log('Table access test succeeded, returned:', testData);
+        }
+      } catch (testErr) {
+        console.error('Exception during table access test:', testErr);
+      }
+      
       return false;
     }
 

@@ -270,7 +270,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       temperature: deviceStatus.temperature?.tC || 0,
       is_valid: gridMeter.is_valid || false,
       channel: 0,
-      frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null
+      frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || 0) : 0
     };
 
     console.log(`Prepared Shelly data for insertion:`, JSON.stringify(shellyData, null, 2));
@@ -293,6 +293,23 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
     };
 
     console.log(`Attempting to insert data into Supabase:`, JSON.stringify(insertData, null, 2));
+
+    // Test d'accès à la table avant insertion
+    try {
+      console.log('Testing table access before insertion...');
+      const { data: testData, error: testError } = await supabaseClient
+        .from('energy_data')
+        .select('id')
+        .limit(1);
+        
+      if (testError) {
+        console.error('Table access test failed:', testError);
+      } else {
+        console.log('Table access test succeeded');
+      }
+    } catch (e) {
+      console.error('Error during table access test:', e);
+    }
 
     const { error: storeError, data: insertedData } = await supabaseClient
       .from('energy_data')
