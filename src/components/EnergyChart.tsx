@@ -116,7 +116,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
         const date = new Date(item.timestamp);
         // Ensure consumption = grid + production
         const grid = Math.round(item.power);
-        const production = Math.round(item.production || 0);
+        const production = Math.round(item.pv_power || 0);
         const consumption = grid + production;
         
         return {
