@@ -63,8 +63,8 @@ export function ShellyDashboard() {
     if (currentData && isDevelopment) {
       debugLog('ShellyDashboard - Power values:', {
         grid_power: currentData.power,
-        production_power: currentData.production_power,
-        total_consumption: currentData.power + currentData.production_power
+        production_power: currentData.pv_power,
+        total_consumption: currentData.power + currentData.pv_power
       });
     }
   }, [currentData]);

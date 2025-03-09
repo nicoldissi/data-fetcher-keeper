@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { fetchShellyData, storeEnergyData, isShellyConfigValid } from '@/lib/api';
@@ -65,10 +66,10 @@ export function useShellyData(configId?: string, pollingInterval = 5000) {
         // Only store data if it's valid and different from the previous stored data
         if (data && (!previousDataRef.current ||
             data.power !== previousDataRef.current.power ||
-            data.production_power !== previousDataRef.current.production_power ||
+            data.pv_power !== previousDataRef.current.pv_power ||
             data.total_energy !== previousDataRef.current.total_energy ||
             data.grid_returned !== previousDataRef.current.grid_returned ||
-            data.production_energy !== previousDataRef.current.production_energy ||
+            data.pv_energy !== previousDataRef.current.pv_energy ||
             data.timestamp !== previousDataRef.current.timestamp
           )) {
           const stored = await storeEnergyData(data, configId);
