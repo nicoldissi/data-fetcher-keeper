@@ -273,32 +273,59 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null
     };
 
+    console.log(`Prepared Shelly data for insertion:`, JSON.stringify(shellyData, null, 2));
+
     // Store the data in the database with the new field names
-    const { error: storeError } = await supabaseClient
+    const insertData = {
+      timestamp: new Date(timestamp).toISOString(),
+      consumption: shellyData.power,
+      production: shellyData.pv_power,
+      grid_total: shellyData.total_energy,
+      grid_total_returned: shellyData.grid_returned,
+      production_total: shellyData.pv_energy,
+      shelly_config_id: configData.id,
+      voltage: shellyData.voltage,
+      frequency: shellyData.frequency,
+      grid_pf: shellyData.pf || 0,
+      grid_reactive: shellyData.reactive || 0,
+      pv_pf: shellyData.pv_pf || 0,
+      pv_reactive: shellyData.pv_reactive || 0
+    };
+
+    console.log(`Attempting to insert data into Supabase:`, JSON.stringify(insertData, null, 2));
+
+    const { error: storeError, data: insertedData } = await supabaseClient
       .from('energy_data')
-      .insert([{
-        timestamp: new Date(timestamp).toISOString(),
-        consumption: shellyData.power,
-        production: shellyData.pv_power,
-        grid_total: shellyData.total_energy,
-        grid_total_returned: shellyData.grid_returned,
-        production_total: shellyData.pv_energy,
-        shelly_config_id: configData.id,
-        voltage: shellyData.voltage,
-        frequency: shellyData.frequency,
-        grid_pf: shellyData.pf || 0,
-        grid_reactive: shellyData.reactive || 0,
-        pv_pf: shellyData.pv_pf || 0,
-        pv_reactive: shellyData.pv_reactive || 0
-      }]);
+      .insert([insertData])
+      .select();
 
     if (storeError) {
       console.error('Error storing data:', storeError);
+      // Try a few debugging steps if insertion fails
+      try {
+        // Check if the table exists and if we have permissions
+        const { data: tableInfo, error: tableError } = await supabaseClient
+          .from('energy_data')
+          .select('id')
+          .limit(1);
+          
+        if (tableError) {
+          console.error('Error checking table access:', tableError);
+        } else {
+          console.log('Table access verified with data:', tableInfo);
+        }
+      } catch (e) {
+        console.error('Error during debug checks:', e);
+      }
+      
+      throw storeError;
     }
+
+    console.log('Data successfully inserted:', insertedData);
 
     return {
       shellyData,
-      stored: !storeError
+      stored: true
     };
   } catch (error) {
     console.error(`Error in processShellyConfigWithoutResponse for device ${configData.deviceid}:`, error);

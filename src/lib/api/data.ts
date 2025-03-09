@@ -87,18 +87,14 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
 
 export const storeEnergyData = async (data: ShellyEMData, configId?: string): Promise<boolean> => {
   try {
+    console.log('Attempting to store energy data in Supabase with configId:', configId);
+    console.log('Data to store:', JSON.stringify(data, null, 2));
+    
     // Obtenir la configuration Shelly correspondante pour ajouter son ID aux données stockées
     const config = await getShellyConfig(configId);
-
-    // Récupérer le dernier enregistrement stocké pour comparer les valeurs
-    const { data: lastRecord, error: fetchError } = await supabase
-      .from('energy_data')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(1);
-
-    if (fetchError) {
-      console.error('Error fetching last record:', fetchError);
+    
+    if (!config || !config.id) {
+      console.error('Failed to get valid Shelly config for storage, config:', config);
       return false;
     }
 
@@ -111,30 +107,6 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
     } else {
       console.error('Invalid timestamp format:', data.timestamp);
       timestamp = new Date().toISOString(); // Utiliser l'heure actuelle comme fallback
-    }
-
-    // Comparer les valeurs actuelles avec les dernières valeurs stockées et vérifier le seuil de temps
-    if (lastRecord && lastRecord.length > 0) {
-      const last = lastRecord[0];
-      const lastTimestamp = new Date(last.timestamp).getTime() / 1000;
-      const currentTimestamp = data.timestamp;
-      const timeDiff = currentTimestamp - lastTimestamp;
-
-      // Ignorer si les données sont trop récentes (moins de 30 secondes) ou si toutes les valeurs sont identiques
-      if (timeDiff < 30 || (
-        last.consumption === data.power &&
-        last.production === data.pv_power &&
-        last.grid_total === data.total_energy &&
-        last.grid_total_returned === data.grid_returned &&
-        last.production_total === data.pv_energy &&
-        last.grid_pf === data.pf &&
-        last.grid_reactive === data.reactive &&
-        last.pv_pf === data.pv_pf &&
-        last.pv_reactive === data.pv_reactive
-      )) {
-        console.log('Skipping storage: data too recent or unchanged from last record');
-        return true;
-      }
     }
 
     // Préparer l'objet de données à insérer
@@ -150,27 +122,23 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       grid_pf: data.pf,
       grid_reactive: data.reactive,
       pv_pf: data.pv_pf,
-      pv_reactive: data.pv_reactive
+      pv_reactive: data.pv_reactive,
+      shelly_config_id: config.id
     };
 
-    // Ajouter shelly_config_id uniquement si config.id existe
-    if (config.id) {
-      console.log('Associating energy data with Shelly config ID:', config.id);
-      dataToInsert['shelly_config_id'] = config.id;
-    } else {
-      console.log('No Shelly config ID available, storing data without association');
-    }
+    console.log('Inserting data into Supabase:', JSON.stringify(dataToInsert, null, 2));
 
-    const { error } = await supabase
+    const { error, data: insertedData } = await supabase
       .from('energy_data')
-      .insert([dataToInsert]);
+      .insert([dataToInsert])
+      .select();
 
     if (error) {
       console.error('Error storing data in Supabase:', error);
       return false;
     }
 
-    console.log('Successfully stored new energy data with timestamp:', timestamp);
+    console.log('Successfully stored new energy data:', insertedData);
     return true;
   } catch (error) {
     console.error('Failed to store data in Supabase:', error);
