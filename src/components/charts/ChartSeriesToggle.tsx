@@ -1,7 +1,6 @@
 
 import { Toggle } from '@/components/ui/toggle';
 import { ReactNode } from 'react';
-import { Zap } from 'lucide-react';
 
 interface ChartSeriesToggleProps {
   label: string;

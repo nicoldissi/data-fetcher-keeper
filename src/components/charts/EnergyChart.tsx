@@ -5,12 +5,11 @@ import {
   ResponsiveContainer, Area, ComposedChart, ReferenceLine, Line, XAxis, YAxis
 } from 'recharts';
 import { ShellyEMData } from '@/lib/types';
-import { Zap } from 'lucide-react';
+import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
 import { EnergyChartWrapper } from './EnergyChartWrapper';
 import { ChartSeriesToggle } from './ChartSeriesToggle';
 import { CustomChartTooltip } from './CustomChartTooltip';
 import { useEnergyChartData } from '@/hooks/useEnergyChartData';
-import { formatTimeForChart } from '@/lib/dateUtils';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -18,10 +17,10 @@ interface HistoricalEnergyChartProps {
 }
 
 export default function HistoricalEnergyChart({ history, configId }: HistoricalEnergyChartProps) {
-  // Toggle visibility of lines
+  // Toggle visibility of lines - consumption and production are now true by default
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
-  const [showGrid, setShowGrid] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
   const [showVoltage, setShowVoltage] = useState(false);
 
   // Use the extracted hook for data processing
@@ -45,7 +44,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     textAnchor: 'middle',
   };
 
-  // Create the toggle controls for the chart
+  // Create the toggle controls for the chart with icons
   const renderChartControls = useCallback(() => {
     return (
       <>
@@ -54,18 +53,21 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
           value={showConsumption}
           onChange={setShowConsumption}
           color="#F97415"
+          icon={<Plug className="w-3 h-3 text-[#F97415] mr-2" />}
         />
         <ChartSeriesToggle 
           label="Production"
           value={showProduction}
           onChange={setShowProduction}
           color="#00FF59"
+          icon={<Sun className="w-3 h-3 text-[#00FF59] mr-2" />}
         />
         <ChartSeriesToggle 
           label="Réseau"
           value={showGrid}
           onChange={setShowGrid}
           color="blue-500"
+          icon={<CircuitBoard className="w-3 h-3 text-blue-500 mr-2" />}
         />
         <ChartSeriesToggle 
           label="Tension"
