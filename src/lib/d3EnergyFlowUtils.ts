@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 
 interface Center {
@@ -226,168 +225,148 @@ export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Create improved Solar Panel icon for PV
-  const solarPanel = svg.append("g")
-    .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`)
-    .attr("fill", "#66BB6A");
+  // Create modern Solar Panel icon for PV
+  const solarGroup = svg.append("g")
+    .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`);
   
-  // Main panel frame
-  solarPanel.append("rect")
-    .attr("x", -20)
-    .attr("y", -18)
-    .attr("width", 40)
-    .attr("height", 30)
-    .attr("rx", 2)
-    .attr("stroke", "#2E7D32")
-    .attr("stroke-width", 1.5)
-    .attr("fill", "#66BB6A");
+  // Background circle with gradient
+  const solarGradient = svg.append("defs")
+    .append("radialGradient")
+    .attr("id", "solarGradient")
+    .attr("cx", "50%")
+    .attr("cy", "50%")
+    .attr("r", "50%")
+    .attr("fx", "50%")
+    .attr("fy", "50%");
+    
+  solarGradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#fff")
+    .attr("stop-opacity", 0.1);
+    
+  solarGradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#66BB6A")
+    .attr("stop-opacity", 0.05);
   
-  // Solar cells
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 4; col++) {
-      solarPanel.append("rect")
-        .attr("x", -17 + col * 9)
-        .attr("y", -15 + row * 8)
-        .attr("width", 7)
-        .attr("height", 6)
-        .attr("rx", 1)
-        .attr("fill", "#43A047")
-        .attr("stroke", "#2E7D32")
-        .attr("stroke-width", 0.5);
-    }
+  // Modern background circle
+  solarGroup.append("circle")
+    .attr("r", 35)
+    .attr("fill", "url(#solarGradient)")
+    .attr("stroke", "#66BB6A")
+    .attr("stroke-width", 2)
+    .attr("opacity", 0.9);
+  
+  // Modern sun icon
+  solarGroup.append("circle")
+    .attr("r", 12)
+    .attr("fill", "#66BB6A");
+    
+  // Sun rays
+  const rayLength = 9;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i * Math.PI) / 4;
+    const x1 = Math.cos(angle) * 13;
+    const y1 = Math.sin(angle) * 13;
+    const x2 = Math.cos(angle) * (13 + rayLength);
+    const y2 = Math.sin(angle) * (13 + rayLength);
+    
+    solarGroup.append("line")
+      .attr("x1", x1)
+      .attr("y1", y1)
+      .attr("x2", x2)
+      .attr("y2", y2)
+      .attr("stroke", "#66BB6A")
+      .attr("stroke-width", 3)
+      .attr("stroke-linecap", "round");
   }
-  
-  // Support stand
-  solarPanel.append("path")
-    .attr("d", "M-5,12 L5,12 L5,25 L-5,25 Z")
-    .attr("fill", "#4CAF50")
-    .attr("stroke", "#2E7D32")
-    .attr("stroke-width", 1);
 
-  // Improved House icon for MAISON
+  // Modern House icon
   const houseGroup = svg.append("g")
-    .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`)
-    .attr("fill", "#FFA500");
+    .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`);
   
-  // Roof
+  // Background circle with gradient
+  const houseGradient = svg.append("defs")
+    .append("radialGradient")
+    .attr("id", "houseGradient")
+    .attr("cx", "50%")
+    .attr("cy", "50%")
+    .attr("r", "50%")
+    .attr("fx", "50%")
+    .attr("fy", "50%");
+    
+  houseGradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#fff")
+    .attr("stop-opacity", 0.1);
+    
+  houseGradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#6366f1")
+    .attr("stop-opacity", 0.05);
+  
+  // Modern background circle
+  houseGroup.append("circle")
+    .attr("r", 35)
+    .attr("fill", "url(#houseGradient)")
+    .attr("stroke", "#6366f1")
+    .attr("stroke-width", 2)
+    .attr("opacity", 0.9);
+  
+  // Modern house
   houseGroup.append("path")
-    .attr("d", "M-20,2 L0,-18 L20,2 Z")
-    .attr("fill", "#E65100")
-    .attr("stroke", "#BF360C")
-    .attr("stroke-width", 1.5);
-  
-  // House body
-  houseGroup.append("rect")
-    .attr("x", -15)
-    .attr("y", 2)
-    .attr("width", 30)
-    .attr("height", 22)
-    .attr("fill", "#FFB74D")
-    .attr("stroke", "#E65100")
-    .attr("stroke-width", 1.5);
-  
+    .attr("d", "M-15,8 L-15,-2 L0,-15 L15,-2 L15,8 Z")
+    .attr("fill", "#6366f1")
+    .attr("stroke", "#6366f1")
+    .attr("stroke-width", 1);
+    
   // Door
   houseGroup.append("rect")
-    .attr("x", -4)
-    .attr("y", 14)
-    .attr("width", 8)
+    .attr("x", -5)
+    .attr("y", -2)
+    .attr("width", 10)
     .attr("height", 10)
-    .attr("rx", 1)
-    .attr("fill", "#5D4037")
-    .attr("stroke", "#3E2723")
-    .attr("stroke-width", 1);
-  
-  // Door knob
-  houseGroup.append("circle")
-    .attr("cx", 2)
-    .attr("cy", 19)
-    .attr("r", 1)
-    .attr("fill", "#FFC107");
-  
-  // Left window
-  houseGroup.append("rect")
-    .attr("x", -12)
-    .attr("y", 6)
-    .attr("width", 6)
-    .attr("height", 6)
-    .attr("fill", "#BBDEFB")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-  
-  // Window cross
-  houseGroup.append("path")
-    .attr("d", "M-9,6 V12 M-12,9 H-6")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-  
-  // Right window
-  houseGroup.append("rect")
-    .attr("x", 6)
-    .attr("y", 6)
-    .attr("width", 6)
-    .attr("height", 6)
-    .attr("fill", "#BBDEFB")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-  
-  // Window cross
-  houseGroup.append("path")
-    .attr("d", "M9,6 V12 M6,9 H12")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
+    .attr("fill", "#fff")
+    .attr("opacity", 0.9);
 
-  // Improved Electricity pylon for RESEAU
-  const pylonGroup = svg.append("g")
-    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`)
-    .attr("fill", "none")
+  // Modern Power Grid icon
+  const gridGroup = svg.append("g")
+    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
+  
+  // Background circle with gradient
+  const gridGradient = svg.append("defs")
+    .append("radialGradient")
+    .attr("id", "gridGradient")
+    .attr("cx", "50%")
+    .attr("cy", "50%")
+    .attr("r", "50%")
+    .attr("fx", "50%")
+    .attr("fy", "50%");
+    
+  gridGradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#fff")
+    .attr("stop-opacity", 0.1);
+    
+  gridGradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#42A5F5")
+    .attr("stop-opacity", 0.05);
+  
+  // Modern background circle
+  gridGroup.append("circle")
+    .attr("r", 35)
+    .attr("fill", "url(#gridGradient)")
     .attr("stroke", "#42A5F5")
-    .attr("stroke-width", 1.5);
+    .attr("stroke-width", 2)
+    .attr("opacity", 0.9);
   
-  // Main structure
-  pylonGroup.append("path")
-    .attr("d", `
-      M-14,25 L-7,0 L-15,-15 L15,-15 L7,0 L14,25
-      M-15,-15 L15,-15
-      M-7,0 L7,0
-      M-14,25 L14,25
-    `)
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 2);
-  
-  // Cross supports
-  pylonGroup.append("path")
-    .attr("d", `
-      M-11,-7 L11,-7
-      M-10,8 L10,8
-      M-12,16 L12,16
-    `)
-    .attr("stroke", "#1976D2");
-  
-  // Power lines
-  pylonGroup.append("path")
-    .attr("d", `
-      M-15,-15 L-25,-20 M15,-15 L25,-20
-      M-14,25 L-24,30 M14,25 L24,30
-    `)
+  // Modern lightning bolt
+  gridGroup.append("path")
+    .attr("d", "M0,-15 L-6,0 L0,0 L-3,15 L3,2 L-3,2 Z")
+    .attr("fill", "#42A5F5")
     .attr("stroke", "#42A5F5")
-    .attr("stroke-dasharray", "3,2");
-  
-  // Insulators
-  for (let i = -10; i <= 10; i += 10) {
-    pylonGroup.append("circle")
-      .attr("cx", i)
-      .attr("cy", -15)
-      .attr("r", 2)
-      .attr("fill", "#90CAF9");
-  }
-  
-  for (let i = -10; i <= 10; i += 10) {
-    pylonGroup.append("circle")
-      .attr("cx", i * 0.9)
-      .attr("cy", 25)
-      .attr("r", 2)
-      .attr("fill", "#90CAF9");
-  }
+    .attr("stroke-width", 1);
 }
 
 export function createReseauGroup(
