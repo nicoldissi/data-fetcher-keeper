@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -87,7 +88,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 40 // Decreased node size from 60 to 40
+    const nodeRadius = 50 // Updated node size to 50 pixels
     
     // Add filter definition for glow effect
     const defs = svg.append("defs")
@@ -140,8 +141,8 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         .attr('stroke-width', 3)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
-      // Create icon container at the top of circle - moved up 15px
-      const iconY = -25; // Moved up slightly from -35 to be proportional to smaller circles
+      // Create icon container at the top of circle
+      const iconY = -30; // Adjusted for 50px circle
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -209,7 +210,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "home",
         active: flowAnimations.gridToHome,
         color: "#ef4444",
-        curveOffset: -30,
+        curveOffset: -50, // Increased offset to prevent truncation
         power: data.power
       },
       {
@@ -218,7 +219,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         target: "grid",
         active: flowAnimations.gridFromHome,
         color: "#388E3C",
-        curveOffset: 30,
+        curveOffset: 50, // Increased offset to prevent truncation
         power: -data.power
       },
       {
