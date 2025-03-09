@@ -1,5 +1,5 @@
-
 import * as d3 from 'd3';
+import { Sun, Home, Network } from 'lucide-react';
 
 interface Center {
   x: number;
@@ -35,8 +35,8 @@ export function createFluxPaths(
     .range([2, 8]);
 
   function getFluxColor(d: FluxData) {
-    if(d.source === "PV") return "#66BB6A";
-    if(d.source === "RESEAU") return "#42A5F5";
+    if(d.source === "PV") return "#8B5CF6"; // Vibrant purple for solar energy
+    if(d.source === "RESEAU") return "#0EA5E9"; // Ocean blue for grid
     return "#888";
   }
 
@@ -226,168 +226,84 @@ export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Create improved Solar Panel icon for PV
-  const solarPanel = svg.append("g")
-    .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`)
-    .attr("fill", "#66BB6A");
+  // Modern icon for PV (Solar panel)
+  const pvGroup = svg.append("g")
+    .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`);
   
-  // Main panel frame
-  solarPanel.append("rect")
-    .attr("x", -20)
-    .attr("y", -18)
-    .attr("width", 40)
-    .attr("height", 30)
-    .attr("rx", 2)
-    .attr("stroke", "#2E7D32")
-    .attr("stroke-width", 1.5)
-    .attr("fill", "#66BB6A");
-  
-  // Solar cells
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 4; col++) {
-      solarPanel.append("rect")
-        .attr("x", -17 + col * 9)
-        .attr("y", -15 + row * 8)
-        .attr("width", 7)
-        .attr("height", 6)
-        .attr("rx", 1)
-        .attr("fill", "#43A047")
-        .attr("stroke", "#2E7D32")
-        .attr("stroke-width", 0.5);
-    }
-  }
-  
-  // Support stand
-  solarPanel.append("path")
-    .attr("d", "M-5,12 L5,12 L5,25 L-5,25 Z")
-    .attr("fill", "#4CAF50")
-    .attr("stroke", "#2E7D32")
-    .attr("stroke-width", 1);
-
-  // Improved House icon for MAISON
-  const houseGroup = svg.append("g")
-    .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`)
-    .attr("fill", "#FFA500");
-  
-  // Roof
-  houseGroup.append("path")
-    .attr("d", "M-20,2 L0,-18 L20,2 Z")
-    .attr("fill", "#E65100")
-    .attr("stroke", "#BF360C")
-    .attr("stroke-width", 1.5);
-  
-  // House body
-  houseGroup.append("rect")
-    .attr("x", -15)
-    .attr("y", 2)
-    .attr("width", 30)
-    .attr("height", 22)
-    .attr("fill", "#FFB74D")
-    .attr("stroke", "#E65100")
-    .attr("stroke-width", 1.5);
-  
-  // Door
-  houseGroup.append("rect")
-    .attr("x", -4)
-    .attr("y", 14)
-    .attr("width", 8)
-    .attr("height", 10)
-    .attr("rx", 1)
-    .attr("fill", "#5D4037")
-    .attr("stroke", "#3E2723")
-    .attr("stroke-width", 1);
-  
-  // Door knob
-  houseGroup.append("circle")
-    .attr("cx", 2)
-    .attr("cy", 19)
-    .attr("r", 1)
-    .attr("fill", "#FFC107");
-  
-  // Left window
-  houseGroup.append("rect")
-    .attr("x", -12)
-    .attr("y", 6)
-    .attr("width", 6)
-    .attr("height", 6)
-    .attr("fill", "#BBDEFB")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-  
-  // Window cross
-  houseGroup.append("path")
-    .attr("d", "M-9,6 V12 M-12,9 H-6")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-  
-  // Right window
-  houseGroup.append("rect")
-    .attr("x", 6)
-    .attr("y", 6)
-    .attr("width", 6)
-    .attr("height", 6)
-    .attr("fill", "#BBDEFB")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-  
-  // Window cross
-  houseGroup.append("path")
-    .attr("d", "M9,6 V12 M6,9 H12")
-    .attr("stroke", "#1976D2")
-    .attr("stroke-width", 1);
-
-  // Improved Electricity pylon for RESEAU
-  const pylonGroup = svg.append("g")
-    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`)
-    .attr("fill", "none")
-    .attr("stroke", "#42A5F5")
-    .attr("stroke-width", 1.5);
-  
-  // Main structure
-  pylonGroup.append("path")
-    .attr("d", `
-      M-14,25 L-7,0 L-15,-15 L15,-15 L7,0 L14,25
-      M-15,-15 L15,-15
-      M-7,0 L7,0
-      M-14,25 L14,25
-    `)
-    .attr("stroke", "#1976D2")
+  // Background circle for the icon
+  pvGroup.append("circle")
+    .attr("r", 30)
+    .attr("fill", "rgba(139, 92, 246, 0.1)") // Light purple background
+    .attr("stroke", "#8B5CF6")
     .attr("stroke-width", 2);
   
-  // Cross supports
-  pylonGroup.append("path")
-    .attr("d", `
-      M-11,-7 L11,-7
-      M-10,8 L10,8
-      M-12,16 L12,16
-    `)
-    .attr("stroke", "#1976D2");
+  // Use SVG path data from Lucide Sun icon
+  pvGroup.append("g")
+    .attr("transform", "translate(-12, -12) scale(1)")
+    .html(iconToSvgString(Sun, {
+      color: "#8B5CF6", // Vibrant purple
+      size: 24,
+      strokeWidth: 2
+    }));
+
+  // Modern icon for MAISON (House)
+  const houseGroup = svg.append("g")
+    .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`);
   
-  // Power lines
-  pylonGroup.append("path")
-    .attr("d", `
-      M-15,-15 L-25,-20 M15,-15 L25,-20
-      M-14,25 L-24,30 M14,25 L24,30
-    `)
-    .attr("stroke", "#42A5F5")
-    .attr("stroke-dasharray", "3,2");
+  // Background circle for the icon
+  houseGroup.append("circle")
+    .attr("r", 30)
+    .attr("fill", "rgba(14, 165, 233, 0.1)") // Light blue background
+    .attr("stroke", "#0EA5E9")
+    .attr("stroke-width", 2);
   
-  // Insulators
-  for (let i = -10; i <= 10; i += 10) {
-    pylonGroup.append("circle")
-      .attr("cx", i)
-      .attr("cy", -15)
-      .attr("r", 2)
-      .attr("fill", "#90CAF9");
-  }
+  // Use SVG path data from Lucide Home icon
+  houseGroup.append("g")
+    .attr("transform", "translate(-12, -12) scale(1)")
+    .html(iconToSvgString(Home, {
+      color: "#0EA5E9", // Ocean blue
+      size: 24,
+      strokeWidth: 2
+    }));
+
+  // Modern icon for RESEAU (Network/Grid)
+  const reseauGroup = svg.append("g")
+    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
   
-  for (let i = -10; i <= 10; i += 10) {
-    pylonGroup.append("circle")
-      .attr("cx", i * 0.9)
-      .attr("cy", 25)
-      .attr("r", 2)
-      .attr("fill", "#90CAF9");
-  }
+  // Background circle for the icon
+  reseauGroup.append("circle")
+    .attr("r", 30)
+    .attr("fill", "rgba(26, 31, 44, 0.1)") // Light dark-purple background
+    .attr("stroke", "#1A1F2C")
+    .attr("stroke-width", 2);
+  
+  // Use SVG path data from Lucide Network icon
+  reseauGroup.append("g")
+    .attr("transform", "translate(-12, -12) scale(1)")
+    .html(iconToSvgString(Network, {
+      color: "#1A1F2C", // Dark purple
+      size: 24,
+      strokeWidth: 2
+    }));
+}
+
+// Helper function to convert Lucide icon to SVG string
+function iconToSvgString(
+  LucideIcon: any, 
+  props: { color: string; size: number; strokeWidth: number }
+) {
+  // Create a temporary DOM element
+  const temp = document.createElement('div');
+  
+  // Get the icon's SVG string representation
+  const iconSvg = LucideIcon({
+    color: props.color,
+    size: props.size,
+    strokeWidth: props.strokeWidth,
+  }).props.children.props.children;
+  
+  // Return only the path data without the SVG wrapper
+  return iconSvg;
 }
 
 export function createReseauGroup(
