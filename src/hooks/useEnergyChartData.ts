@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +43,6 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         
         if (data && data.length > 0) {
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            // Utiliser formatLocalDate pour garantir le format français correct
             const formattedTime = formatLocalDate(item.timestamp, { 
               hour: '2-digit', 
               minute: '2-digit',
@@ -85,7 +83,6 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       setChartData(fullDayData);
     } else if (history.length > 0) {
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-        // Utiliser formatLocalDate pour l'affichage de l'heure uniquement
         const formattedTime = formatLocalDate(item.timestamp, {
           hour: '2-digit', 
           minute: '2-digit',
@@ -97,7 +94,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const localDate = parseToLocalDate(item.timestamp);
         
         const grid = Math.round(item.power);
-        const production = Math.round(item.production_power || 0);
+        const production = Math.round(item.pv_power || 0);
         const consumption = grid + production;
         
         return {

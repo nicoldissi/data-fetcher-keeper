@@ -63,14 +63,14 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
       power: energyData.consumption || 0,
       reactive: energyData.reactive || 0,
       pv_power: energyData.production || 0,
-      pv_reactive: energyData.pv_reactive || 0,  // Utiliser pv_reactive au lieu de production_reactive
+      pv_reactive: energyData.pv_reactive || 0,
       total_energy: energyData.grid_total || 0,
       pv_energy: energyData.production_total || 0,
       grid_returned: energyData.grid_total_returned || 0,
       voltage: energyData.voltage || 0,
       current: 0, // Non disponible dans Supabase
       pf: energyData.pf || 0,
-      pv_pf: energyData.pv_pf || 0,  // Utiliser pv_pf au lieu de production_pf
+      pv_pf: energyData.pv_pf || 0,
       temperature: 0, // Non disponible dans Supabase
       is_valid: true, // On suppose que les données dans Supabase sont valides
       channel: 0, // Non disponible dans Supabase

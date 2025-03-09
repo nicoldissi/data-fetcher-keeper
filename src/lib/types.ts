@@ -6,12 +6,12 @@ export interface ShellyEMData {
   reactive: number;             // Puissance réactive pour le réseau (grid)
   pf: number;                   // Facteur de puissance pour le réseau (grid)
   
-  pv_power: number;             // Production solaire en Watts (anciennement production_power)
-  pv_reactive: number;          // Puissance réactive pour le solaire (anciennement production_reactive)
-  pv_pf: number;                // Facteur de puissance pour le solaire (anciennement production_pf)
+  pv_power: number;             // Production solaire en Watts
+  pv_reactive: number;          // Puissance réactive pour le solaire
+  pv_pf: number;                // Facteur de puissance pour le solaire
   
   total_energy: number;         // Énergie totale consommée en Watt-heures
-  pv_energy: number;            // Énergie totale produite en Watt-heures (anciennement production_energy)
+  pv_energy: number;            // Énergie totale produite en Watt-heures
   grid_returned: number;        // Énergie totale retournée au réseau en Watt-heures
   voltage: number;              // Tension actuelle (V)
   current: number;              // Intensité actuelle (A)
