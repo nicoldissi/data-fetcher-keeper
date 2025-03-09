@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import * as d3 from 'd3';
+import { Power, Home, UtilityPole } from 'lucide-react';
 
 interface D3EnergyFlowProps {
   configId?: string;
@@ -23,11 +24,11 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
   useEffect(() => {
     if (!isClient || loading || !svgRef.current) return;
 
-    // Préparer les données pour les donuts
-    const pvTotal = dailyTotals.production;
-    const gridImportTotal = dailyTotals.consumption - (dailyTotals.production - dailyTotals.injection);
-    const gridExportTotal = dailyTotals.injection;
-    const consumptionTotal = dailyTotals.consumption;
+    // Préparer les données pour les donuts - convertir Wh en kWh
+    const pvTotal = dailyTotals.production / 1000;
+    const gridImportTotal = dailyTotals.importFromGrid / 1000;
+    const gridExportTotal = dailyTotals.injection / 1000;
+    const consumptionTotal = dailyTotals.consumption / 1000;
     
     const pvToHome = pvTotal - gridExportTotal;
     const pvToHomeRatio = pvTotal > 0 ? pvToHome / pvTotal : 0;
@@ -194,7 +195,6 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
           .attrTween("d", function() {
             const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
             return (t: number) => {
-              // Fix: Make sure to pass all required arguments to the arc function
               return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
@@ -212,7 +212,6 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
             const start = d.ratio * 2 * Math.PI;
             const interpolate = d3.interpolate(start, 2 * Math.PI);
             return (t: number) => {
-              // Fix: Make sure to pass all required arguments to the arc function
               return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
@@ -233,17 +232,17 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
           .attrTween("d", function() {
             const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
             return (t: number) => {
-              // Fix: Make sure to pass all required arguments to the arc function
               return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
             };
           });
       }
     });
 
-    // Ajouter le texte de pourcentage
+    // Ajouter le texte de pourcentage - centré avec text-anchor="middle"
     donutGroup.append("text")
       .attr("fill", "#555")
       .attr("font-size", 16)
+      .attr("text-anchor", "middle") // Assure que le texte est centré
       .attr("dy", -5)
       .text((d: any) => {
         if (d.id === "PV" || d.id === "MAISON") {
@@ -253,10 +252,11 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
         }
       });
 
-    // Ajouter le texte du total kWh
+    // Ajouter le texte du total kWh - centré avec text-anchor="middle"
     donutGroup.append("text")
       .attr("fill", "#555")
       .attr("font-size", 14)
+      .attr("text-anchor", "middle") // Assure que le texte est centré
       .attr("dy", 15)
       .text((d: any) => {
         if (d.id === "PV" || d.id === "MAISON") {
@@ -268,38 +268,49 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
 
     // Ajouter les icônes
     donutGroup.each(function(d: any) {
-      // Ajout des icônes (soleil ou maison)
+      // Ajout des icônes en fonction du type
       if (d.id === "PV") {
-        d3.select(this)
-          .append("circle")
-          .attr("r", 12)
-          .attr("cy", -outerRadius - 20)
-          .attr("fill", "#f9d71c")
-          .attr("stroke", "#e9b31a")
-          .attr("stroke-width", 1);
-          
-        // Rayons du soleil
-        const numRays = 8;
-        for (let i = 0; i < numRays; i++) {
-          const angle = (i / numRays) * Math.PI * 2;
-          const x1 = Math.sin(angle) * 15;
-          const y1 = -outerRadius - 20 + Math.cos(angle) * 15;
-          const x2 = Math.sin(angle) * 22;
-          const y2 = -outerRadius - 20 + Math.cos(angle) * 22;
-          
-          d3.select(this)
-            .append("line")
-            .attr("x1", x1)
-            .attr("y1", y1)
-            .attr("x2", x2)
-            .attr("y2", y2)
-            .attr("stroke", "#f9d71c")
-            .attr("stroke-width", 2);
+        // Icône panneau solaire
+        const solarPanel = svg.append("g")
+          .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - outerRadius - 30})`)
+          .attr("fill", "#66BB6A");
+        
+        // Cadre du panneau
+        solarPanel.append("rect")
+          .attr("x", -12)
+          .attr("y", -12)
+          .attr("width", 24)
+          .attr("height", 24)
+          .attr("stroke", "#66BB6A")
+          .attr("stroke-width", 1.5)
+          .attr("fill", "none");
+        
+        // Lignes verticales
+        for (let i = -8; i <= 8; i += 8) {
+          solarPanel.append("line")
+            .attr("x1", i)
+            .attr("y1", -12)
+            .attr("x2", i)
+            .attr("y2", 12)
+            .attr("stroke", "#66BB6A")
+            .attr("stroke-width", 1);
+        }
+        
+        // Lignes horizontales
+        for (let i = -8; i <= 8; i += 8) {
+          solarPanel.append("line")
+            .attr("x1", -12)
+            .attr("y1", i)
+            .attr("x2", 12)
+            .attr("y2", i)
+            .attr("stroke", "#66BB6A")
+            .attr("stroke-width", 1);
         }
       } else if (d.id === "MAISON") {
         // Dessiner une maison
-        const houseGroup = d3.select(this).append("g")
-          .attr("transform", `translate(0, ${-outerRadius - 20})`);
+        const houseGroup = svg.append("g")
+          .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - outerRadius - 30})`)
+          .attr("fill", "#FFA500");
         
         // Toit
         houseGroup.append("path")
