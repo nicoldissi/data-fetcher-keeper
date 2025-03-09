@@ -1,6 +1,5 @@
-
 import * as d3 from 'd3';
-import { HomeIcon, NetworkIcon, ZapIcon } from 'lucide-react';
+import { HousePlug, Sun, Zap } from 'lucide-react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -223,166 +222,98 @@ export function createDonutCharts(
         return "";
       }
     });
+
+  // Créer des conteneurs pour les icônes à l'intérieur des jauges
+  donutGroup.each(function(d: DonutData) {
+    // Créer un conteneur pour l'icône
+    const foreignObject = d3.select(this)
+      .append("foreignObject")
+      .attr("width", 24)
+      .attr("height", 24)
+      .attr("x", -12)
+      .attr("y", -12);
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    
+    foreignObject.node()?.appendChild(container);
+    
+    // Rendre l'icône appropriée
+    if (d.id === "PV") {
+      ReactDOM.render(
+        React.createElement(Sun, { size: 18, color: "#66BB6A", strokeWidth: 2 }),
+        container
+      );
+    } else if (d.id === "MAISON") {
+      ReactDOM.render(
+        React.createElement(HousePlug, { size: 18, color: "#6366f1", strokeWidth: 2 }),
+        container
+      );
+    }
+  });
 }
 
 export function createIcons(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   centers: Record<string, Center>
 ) {
-  // Create container for React icons
-  const iconContainers = {
-    PV: document.createElement('div'),
-    MAISON: document.createElement('div'),
-    RESEAU: document.createElement('div')
-  };
-
-  // Create sleek background gradients
-  const iconGradients = {
-    PV: svg.append("defs")
-      .append("radialGradient")
-      .attr("id", "solarGradient")
-      .attr("cx", "50%")
-      .attr("cy", "50%")
-      .attr("r", "50%"),
-    
-    MAISON: svg.append("defs")
-      .append("radialGradient")
-      .attr("id", "houseGradient")
-      .attr("cx", "50%")
-      .attr("cy", "50%")
-      .attr("r", "50%"),
-    
-    RESEAU: svg.append("defs")
-      .append("radialGradient")
-      .attr("id", "gridGradient")
-      .attr("cx", "50%")
-      .attr("cy", "50%")
-      .attr("r", "50%")
-  };
+  // Ajouter uniquement l'icône pour le réseau (pas de icônes pour PV et MAISON, car elles sont dans les jauges)
+  const reseauContainer = document.createElement('div');
+  reseauContainer.style.display = 'flex';
+  reseauContainer.style.justifyContent = 'center';
+  reseauContainer.style.alignItems = 'center';
+  reseauContainer.style.width = '100%';
+  reseauContainer.style.height = '100%';
   
-  // Configure gradient stops
-  iconGradients.PV
+  // Créer un groupe pour l'icône du réseau
+  const reseauGroup = svg.append("g")
+    .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`);
+  
+  // Ajouter un cercle de fond avec dégradé pour le réseau
+  const reseauGradient = svg.append("defs")
+    .append("radialGradient")
+    .attr("id", "gridGradient")
+    .attr("cx", "50%")
+    .attr("cy", "50%")
+    .attr("r", "50%");
+  
+  reseauGradient
     .append("stop")
     .attr("offset", "0%")
     .attr("stop-color", "#ffffff")
     .attr("stop-opacity", 0.9);
   
-  iconGradients.PV
-    .append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", "#66BB6A")
-    .attr("stop-opacity", 0.1);
-  
-  iconGradients.MAISON
-    .append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "#ffffff")
-    .attr("stop-opacity", 0.9);
-  
-  iconGradients.MAISON
-    .append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", "#6366f1")
-    .attr("stop-opacity", 0.1);
-  
-  iconGradients.RESEAU
-    .append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "#ffffff")
-    .attr("stop-opacity", 0.9);
-  
-  iconGradients.RESEAU
+  reseauGradient
     .append("stop")
     .attr("offset", "100%")
     .attr("stop-color", "#42A5F5")
     .attr("stop-opacity", 0.1);
-
-  // Create icon background circles
-  const iconGroups = {
-    PV: svg.append("g")
-      .attr("transform", `translate(${centers.PV.x}, ${centers.PV.y - 90})`),
-    
-    MAISON: svg.append("g")
-      .attr("transform", `translate(${centers.MAISON.x}, ${centers.MAISON.y - 90})`),
-    
-    RESEAU: svg.append("g")
-      .attr("transform", `translate(${centers.RESEAU.x}, ${centers.RESEAU.y - 90})`)
-  };
-
-  // Add circular backgrounds with gradients
-  iconGroups.PV.append("circle")
-    .attr("r", 38)
-    .attr("fill", "url(#solarGradient)")
-    .attr("stroke", "#66BB6A")
-    .attr("stroke-width", 2)
-    .attr("opacity", 0.9);
   
-  iconGroups.MAISON.append("circle")
-    .attr("r", 38)
-    .attr("fill", "url(#houseGradient)")
-    .attr("stroke", "#6366f1")
-    .attr("stroke-width", 2)
-    .attr("opacity", 0.9);
-  
-  iconGroups.RESEAU.append("circle")
+  reseauGroup.append("circle")
     .attr("r", 38)
     .attr("fill", "url(#gridGradient)")
     .attr("stroke", "#42A5F5")
     .attr("stroke-width", 2)
     .attr("opacity", 0.9);
-
-  // Add SVG foreign objects to hold React components
-  const iconForeigns = {
-    PV: iconGroups.PV.append("foreignObject")
-      .attr("width", 60)
-      .attr("height", 60)
-      .attr("x", -30)
-      .attr("y", -30),
-    
-    MAISON: iconGroups.MAISON.append("foreignObject")
-      .attr("width", 60)
-      .attr("height", 60)
-      .attr("x", -30)
-      .attr("y", -30),
-    
-    RESEAU: iconGroups.RESEAU.append("foreignObject")
-      .attr("width", 60)
-      .attr("height", 60)
-      .attr("x", -30)
-      .attr("y", -30)
-  };
-
-  // Append container divs to the foreignObjects
-  iconForeigns.PV.node()?.appendChild(iconContainers.PV);
-  iconForeigns.MAISON.node()?.appendChild(iconContainers.MAISON);
-  iconForeigns.RESEAU.node()?.appendChild(iconContainers.RESEAU);
-
-  // Render React components into the containers - Fixing syntax here
-  // Using React 18 standard createRoot API would be better, but for compatibility
-  // we're fixing the ReactDOM.render calls
-  ReactDOM.render(
-    React.createElement(ZapIcon, { size: 32, color: "#66BB6A", strokeWidth: 2 }),
-    iconContainers.PV
-  );
   
-  ReactDOM.render(
-    React.createElement(HomeIcon, { size: 32, color: "#6366f1", strokeWidth: 2 }),
-    iconContainers.MAISON
-  );
+  // Ajouter un foreignObject pour contenir l'icône React
+  const reseauForeign = reseauGroup.append("foreignObject")
+    .attr("width", 60)
+    .attr("height", 60)
+    .attr("x", -30)
+    .attr("y", -30);
   
+  reseauForeign.node()?.appendChild(reseauContainer);
+  
+  // Rendre l'icône du réseau
   ReactDOM.render(
-    React.createElement(NetworkIcon, { size: 32, color: "#42A5F5", strokeWidth: 2 }),
-    iconContainers.RESEAU
+    React.createElement(Zap, { size: 32, color: "#42A5F5", strokeWidth: 2 }),
+    reseauContainer
   );
-
-  // Add container styles
-  Object.values(iconContainers).forEach(container => {
-    container.style.display = 'flex';
-    container.style.justifyContent = 'center';
-    container.style.alignItems = 'center';
-    container.style.width = '100%';
-    container.style.height = '100%';
-  });
 }
 
 export function createReseauGroup(
