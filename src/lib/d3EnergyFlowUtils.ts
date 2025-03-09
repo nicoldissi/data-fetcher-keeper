@@ -1,6 +1,6 @@
 
 import * as d3 from 'd3';
-import { HousePlug, Sun, Zap } from 'lucide-react';
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -248,8 +248,8 @@ export function createDonutCharts(
         });
     }
     
-    // Create icon container at the top of donut
-    const iconY = -20;
+    // Create icon container at the top of donut - Moving it up by 10 pixels
+    const iconY = -30; // Changed from -20 to -30 to move up by 10 pixels
     
     const foreignObject = d3.select(this)
       .append("foreignObject")
@@ -311,19 +311,65 @@ export function createDonutCharts(
         .text("Réseau");
 
       if (d.importTotal !== undefined && d.exportTotal !== undefined) {
+        // Import indicator with ArrowRight icon
+        const importForeignObject = d3.select(this)
+          .append("foreignObject")
+          .attr("width", 16)
+          .attr("height", 16)
+          .attr("x", -36)
+          .attr("y", 15);
+        
+        const importContainer = document.createElement('div');
+        importContainer.style.display = 'flex';
+        importContainer.style.justifyContent = 'center';
+        importContainer.style.alignItems = 'center';
+        importContainer.style.width = '100%';
+        importContainer.style.height = '100%';
+        
+        importForeignObject.node()?.appendChild(importContainer);
+        
+        ReactDOM.render(
+          React.createElement(ArrowRight, { size: 16, color: textColor, strokeWidth: 2 }),
+          importContainer
+        );
+
         d3.select(this).append("text")
           .attr("fill", textColor)
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
+          .attr("x", 10)
           .attr("dy", 25)
-          .text(`↓ ${d.importTotal.toFixed(1)} kWh`);
+          .text(`${d.importTotal.toFixed(1)} kWh`);
+
+        // Export indicator with ArrowLeft icon
+        const exportForeignObject = d3.select(this)
+          .append("foreignObject")
+          .attr("width", 16)
+          .attr("height", 16)
+          .attr("x", -36)
+          .attr("y", 35);
+        
+        const exportContainer = document.createElement('div');
+        exportContainer.style.display = 'flex';
+        exportContainer.style.justifyContent = 'center';
+        exportContainer.style.alignItems = 'center';
+        exportContainer.style.width = '100%';
+        exportContainer.style.height = '100%';
+        
+        exportForeignObject.node()?.appendChild(exportContainer);
+        
+        ReactDOM.render(
+          React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
+          exportContainer
+        );
 
         d3.select(this).append("text")
           .attr("fill", "#388E3C")
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
+          .attr("x", 10)
           .attr("dy", 42)
-          .text(`↑ ${d.exportTotal.toFixed(1)} kWh`);
+          .text(`${d.exportTotal.toFixed(1)} kWh`);
       }
     }
   });
