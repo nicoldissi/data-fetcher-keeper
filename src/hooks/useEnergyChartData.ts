@@ -1,5 +1,4 @@
-
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils';
@@ -17,6 +16,97 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
   const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  
+  useEffect(() => {
+    if (!configId) return;
+    
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+    
+    const channel = supabase
+      .channel('energy-chart-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'energy_data',
+          filter: `shelly_config_id=eq.${configId}`
+        },
+        (payload) => {
+          console.log('Energy chart received real-time update:', payload);
+          
+          const newDataPoint = payload.new;
+          if (!newDataPoint) return;
+          
+          const formattedTime = formatLocalDate(newDataPoint.timestamp, { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            day: undefined,
+            month: undefined,
+            hour12: false
+          });
+          
+          const localDate = parseToLocalDate(newDataPoint.timestamp);
+          
+          const grid = Math.round(newDataPoint.consumption || 0);
+          const production = Math.round(newDataPoint.production || 0);
+          const consumption = grid + production;
+          
+          const chartPoint: ChartDataPoint = {
+            time: formattedTime,
+            timestamp: localDate.getTime(),
+            consumption,
+            production,
+            grid,
+            voltage: newDataPoint.voltage ? Math.round(newDataPoint.voltage * 10) / 10 : undefined
+          };
+          
+          setChartData(prevData => {
+            const existingIndex = prevData.findIndex(item => 
+              item.timestamp === chartPoint.timestamp
+            );
+            
+            if (existingIndex >= 0) {
+              const newData = [...prevData];
+              newData[existingIndex] = chartPoint;
+              return newData;
+            } else {
+              const newData = [...prevData, chartPoint].sort((a, b) => a.timestamp - b.timestamp);
+              return newData.slice(-100);
+            }
+          });
+          
+          setFullDayData(prevData => {
+            const existingIndex = prevData.findIndex(item => 
+              item.timestamp === chartPoint.timestamp
+            );
+            
+            if (existingIndex >= 0) {
+              const newData = [...prevData];
+              newData[existingIndex] = chartPoint;
+              return newData;
+            } else {
+              const newData = [...prevData, chartPoint].sort((a, b) => a.timestamp - b.timestamp);
+              return newData;
+            }
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Energy chart real-time subscription status: ${status}`);
+      });
+    
+    channelRef.current = channel;
+    
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
+  }, [configId]);
   
   useEffect(() => {
     const fetchFullDayData = async () => {
@@ -48,7 +138,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
               hour: '2-digit', 
               minute: '2-digit',
               day: undefined,
-              month: undefined
+              month: undefined,
+              hour12: false
             });
             
             const localDate = parseToLocalDate(item.timestamp);
