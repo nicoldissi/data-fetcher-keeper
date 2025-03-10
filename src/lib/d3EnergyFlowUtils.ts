@@ -22,6 +22,7 @@ interface DonutData {
   ratio: number;
   importTotal?: number;
   exportTotal?: number;
+  selfConsumptionRatio?: number;
 }
 
 export function createFluxPaths(
@@ -40,7 +41,7 @@ export function createFluxPaths(
 
   function getFluxColor(d: FluxData) {
     if(d.source === "PV") return "#66BB6A";
-    if(d.source === "RESEAU") return "#42A5F5";
+    if(d.source === "GRID") return "#42A5F5";
     return "#888";
   }
 
@@ -85,13 +86,13 @@ export function createFluxPaths(
 
   function getBorderColor(d: FluxData) {
     if(d.source === "PV") return "#4CAF50";
-    if(d.source === "RESEAU") return "#2196F3";
+    if(d.source === "GRID") return "#2196F3";
     return "#888";
   }
 
   function getTextColor(d: FluxData) {
     if(d.source === "PV") return "#4CAF50";
-    if(d.source === "RESEAU") return "#2196F3";
+    if(d.source === "GRID") return "#2196F3";
     return "#555";
   }
 
@@ -163,7 +164,8 @@ export function createDonutCharts(
   donutsData: DonutData[],
   centers: Record<string, Center>,
   outerRadius: number,
-  thickness: number
+  thickness: number,
+  isDaily: boolean = false
 ) {
   const arcBg = d3.arc()
     .innerRadius(outerRadius - thickness)
@@ -189,7 +191,7 @@ export function createDonutCharts(
   donutGroup.append("path")
     .attr("d", arcBg({} as any) as string)
     .attr("fill", (d: DonutData) => {
-      return d.id === "RESEAU" ? "#F1F1F1" : "#eee";
+      return d.id === "GRID" ? "#F1F1F1" : "#eee";
     });
 
   donutGroup.each(function(d: DonutData) {
@@ -202,7 +204,7 @@ export function createDonutCharts(
     } else if (d.id === "MAISON") {
       fillColor = "#F97316";
       textColor = "#EA580C";
-    } else if (d.id === "RESEAU") {
+    } else if (d.id === "GRID") {
       fillColor = "#42A5F5";
       textColor = "#2196F3";
     }
@@ -240,8 +242,8 @@ export function createDonutCharts(
               .endAngle(interpolate(t))({} as any) as string;
           };
         });
-    } else if (d.id === "RESEAU") {
-      // For RESEAU, simply show a transparent/white gauge with network information
+    } else if (d.id === "GRID") {
+      // For GRID, simply show a transparent/white gauge with network information
       d3.select(this).append("path")
         .attr("class", "arc-value")
         .attr("fill", fillColor)
@@ -297,39 +299,49 @@ export function createDonutCharts(
         React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
-    } else if (d.id === "RESEAU") {
+    } else if (d.id === "GRID") {
       ReactDOM.render(
         React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
     }
 
-    // Percentage text (in the center)
-    if (d.id === "PV" || d.id === "MAISON") {
-      d3.select(this).append("text")
-        .attr("fill", textColor)
-        .attr("font-size", 16)
-        .attr("font-weight", "bold")
-        .attr("text-anchor", "middle") 
-        .attr("dy", 10)
-        .text(`${Math.round(d.ratio * 100)}%`);
-
-      d3.select(this).append("text")
-        .attr("fill", textColor)
-        .attr("font-size", 14)
-        .attr("text-anchor", "middle")
-        .attr("dy", 30)
-        .text(`${d.totalKwh.toFixed(1)} kWh`);
-    } else if (d.id === "RESEAU") {
-      // For RESEAU, display the import and export values
+    // For PV node - Display production in kWh and self-consumption ratio if available
+    if (d.id === "PV") {
+      // Production value
       d3.select(this).append("text")
         .attr("fill", textColor)
         .attr("font-size", 16)
         .attr("font-weight", "bold")
         .attr("text-anchor", "middle") 
         .attr("dy", 5)
-        .text("Réseau");
-
+        .text(isDaily ? `${d.totalKwh.toFixed(1)} kWh` : `${Math.round(d.totalKwh)} W`);
+      
+      // Self-consumption ratio (only for daily view)
+      if (isDaily && d.selfConsumptionRatio !== undefined) {
+        d3.select(this).append("text")
+          .attr("fill", textColor)
+          .attr("font-size", 14)
+          .attr("text-anchor", "middle")
+          .attr("dy", 30)
+          .text(`${Math.round(d.selfConsumptionRatio)}% autoconso`);
+      }
+    } 
+    // For MAISON node
+    else if (d.id === "MAISON") {
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 16)
+        .attr("font-weight", "bold")
+        .attr("text-anchor", "middle") 
+        .attr("dy", 10)
+        .text(isDaily 
+          ? `${d.totalKwh.toFixed(1)} kWh` 
+          : `${Math.round(d.ratio * 100)}%`
+        );
+    } 
+    // For GRID node
+    else if (d.id === "GRID") {
       if (d.importTotal !== undefined && d.exportTotal !== undefined) {
         // Import indicator with ArrowRight icon
         const importForeignObject = d3.select(this)
@@ -359,7 +371,10 @@ export function createDonutCharts(
           .attr("text-anchor", "middle")
           .attr("x", 10)
           .attr("dy", 25)
-          .text(`${d.importTotal.toFixed(1)} kWh`);
+          .text(isDaily 
+            ? `${d.importTotal.toFixed(1)} kWh` 
+            : `${Math.round(d.importTotal)} W`
+          );
 
         // Export indicator with ArrowLeft icon
         const exportForeignObject = d3.select(this)
@@ -389,7 +404,10 @@ export function createDonutCharts(
           .attr("text-anchor", "middle")
           .attr("x", 10)
           .attr("dy", 42)
-          .text(`${d.exportTotal.toFixed(1)} kWh`);
+          .text(isDaily 
+            ? `${d.exportTotal.toFixed(1)} kWh` 
+            : `${Math.round(d.exportTotal)} W`
+          );
       }
     }
   });

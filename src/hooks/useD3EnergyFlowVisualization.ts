@@ -45,15 +45,18 @@ export function useD3EnergyFlowVisualization({
     // Calculate actual PV power used by home (total PV production minus what was exported)
     const pvToHome = Math.max(0, pvTotal - gridExportTotal);
     
+    // Calculate self-consumption ratio (percentage of PV production consumed directly)
+    const selfConsumptionRatio = pvTotal > 0 ? (pvToHome / pvTotal) * 100 : 0;
+    
     // Calculate ratios for donut charts
     const pvToHomeRatio = pvTotal > 0 ? pvToHome / pvTotal : 0;
     const homeFromPvRatio = consumptionTotal > 0 ? pvToHome / consumptionTotal : 0;
     const gridTotalFlux = gridImportTotal + gridExportTotal;
 
     const donutsData = [
-      { id: "PV", label: "Photovoltaïque", totalKwh: pvTotal, ratio: pvToHomeRatio },
+      { id: "PV", label: "Photovoltaïque", totalKwh: pvTotal, ratio: pvToHomeRatio, selfConsumptionRatio },
       { id: "MAISON", label: "Maison", totalKwh: consumptionTotal, ratio: homeFromPvRatio },
-      { id: "RESEAU", label: "Réseau", totalKwh: gridTotalFlux, ratio: 1, importTotal: gridImportTotal, exportTotal: gridExportTotal }
+      { id: "GRID", label: "", totalKwh: gridTotalFlux, ratio: 1, importTotal: gridImportTotal, exportTotal: gridExportTotal }
     ];
 
     // Initialize with PV to home flow which always exists if PV is producing
@@ -66,12 +69,12 @@ export function useD3EnergyFlowVisualization({
     
     // Only add grid->home flow when there's actual import from grid
     if (gridImportTotal > 0) {
-      fluxData.push({ source: "RESEAU", target: "MAISON", kwh: gridImportTotal });
+      fluxData.push({ source: "GRID", target: "MAISON", kwh: gridImportTotal });
     }
     
     // Only add PV->grid flow when there's actual export from PV to grid
     if (gridExportTotal > 0) {
-      fluxData.push({ source: "PV", target: "RESEAU", kwh: gridExportTotal });
+      fluxData.push({ source: "PV", target: "GRID", kwh: gridExportTotal });
     }
 
     // Nettoyer le SVG existant
@@ -101,8 +104,8 @@ export function useD3EnergyFlowVisualization({
     // Définir les positions des centres avec plus d'écart
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
-      RESEAU: { x: svgWidth / 2 - 240,  y: 380 }, // Écarté encore plus à gauche (était -220)
-      MAISON: { x: svgWidth / 2 + 240,  y: 380 }  // Écarté encore plus à droite (était +220)
+      GRID:   { x: svgWidth / 2 - 240,  y: 380 }, // Écarté à gauche
+      MAISON: { x: svgWidth / 2 + 240,  y: 380 }  // Écarté à droite
     };
 
     // Définir les dimensions des donuts
@@ -112,8 +115,8 @@ export function useD3EnergyFlowVisualization({
     // Create flux paths between nodes
     const fluxPaths = createFluxPaths(svg, fluxData, centers, outerRadius);
 
-    // Create donut charts with icons on top
-    createDonutCharts(svg, donutsData, centers, outerRadius, thickness);
+    // Create donut charts with icons on top - pass selfConsumptionRatio for display
+    createDonutCharts(svg, donutsData, centers, outerRadius, thickness, true); // true for daily view (show kWh)
 
     // Ajouter un titre
     svg.append("text")

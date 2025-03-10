@@ -71,13 +71,58 @@ export type Database = {
           },
         ]
       }
+      pv_panels: {
+        Row: {
+          azimuth: number
+          created_at: string
+          id: string
+          inclination: number
+          name: string | null
+          power_wp: number
+          shelly_config_id: string
+          updated_at: string
+        }
+        Insert: {
+          azimuth?: number
+          created_at?: string
+          id?: string
+          inclination?: number
+          name?: string | null
+          power_wp?: number
+          shelly_config_id: string
+          updated_at?: string
+        }
+        Update: {
+          azimuth?: number
+          created_at?: string
+          id?: string
+          inclination?: number
+          name?: string | null
+          power_wp?: number
+          shelly_config_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_panels_shelly_config_id_fkey"
+            columns: ["shelly_config_id"]
+            isOneToOne: false
+            referencedRelation: "shelly_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelly_configs: {
         Row: {
           apikey: string
           created_at: string
           device_type: string | null
           deviceid: string
+          grid_subscription_kva: number | null
           id: string
+          inverter_power_kva: number | null
+          latitude: number | null
+          longitude: number | null
           name: string | null
           serverurl: string
           updated_at: string
@@ -87,7 +132,11 @@ export type Database = {
           created_at?: string
           device_type?: string | null
           deviceid: string
+          grid_subscription_kva?: number | null
           id?: string
+          inverter_power_kva?: number | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
           serverurl?: string
           updated_at?: string
@@ -97,7 +146,11 @@ export type Database = {
           created_at?: string
           device_type?: string | null
           deviceid?: string
+          grid_subscription_kva?: number | null
           id?: string
+          inverter_power_kva?: number | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
           serverurl?: string
           updated_at?: string
