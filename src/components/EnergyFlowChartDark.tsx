@@ -69,14 +69,14 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
       color: '#66BB6A'
     },
     grid: {
-      x: width * 0.05, // Moved more to the left from 0.1 to 0.05
+      x: width * 0.2, // Position à gauche
       y: height * 0.8,
       label: 'Réseau',
       value: `${Math.abs(currentData.power).toFixed(1)} W`,
       color: '#42A5F5'
     },
     home: {
-      x: width * 0.96, // Moved more to the right from 0.95 to 0.96
+      x: width * 0.8, // Position à droite
       y: height * 0.8,
       label: 'Maison',
       value: `${(currentData.power + currentData.pv_power).toFixed(1)} W`,
@@ -209,7 +209,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               {/* For PV gauge labels */}
               <Text
                 x={-nodeRadius * 0.866}
-                y={45} // Changed from 30 to 45 (15px lower)
+                y={60} // Descendu davantage
                 text="0"
                 fontSize={9}
                 fill="#666"
@@ -218,7 +218,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               
               <Text
                 x={nodeRadius * 0.866}
-                y={45} // Changed from 30 to 45 (15px lower)
+                y={60} // Descendu davantage
                 text="3kW"
                 fontSize={9}
                 fill="#666"
@@ -316,7 +316,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               {/* For grid gauge labels */}
               <Text
                 x={-nodeRadius * 0.866}
-                y={45} // Changed from 30 to 45 (15px lower)
+                y={60} // Descendu davantage
                 text={`-${maxGridPower}kVA`}
                 fontSize={9}
                 fill="#1EAEDB"
@@ -325,7 +325,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               
               <Text
                 x={nodeRadius * 0.866}
-                y={45} // Changed from 30 to 45 (15px lower)
+                y={60} // Descendu davantage
                 text={`+${maxGridPower}kVA`}
                 fontSize={9}
                 fill="#ea384c"
