@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -24,6 +23,7 @@ interface DonutData {
   ratio: number;
   importTotal?: number;
   exportTotal?: number;
+  selfConsumptionRatio?: number;
 }
 
 // Helper to store the current angle state for animations
@@ -187,7 +187,8 @@ export function createDonutCharts(
   centers: Record<string, Center>,
   outerRadius: number,
   thickness: number,
-  prevDataRef?: React.MutableRefObject<PowerData>
+  prevDataRef?: React.MutableRefObject<PowerData>,
+  mode?: 'daily' | 'realtime'
 ) {
   const arcBg = d3.arc()
     .innerRadius(outerRadius - thickness)
@@ -524,22 +525,49 @@ export function createDonutCharts(
     donutGroup.selectAll(".power-value").remove();
     
     if (d.id === "PV") {
-      donutGroup.append("text")
-        .attr("class", "power-value")
-        .attr("fill", textColor)
-        .attr("font-size", 16)
-        .attr("font-weight", "bold")
-        .attr("text-anchor", "middle") 
-        .attr("dy", 5)
-        .text(formatPower(d.totalW));
+      if (mode === 'daily') {
+        // Format kWh value
+        const kWhValue = (d.totalW / 1000).toFixed(1);
+        
+        // Production value in kWh
+        donutGroup.append("text")
+          .attr("class", "power-value")
+          .attr("fill", textColor)
+          .attr("font-size", 16)
+          .attr("font-weight", "bold")
+          .attr("text-anchor", "middle") 
+          .attr("dy", 0)
+          .text(`${kWhValue} kWh`);
 
-      donutGroup.append("text")
-        .attr("class", "power-value")
-        .attr("fill", textColor)
-        .attr("font-size", 12)
-        .attr("text-anchor", "middle")
-        .attr("dy", 25)
-        .text(`Max: ${formatPower(d.maxW)}`);
+        // Self-consumption ratio if available
+        if (d.selfConsumptionRatio !== undefined) {
+          donutGroup.append("text")
+            .attr("class", "power-value")
+            .attr("fill", textColor)
+            .attr("font-size", 12)
+            .attr("text-anchor", "middle")
+            .attr("dy", 20)
+            .text(`${d.selfConsumptionRatio.toFixed(0)}% auto.`);
+        }
+      } else {
+        // En mode temps réel, garder l'affichage actuel
+        donutGroup.append("text")
+          .attr("class", "power-value")
+          .attr("fill", textColor)
+          .attr("font-size", 16)
+          .attr("font-weight", "bold")
+          .attr("text-anchor", "middle") 
+          .attr("dy", 5)
+          .text(formatPower(d.totalW));
+
+        donutGroup.append("text")
+          .attr("class", "power-value")
+          .attr("fill", textColor)
+          .attr("font-size", 12)
+          .attr("text-anchor", "middle")
+          .attr("dy", 25)
+          .text(`Max: ${formatPower(d.maxW)}`);
+      }
     } else if (d.id === "MAISON") {
       donutGroup.append("text")
         .attr("class", "power-value")

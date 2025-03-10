@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction, useRef } from 'react';
 import * as d3 from 'd3';
 import { DailyTotals } from './useDailyEnergyTotals';
@@ -14,6 +13,7 @@ export interface PowerData {
   batteryCharge?: number;
   batteryDischarge?: number;
   selfConsumption?: number;
+  selfConsumptionRatio?: number; // Nouveau champ pour le ratio
 }
 
 interface UseD3EnergyFlowVisualizationProps {
@@ -26,6 +26,7 @@ interface UseD3EnergyFlowVisualizationProps {
     inverterPowerW?: number;
     gridSubscriptionW?: number;
   };
+  mode?: 'daily' | 'realtime'; // Nouvelle prop pour différencier les modes
 }
 
 export function useD3EnergyFlowVisualization({
@@ -34,7 +35,8 @@ export function useD3EnergyFlowVisualization({
   loading,
   isClient,
   setIsClient,
-  maxValues
+  maxValues,
+  mode
 }: UseD3EnergyFlowVisualizationProps) {
   // Store previous data for smoother transitions
   const prevDataRef = useRef<PowerData>(powerData);
@@ -81,7 +83,8 @@ export function useD3EnergyFlowVisualization({
         label: "Photovoltaïque", 
         totalW: pvTotal, 
         maxW: inverterPowerW,
-        ratio: pvToHomeRatio 
+        ratio: pvToHomeRatio,
+        selfConsumptionRatio: powerData.selfConsumptionRatio
       },
       { 
         id: "MAISON", 
@@ -170,12 +173,12 @@ export function useD3EnergyFlowVisualization({
     createFluxPaths(svg, fluxData, centers, outerRadius);
 
     // Create or update donut charts with icons on top
-    createDonutCharts(svg, donutsData, centers, outerRadius, thickness, prevDataRef);
+    createDonutCharts(svg, donutsData, centers, outerRadius, thickness, prevDataRef, mode);
 
     // Update the previous data reference for next render
     prevDataRef.current = powerData;
 
     // Return cleanup function to prevent memory leaks
     return cleanup;
-  }, [powerData, loading, isClient, svgRef, maxValues]);
+  }, [powerData, loading, isClient, svgRef, maxValues, mode]);
 }

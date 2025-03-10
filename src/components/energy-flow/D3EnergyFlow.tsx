@@ -29,13 +29,19 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
     fetchConfig();
   }, [configId]);
 
-  // Convert dailyTotals to PowerData (only when dailyTotals changes)
+  // Calculate self-consumption ratio in percentage
+  const selfConsumptionRatio = dailyTotals.production > 0 
+    ? ((dailyTotals.production - dailyTotals.injection) / dailyTotals.production) * 100 
+    : 0;
+
+  // Convert dailyTotals to PowerData
   const powerData: PowerData = {
     production: dailyTotals.production,
     consumption: dailyTotals.consumption,
     injection: dailyTotals.injection,
     importFromGrid: dailyTotals.importFromGrid,
     selfConsumption: Math.max(0, dailyTotals.production - dailyTotals.injection),
+    selfConsumptionRatio: selfConsumptionRatio, // Ajout du ratio d'autoconsommation
     batteryCharge: 0,
     batteryDischarge: 0
   };
@@ -53,7 +59,8 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
     loading,
     isClient,
     setIsClient,
-    maxValues
+    maxValues,
+    mode: 'daily' // Indique que c'est la vue journalière
   });
 
   if (loading) {
