@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +18,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
   const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const hasInitializedRef = useRef(false);
+  // We don't need the initialization ref since we want to always display full day data
   
   useEffect(() => {
     if (!configId) return;
@@ -65,7 +66,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
             voltage: newDataPoint.voltage ? Math.round(newDataPoint.voltage * 10) / 10 : undefined
           };
           
-          setChartData(prevData => {
+          // Update fullDayData first
+          setFullDayData(prevData => {
             if (!prevData || prevData.length === 0) {
               return [chartPoint];
             }
@@ -80,11 +82,13 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
               return newData;
             } else {
               const newData = [...prevData, chartPoint].sort((a, b) => a.timestamp - b.timestamp);
-              return newData.slice(-100);
+              return newData;
             }
           });
           
-          setFullDayData(prevData => {
+          // Then also update chartData to match fullDayData
+          // This ensures we always show the full day's data
+          setChartData(prevData => {
             if (!prevData || prevData.length === 0) {
               return [chartPoint];
             }
@@ -117,6 +121,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     };
   }, [configId]);
   
+  // Fetch full day data and set it as the chart data
   useEffect(() => {
     const fetchFullDayData = async () => {
       if (!configId) return;
@@ -168,6 +173,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           });
           
           setFullDayData(transformedData);
+          // Always set chart data to full day data
+          setChartData(transformedData);
         }
       } catch (err) {
         console.error('Error fetching full day data:', err);
@@ -177,15 +184,17 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     };
     
     fetchFullDayData();
+    
+    // Set up an interval to fetch the full day data every 15 minutes
+    // This ensures we have all data in case any realtime updates were missed
+    const intervalId = setInterval(fetchFullDayData, 15 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
   }, [configId]);
 
+  // Only use history as a fallback if we don't have fullDayData
   useEffect(() => {
-    if (hasInitializedRef.current) return;
-    
-    if (fullDayData.length > 0) {
-      setChartData(fullDayData);
-      hasInitializedRef.current = true;
-    } else if (history.length > 0) {
+    if (fullDayData.length === 0 && history.length > 0) {
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
         const formattedTime = formatLocalDate(item.timestamp, {
           hour: '2-digit', 
@@ -212,7 +221,6 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       });
 
       setChartData(transformedData);
-      hasInitializedRef.current = true;
     }
   }, [history, fullDayData]);
 
