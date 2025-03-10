@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { DailyTotals } from './useDailyEnergyTotals';
@@ -41,7 +42,10 @@ export function useD3EnergyFlowVisualization({
     const gridExportTotal = dailyTotals.injection / 1000;
     const consumptionTotal = dailyTotals.consumption / 1000;
     
-    const pvToHome = pvTotal - gridExportTotal;
+    // Calculate actual PV power used by home (total PV production minus what was exported)
+    const pvToHome = Math.max(0, pvTotal - gridExportTotal);
+    
+    // Calculate ratios for donut charts
     const pvToHomeRatio = pvTotal > 0 ? pvToHome / pvTotal : 0;
     const homeFromPvRatio = consumptionTotal > 0 ? pvToHome / consumptionTotal : 0;
     const gridTotalFlux = gridImportTotal + gridExportTotal;
@@ -52,17 +56,20 @@ export function useD3EnergyFlowVisualization({
       { id: "RESEAU", label: "Réseau", totalKwh: gridTotalFlux, ratio: 1, importTotal: gridImportTotal, exportTotal: gridExportTotal }
     ];
 
-    // Fix: Only include grid to home flow if there is actual import from grid and PV isn't exceeding needs
-    const fluxData = [
-      { source: "PV", target: "MAISON", kwh: pvToHome },
-    ];
+    // Initialize with PV to home flow which always exists if PV is producing
+    const fluxData = [];
+    
+    // Only add PV->home flow if there's actual production being used by home
+    if (pvToHome > 0) {
+      fluxData.push({ source: "PV", target: "MAISON", kwh: pvToHome });
+    }
     
     // Only add grid->home flow when there's actual import from grid
     if (gridImportTotal > 0) {
       fluxData.push({ source: "RESEAU", target: "MAISON", kwh: gridImportTotal });
     }
     
-    // Only add PV->grid flow when there's actual export
+    // Only add PV->grid flow when there's actual export from PV to grid
     if (gridExportTotal > 0) {
       fluxData.push({ source: "PV", target: "RESEAU", kwh: gridExportTotal });
     }

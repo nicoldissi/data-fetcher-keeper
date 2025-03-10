@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -70,16 +69,25 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     
     const isPVProducing = data.pv_power > 6
     const homeConsumption = data.pv_power + data.power
-    const isGridSupplyingHome = data.power > 0
-    const isGridReceivingExcess = data.power < 0
-    const isPVExceedingHomeNeeds = isPVProducing && data.pv_power >= homeConsumption
     
-    // Fix: Only show grid to home flow when grid is supplying AND PV isn't meeting all needs
+    // Determine flow directions based on power values
+    const isGridImporting = data.power > 0  // Positive means importing FROM grid
+    const isGridExporting = data.power < 0  // Negative means exporting TO grid
+    const isPVExceedingHomeNeeds = isPVProducing && data.pv_power > homeConsumption
+    
+    // Fix: Use correct logic for determining flow animations
     setFlowAnimations({
-      gridToHome: isGridSupplyingHome && !isPVExceedingHomeNeeds,
-      gridFromHome: isGridReceivingExcess,
+      // Only show grid to home flow when grid is supplying power AND PV isn't meeting all needs
+      gridToHome: isGridImporting && !isPVExceedingHomeNeeds,
+      
+      // Only show grid from home when we're actually exporting TO the grid (negative power)
+      gridFromHome: isGridExporting,
+      
+      // Show solar to home when PV is producing
       solarToHome: isPVProducing,
-      solarToGrid: isPVProducing && isGridReceivingExcess
+      
+      // Only show solar to grid when PV is producing AND we're exporting to grid
+      solarToGrid: isPVProducing && isGridExporting
     })
     
   }, [data])
