@@ -1,4 +1,3 @@
-
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
@@ -45,7 +44,6 @@ export interface ShellyEMResponse {
 }
 
 export interface ShellyConfig {
-  // Frontend property names (camelCase)
   deviceId?: string;
   apiKey?: string;
   serverUrl?: string;
@@ -58,9 +56,23 @@ export interface ShellyConfig {
   latitude?: number | null;
   longitude?: number | null;
   
-  // Database field mappings - snake_case format from Supabase
   deviceid?: string;
   apikey?: string;
   serverurl?: string;
   device_type?: string;
+}
+
+export interface InitialData {
+  configs?: Record<string, {
+    inverter_power_kva?: number;
+    grid_subscription_kva?: number;
+    [key: string]: any;
+  }>;
+  [key: string]: any;
+}
+
+declare global {
+  interface Window {
+    __INITIAL_DATA__?: InitialData;
+  }
 }

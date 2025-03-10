@@ -88,7 +88,7 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
         label: "Réseau",
         value: `${Math.abs(data.power).toFixed(1)} W`,
         color: '#42A5F5',
-        direction: data.power >= 0 ? 'import' : 'export',
+        direction: data.power >= 0 ? 'import' : 'export' as 'import' | 'export',
         power: data.power
       },
       {
