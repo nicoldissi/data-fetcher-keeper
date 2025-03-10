@@ -59,15 +59,26 @@ export function D3EnergyFlowRealtime({
       <Card className={className}>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle>Flux d'énergie en temps réel</CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onToggleView}
-            className="flex items-center gap-1"
-          >
-            <Calendar className="h-4 w-4" />
-            Voir journalier
-          </Button>
+          <div className="flex space-x-2">
+            <Button 
+              variant={!showDaily ? "default" : "outline"}
+              size="sm"
+              onClick={() => onToggleView && onToggleView()}
+              className="flex items-center gap-1"
+            >
+              <Clock className="h-4 w-4" />
+              Temps réel
+            </Button>
+            <Button 
+              variant={showDaily ? "default" : "outline"}
+              size="sm"
+              onClick={() => onToggleView && onToggleView()}
+              className="flex items-center gap-1"
+            >
+              <Calendar className="h-4 w-4" />
+              Journalier
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[400px]">
           <div className="text-center text-muted-foreground">
@@ -85,24 +96,26 @@ export function D3EnergyFlowRealtime({
         <CardTitle>
           {showDaily ? "Bilan Énergétique Journalier" : "Flux d'énergie en temps réel"}
         </CardTitle>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={onToggleView}
-          className="flex items-center gap-1"
-        >
-          {showDaily ? (
-            <>
-              <Clock className="h-4 w-4" />
-              Voir temps réel
-            </>
-          ) : (
-            <>
-              <Calendar className="h-4 w-4" />
-              Voir journalier
-            </>
-          )}
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant={!showDaily ? "default" : "outline"}
+            size="sm"
+            onClick={() => onToggleView && onToggleView()}
+            className="flex items-center gap-1"
+          >
+            <Clock className="h-4 w-4" />
+            Temps réel
+          </Button>
+          <Button 
+            variant={showDaily ? "default" : "outline"}
+            size="sm"
+            onClick={() => onToggleView && onToggleView()}
+            className="flex items-center gap-1"
+          >
+            <Calendar className="h-4 w-4" />
+            Journalier
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex justify-center">
         <svg ref={svgRef} width="700" height="500" />
