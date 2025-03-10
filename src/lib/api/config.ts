@@ -1,4 +1,3 @@
-
 import { ShellyConfig } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,7 +13,9 @@ const DEFAULT_CONFIG: ShellyConfig = {
   deviceId: 'ecfabcc7ebe9',
   apiKey: 'MmIzYzJ1aWQ9E5B47CE0F300842AD58AEC918783E62DADA00AC1D88E8C28721C5CE356A11CA021A43DAE7AE96ED',
   name: 'Default Device',
-  deviceType: 'ShellyEM'
+  deviceType: 'ShellyEM',
+  inverterPowerKva: 3.0,
+  gridSubscriptionKva: 6.0
 };
 
 export const getLocalShellyConfig = (): ShellyConfig => {
@@ -39,6 +40,8 @@ interface DbShellyConfig {
   updated_at?: string;
   user_id?: string; //Keep in mind this is only set on the shares table,
   device_type?: string;
+  inverter_power_kva?: number;
+  grid_subscription_kva?: number;
 }
 
 // Helper function to map database fields to frontend model
@@ -49,7 +52,9 @@ export const mapDbConfigToFrontend = (dbConfig: DbShellyConfig): ShellyConfig =>
     apiKey: dbConfig.apikey,
     serverUrl: dbConfig.serverurl,
     name: dbConfig.name,
-    deviceType: (dbConfig.device_type as 'ShellyEM' | 'ShellyProEM') || 'ShellyEM' // Cast and provide default
+    deviceType: (dbConfig.device_type as 'ShellyEM' | 'ShellyProEM') || 'ShellyEM', // Cast and provide default
+    inverterPowerKva: dbConfig.inverter_power_kva || 3.0,
+    gridSubscriptionKva: dbConfig.grid_subscription_kva || 6.0
   };
 };
 
@@ -61,7 +66,9 @@ export const mapFrontendToDbConfig = (config: ShellyConfig): DbShellyConfig => {
     apikey: config.apiKey,
     serverurl: config.serverUrl,
     name: config.name || 'Default Device',
-    device_type: config.deviceType || 'ShellyEM' //Add default value, as it can be undefined.
+    device_type: config.deviceType || 'ShellyEM', //Add default value, as it can be undefined.
+    inverter_power_kva: config.inverterPowerKva || 3.0,
+    grid_subscription_kva: config.gridSubscriptionKva || 6.0
   };
 };
 
