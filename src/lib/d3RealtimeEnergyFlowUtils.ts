@@ -103,6 +103,17 @@ export function createRealtimeNodes(
       return `translate(${center.x}, ${center.y})`;
     });
 
+  // Ajouter l'arc de contexte pour le PV et GRID
+  nodeGroups.each(function(d) {
+    if (d.id === "PV" && d.gaugeValue !== undefined) {
+      createCircularGauge(d3.select(this), d.gaugeValue, nodeRadius, d.color);
+    }
+    
+    if (d.id === "GRID" && d.direction && d.power !== undefined) {
+      createGridCircularGauge(d3.select(this), d.direction, Math.abs(d.power), nodeRadius, d.color);
+    }
+  });
+
   // Add node circles
   nodeGroups.append("circle")
     .attr("r", nodeRadius)
@@ -113,7 +124,7 @@ export function createRealtimeNodes(
 
   // Add icons
   nodeGroups.each(function(d) {
-    const iconY = -40;
+    const iconY = -10; // Moved icon closer to center
     
     const foreignObject = d3.select(this)
       .append("foreignObject")
@@ -152,97 +163,101 @@ export function createRealtimeNodes(
   // Add node labels
   nodeGroups.append("text")
     .attr("text-anchor", "middle")
-    .attr("dy", "5px")
+    .attr("dy", "25px")
     .attr("fill", d => d.color)
     .attr("font-weight", "bold")
-    .attr("font-size", "16px")
+    .attr("font-size", "14px")
     .text(d => d.label);
 
   // Add node values
   nodeGroups.append("text")
     .attr("text-anchor", "middle")
-    .attr("dy", "30px")
+    .attr("dy", "45px")
     .attr("fill", d => d.color)
-    .attr("font-size", "14px")
+    .attr("font-size", "12px")
     .text(d => d.value);
-
-  // Add gauges for specific nodes
-  nodeGroups.each(function(d) {
-    if (d.id === "PV" && d.gaugeValue !== undefined) {
-      createPVGauge(d3.select(this), d.gaugeValue, nodeRadius, d.color);
-    }
-    
-    if (d.id === "GRID" && d.direction && d.power !== undefined) {
-      createGridGauge(d3.select(this), d.direction, Math.abs(d.power), nodeRadius, d.color);
-    }
-  });
 
   return nodeGroups;
 }
 
-function createPVGauge(
+function createCircularGauge(
   nodeGroup: d3.Selection<d3.BaseType, NodeData, null, undefined>,
   value: number,
   nodeRadius: number,
   color: string
 ) {
-  const gaugeY = nodeRadius * 1.5;
-  const gaugeWidth = nodeRadius * 2;
-  const gaugeHeight = 12;
+  // Pourcentage de la production (0-100%)
+  const percentage = Math.min(100, Math.max(0, value)) / 100;
   
-  // Gauge background
-  nodeGroup.append("rect")
-    .attr("x", -gaugeWidth / 2)
-    .attr("y", gaugeY)
-    .attr("width", gaugeWidth)
-    .attr("height", gaugeHeight)
-    .attr("rx", gaugeHeight / 2)
-    .attr("fill", "#e5e7eb"); // Light gray background
-
-  // Calculate gauge fill width based on percentage
-  const fillWidth = (value / 100) * gaugeWidth;
+  // Arc pour la jauge
+  const arcGenerator = d3.arc()
+    .innerRadius(nodeRadius + 5)
+    .outerRadius(nodeRadius + 10)
+    .startAngle(0)
+    .endAngle(percentage * 2 * Math.PI);
   
-  // Gauge fill (progress bar)
-  nodeGroup.append("rect")
-    .attr("x", -gaugeWidth / 2)
-    .attr("y", gaugeY)
-    .attr("width", fillWidth)
-    .attr("height", gaugeHeight)
-    .attr("rx", gaugeHeight / 2)
+  // Fond de la jauge
+  nodeGroup.append("path")
+    .attr("d", d3.arc()
+      .innerRadius(nodeRadius + 5)
+      .outerRadius(nodeRadius + 10)
+      .startAngle(0)
+      .endAngle(2 * Math.PI)() as string)
+    .attr("fill", "#e5e7eb");
+  
+  // Remplissage de la jauge
+  nodeGroup.append("path")
+    .attr("d", arcGenerator() as string)
     .attr("fill", color);
-    
-  // Add percentage text below gauge
-  nodeGroup.append("text")
-    .attr("text-anchor", "middle")
-    .attr("y", gaugeY + gaugeHeight + 15)
-    .attr("fill", color)
-    .attr("font-size", "11px")
-    .attr("font-weight", "medium")
-    .text(`${Math.round(value)}% de capacité`);
 }
 
-function createGridGauge(
-  nodeGroup: d3.Selection<d3.BaseType, NodeData, null, undefined>,
+function createGridCircularGauge(
+  nodeGroup: d3.Selection<d3.BaseType, NodeData, null, undefined>, 
   direction: 'import' | 'export',
   power: number,
   nodeRadius: number,
   color: string
 ) {
-  const isImport = direction === 'import';
-  const gaugeY = nodeRadius * 1.5;
-  const maxWidth = nodeRadius * 2;
-  const gaugeHeight = 12;
-
-  // Add direction icon
-  const arrowY = gaugeY - 18;
+  // Construire une échelle pour la visualisation de la puissance
+  const powerScale = d3.scaleLinear()
+    .domain([0, 5000]) // Suppose une puissance max de 5kW
+    .range([0, 1])
+    .clamp(true);
+  
+  const percentage = powerScale(power);
+  
+  // Arc pour la jauge
+  const arcGenerator = d3.arc()
+    .innerRadius(nodeRadius + 5)
+    .outerRadius(nodeRadius + 10)
+    .startAngle(0)
+    .endAngle(percentage * 2 * Math.PI);
+  
+  // Fond de la jauge
+  nodeGroup.append("path")
+    .attr("d", d3.arc()
+      .innerRadius(nodeRadius + 5)
+      .outerRadius(nodeRadius + 10)
+      .startAngle(0)
+      .endAngle(2 * Math.PI)() as string)
+    .attr("fill", "#e5e7eb");
+  
+  // Remplissage de la jauge
+  nodeGroup.append("path")
+    .attr("d", arcGenerator() as string)
+    .attr("fill", color);
+  
+  // Indicateur de direction
+  const arrowSize = 12;
+  const arrowY = -nodeRadius - 15;
   
   // Create container for icon
   const foreignObject = nodeGroup
     .append("foreignObject")
-    .attr("width", 20)
-    .attr("height", 20)
-    .attr("x", -10)
-    .attr("y", arrowY);
+    .attr("width", arrowSize + 4)
+    .attr("height", arrowSize + 4)
+    .attr("x", -(arrowSize + 4) / 2)
+    .attr("y", arrowY - (arrowSize + 4) / 2);
 
   const container = document.createElement('div');
   container.style.display = 'flex';
@@ -255,46 +270,9 @@ function createGridGauge(
   
   ReactDOM.render(
     React.createElement(
-      isImport ? TrendingDown : TrendingUp, 
-      { size: 18, color: color, strokeWidth: 2 }
+      direction === 'import' ? TrendingDown : TrendingUp, 
+      { size: arrowSize, color: color, strokeWidth: 2 }
     ),
     container
   );
-  
-  // Build a power scale for visualization
-  // This is a simplified scale. In a real app, you might want to use a logarithmic scale
-  // or a more sophisticated approach to handle various power ranges
-  const powerScale = d3.scaleLinear()
-    .domain([0, 5000]) // Assuming max power of 5kW. Adjust as needed
-    .range([0, maxWidth])
-    .clamp(true);
-  
-  const gaugeWidth = powerScale(power);
-  
-  // Gauge background
-  nodeGroup.append("rect")
-    .attr("x", -maxWidth / 2)
-    .attr("y", gaugeY)
-    .attr("width", maxWidth)
-    .attr("height", gaugeHeight)
-    .attr("rx", gaugeHeight / 2)
-    .attr("fill", "#e5e7eb"); // Light gray background
-
-  // Gauge fill (progress bar)
-  nodeGroup.append("rect")
-    .attr("x", -maxWidth / 2)
-    .attr("y", gaugeY)
-    .attr("width", gaugeWidth)
-    .attr("height", gaugeHeight)
-    .attr("rx", gaugeHeight / 2)
-    .attr("fill", color);
-    
-  // Add direction text below gauge
-  nodeGroup.append("text")
-    .attr("text-anchor", "middle")
-    .attr("y", gaugeY + gaugeHeight + 15)
-    .attr("fill", color)
-    .attr("font-size", "11px")
-    .attr("font-weight", "medium")
-    .text(isImport ? "Consommation" : "Injection");
 }
