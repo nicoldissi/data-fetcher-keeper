@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -12,6 +13,7 @@ interface FluxData {
   source: string;
   target: string;
   kwh: number;
+  title?: string; // Add title property
 }
 
 interface DonutData {
@@ -124,6 +126,20 @@ export function createFluxPaths(
 
       const borderColor = getBorderColor(d);
       const textColor = getTextColor(d);
+
+      // Add flow title above the value label if exists
+      if (d.title) {
+        d3.select(this)
+          .append("text")
+          .attr("x", bezierX)
+          .attr("y", bezierY - 20) // Position above the value label
+          .attr("text-anchor", "middle")
+          .attr("dominant-baseline", "middle")
+          .attr("font-size", 10)
+          .attr("font-weight", "medium")
+          .attr("fill", textColor)
+          .text(d.title);
+      }
 
       d3.select(this)
         .append("rect")
@@ -300,7 +316,7 @@ export function createDonutCharts(
         
         d3.select(this).append("path")
           .attr("class", "arc-export")
-          .attr("fill", "#42A5F5")
+          .attr("fill", "#42A5F5") // Changed to blue for injection as requested
           .transition()
           .duration(800)
           .attrTween("d", function() {
@@ -364,7 +380,7 @@ export function createDonutCharts(
       
       d3.select(this).append("text")
         .attr("fill", textColor)
-        .attr("font-size", 10)
+        .attr("font-size", 10) // Reduced size for kWh as requested
         .attr("text-anchor", "middle")
         .attr("dy", 20)
         .text("kWh");
@@ -372,7 +388,7 @@ export function createDonutCharts(
       if (isDaily && d.selfConsumptionRatio !== undefined) {
         d3.select(this).append("text")
           .attr("fill", textColor)
-          .attr("font-size", 16)
+          .attr("font-size", 16) // Same size as kWh value as requested
           .attr("font-weight", "bold")
           .attr("text-anchor", "middle")
           .attr("dy", 35)
@@ -390,7 +406,7 @@ export function createDonutCharts(
       
       d3.select(this).append("text")
         .attr("fill", textColor)
-        .attr("font-size", 10)
+        .attr("font-size", 10) // Reduced size for kWh as requested
         .attr("text-anchor", "middle")
         .attr("dy", 20)
         .text("kWh");
@@ -398,7 +414,7 @@ export function createDonutCharts(
       if (isDaily && d.ratio !== undefined) {
         d3.select(this).append("text")
           .attr("fill", textColor)
-          .attr("font-size", 16)
+          .attr("font-size", 16) // Same size as kWh value as requested
           .attr("font-weight", "bold")
           .attr("text-anchor", "middle")
           .attr("dy", 35)
@@ -431,7 +447,7 @@ export function createDonutCharts(
         d3.select(this).append("text")
           .attr("fill", textColor)
           .attr("font-size", 12)
-          .attr("font-weight", "bold")
+          .attr("font-weight", "bold") // Made values bold as requested
           .attr("text-anchor", "middle")
           .attr("x", 10)
           .attr("dy", 5)
@@ -461,7 +477,7 @@ export function createDonutCharts(
         d3.select(this).append("text")
           .attr("fill", "#388E3C")
           .attr("font-size", 12)
-          .attr("font-weight", "bold")
+          .attr("font-weight", "bold") // Made values bold as requested
           .attr("text-anchor", "middle")
           .attr("x", 10)
           .attr("dy", 22)

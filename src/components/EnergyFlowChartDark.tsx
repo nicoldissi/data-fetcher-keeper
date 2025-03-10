@@ -40,6 +40,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     solarToGrid: false
   })
   const [viewMode, setViewMode] = useState<'realtime' | 'daily'>('realtime')
+  const [hasData, setHasData] = useState(false)
   
   useEffect(() => {
     const updateSize = () => {
@@ -62,6 +63,11 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
   
   useEffect(() => {
     if (!data) return
+    
+    // Set hasData to true once we receive data
+    if (!hasData) {
+      setHasData(true)
+    }
     
     console.log('EnergyFlowChartDark received new data:', data)
     
@@ -222,7 +228,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         active: flowAnimations.gridToHome,
         color: "#42A5F5", // Blue color consistent with daily view
         curveOffset: -100, // Same curve offset as daily view
-        power: data.power
+        power: data.power,
+        title: "Réseau" // Added title
       },
       {
         id: "solarToHome",
@@ -231,7 +238,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         active: flowAnimations.solarToHome,
         color: "#66BB6A",
         curveOffset: 0,
-        power: Math.min(data.pv_power, data.pv_power + data.power)
+        power: Math.min(data.pv_power, data.pv_power + data.power),
+        title: "Autoconsommation" // Added title
       },
       {
         id: "solarToGrid",
@@ -240,7 +248,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         active: flowAnimations.solarToGrid,
         color: "#388E3C",
         curveOffset: 0,
-        power: Math.max(0, -data.power)
+        power: Math.max(0, -data.power),
+        title: "Injection" // Added title
       }
     ]
     
@@ -302,6 +311,19 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         const labelGroup = svg.append('g')
           .attr('class', `path-label-${path.id}`)
         
+        // Add flow title if available
+        if (path.title) {
+          labelGroup.append('text')
+            .attr('x', bezierX)
+            .attr('y', bezierY - 20) // Position above the value label
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', 10)
+            .attr('font-weight', 'medium')
+            .attr('fill', path.color)
+            .text(path.title);
+        }
+        
         labelGroup.append('rect')
           .attr('x', bezierX - 40)
           .attr('y', bezierY - 15)
@@ -337,52 +359,6 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     
   }, [data, flowAnimations, size])
 
-  if (!data) {
-    return (
-      <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">FLUX D'ÉNERGIE</span>
-            </div>
-            <div className="bg-muted inline-flex items-center rounded-md p-1">
-              <Toggle
-                pressed={viewMode === 'realtime'}
-                onPressedChange={() => setViewMode('realtime')}
-                variant="outline"
-                size="sm"
-                className="px-3 data-[state=on]:bg-background"
-              >
-                <Clock className="h-4 w-4 mr-2" />
-                <span>Temps réel</span>
-              </Toggle>
-              <Toggle
-                pressed={viewMode === 'daily'}
-                onPressedChange={() => setViewMode('daily')}
-                variant="outline"
-                size="sm"
-                className="px-3 data-[state=on]:bg-background"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                <span>Journalier</span>
-              </Toggle>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center p-6 min-h-[300px]">
-          {viewMode === 'realtime' ? (
-            <div className="text-center text-muted-foreground">
-              <p>En attente de données...</p>
-              <p className="text-sm">Les données seront affichées dès qu'elles seront disponibles.</p>
-            </div>
-          ) : (
-            <D3EnergyFlow configId={configId} />
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
@@ -414,19 +390,26 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex items-center justify-center p-6">
+      <CardContent className="flex items-center justify-center p-6 min-h-[300px]">
         {viewMode === 'realtime' ? (
-          <div 
-            ref={containerRef} 
-            className="relative w-full max-w-md aspect-square"
-          >
-            <svg 
-              ref={svgRef} 
-              width={size.width} 
-              height={size.height} 
-              className="overflow-visible"
-            />
-          </div>
+          data ? (
+            <div 
+              ref={containerRef} 
+              className="relative w-full max-w-md aspect-square"
+            >
+              <svg 
+                ref={svgRef} 
+                width={size.width} 
+                height={size.height} 
+                className="overflow-visible"
+              />
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              <p>En attente de données...</p>
+              <p className="text-sm">Les données seront affichées dès qu'elles seront disponibles.</p>
+            </div>
+          )
         ) : (
           <D3EnergyFlow configId={configId} />
         )}

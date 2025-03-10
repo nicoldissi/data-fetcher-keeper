@@ -26,7 +26,12 @@ export function useD3EnergyFlowVisualization({
 
   // Main D3 visualization effect
   useEffect(() => {
-    if (!isClient || loading || !svgRef.current) return;
+    if (!isClient || !svgRef.current) return;
+
+    // Only clear SVG if loading is complete to prevent flickering during data updates
+    if (loading) {
+      return;
+    }
 
     // Cleanup function to remove all SVG elements and React components
     const cleanup = () => {
@@ -64,17 +69,32 @@ export function useD3EnergyFlowVisualization({
     
     // Only add PV->home flow if there's actual production being used by home
     if (pvToHome > 0) {
-      fluxData.push({ source: "PV", target: "MAISON", kwh: pvToHome });
+      fluxData.push({ 
+        source: "PV", 
+        target: "MAISON", 
+        kwh: pvToHome,
+        title: "Autoconsommation" // Added title as requested
+      });
     }
     
     // Only add grid->home flow when there's actual import from grid
     if (gridImportTotal > 0) {
-      fluxData.push({ source: "GRID", target: "MAISON", kwh: gridImportTotal });
+      fluxData.push({ 
+        source: "GRID", 
+        target: "MAISON", 
+        kwh: gridImportTotal,
+        title: "Réseau" // Added title as requested
+      });
     }
     
     // Only add PV->grid flow when there's actual export from PV to grid
     if (gridExportTotal > 0) {
-      fluxData.push({ source: "PV", target: "GRID", kwh: gridExportTotal });
+      fluxData.push({ 
+        source: "PV", 
+        target: "GRID", 
+        kwh: gridExportTotal,
+        title: "Injection" // Added title as requested
+      });
     }
 
     // Nettoyer le SVG existant
@@ -128,7 +148,6 @@ export function useD3EnergyFlowVisualization({
       .attr("fill", "#555")
       .text("Bilan Énergétique Journalier");
 
-    // Return cleanup function to prevent memory leaks
-    return cleanup;
-  }, [dailyTotals, loading, isClient, svgRef]);
+    // We don't return cleanup here to prevent the chart from disappearing during data updates
+  }, [dailyTotals, isClient, svgRef]);
 }
