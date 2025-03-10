@@ -191,7 +191,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .endAngle(2 * Math.PI / 3);    // +120 degrees
           
         nodeGroup.append('path')
-          .attr('d', arcBg() as string)
+          .attr('d', arcBg({} as any) as string)
           .attr('fill', '#f0f0f0');
           
         // Draw gauge value
@@ -202,7 +202,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .endAngle(-2 * Math.PI / 3 + percentOfMax * (4 * Math.PI / 3));
           
         nodeGroup.append('path')
-          .attr('d', arcValue() as string)
+          .attr('d', arcValue({} as any) as string)
           .attr('fill', '#66BB6A');
           
         // Add min/max labels with adjusted positions for the wider arc
@@ -235,7 +235,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .endAngle(2 * Math.PI / 3);    // +120 degrees
           
         nodeGroup.append('path')
-          .attr('d', arcBg() as string)
+          .attr('d', arcBg({} as any) as string)
           .attr('fill', '#f0f0f0');
           
         // Draw gauge value - different logic and colors for import vs export
@@ -247,7 +247,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
             .endAngle(Math.min(1, percentOfMax) * (2 * Math.PI / 3));  // Up to +120°
             
           nodeGroup.append('path')
-            .attr('d', arcValue() as string)
+            .attr('d', arcValue({} as any) as string)
             .attr('fill', '#ea384c');  // Red for import
         } else { // Exporting
           const arcValue = d3.arc()
@@ -257,7 +257,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
             .endAngle(0);  // to center
             
           nodeGroup.append('path')
-            .attr('d', arcValue() as string)
+            .attr('d', arcValue({} as any) as string)
             .attr('fill', '#1EAEDB');  // Blue for export
         }
           
@@ -385,10 +385,9 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         // Start and end points with offset from circle edge
         const offset = nodeRadius + 5
         const ratioStart = offset / dist
-        const ratioEnd = (dist - offset) / dist
-        
         const x1 = sourceNode.x + dx * ratioStart
         const y1 = sourceNode.y + dy * ratioStart
+        const ratioEnd = (dist - offset) / dist
         const x2 = sourceNode.x + dx * ratioEnd
         const y2 = sourceNode.y + dy * ratioEnd
         
