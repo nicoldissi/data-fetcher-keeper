@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Gauge, TrendingUp, TrendingDown } from 'lucide-react';
 import React from 'react';
@@ -189,16 +188,16 @@ function createCircularGauge(
   // Pourcentage de la production (0-100%)
   const percentage = Math.min(100, Math.max(0, value)) / 100;
   
-  // Arc pour la jauge
-  const arcGenerator = d3.arc()
+  // Arc pour la jauge - Fix: Pass an empty object as an argument to d3.arc()
+  const arcGenerator = d3.arc<any, any>({})
     .innerRadius(nodeRadius + 5)
     .outerRadius(nodeRadius + 10)
     .startAngle(0)
     .endAngle(percentage * 2 * Math.PI);
   
-  // Fond de la jauge
+  // Fond de la jauge - Fix: Pass an empty object as an argument to d3.arc()
   nodeGroup.append("path")
-    .attr("d", d3.arc()
+    .attr("d", d3.arc<any, any>({})
       .innerRadius(nodeRadius + 5)
       .outerRadius(nodeRadius + 10)
       .startAngle(0)
@@ -226,16 +225,16 @@ function createGridCircularGauge(
   
   const percentage = powerScale(power);
   
-  // Arc pour la jauge
-  const arcGenerator = d3.arc()
+  // Arc pour la jauge - Fix: Pass an empty object as an argument to d3.arc()
+  const arcGenerator = d3.arc<any, any>({})
     .innerRadius(nodeRadius + 5)
     .outerRadius(nodeRadius + 10)
     .startAngle(0)
     .endAngle(percentage * 2 * Math.PI);
   
-  // Fond de la jauge
+  // Fond de la jauge - Fix: Pass an empty object as an argument to d3.arc()
   nodeGroup.append("path")
-    .attr("d", d3.arc()
+    .attr("d", d3.arc<any, any>({})
       .innerRadius(nodeRadius + 5)
       .outerRadius(nodeRadius + 10)
       .startAngle(0)
