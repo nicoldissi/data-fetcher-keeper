@@ -8,7 +8,7 @@ interface ShellyConfigListProps {
   shellyConfigs: ShellyConfig[];
   savingConfig: string | null;
   deletingConfig: string | null;
-  updateConfigField: (index: number, field: keyof ShellyConfig, value: string) => void;
+  updateConfigField: (index: number, field: keyof ShellyConfig, value: string | number | null) => void;
   handleUpdateConfig: (index: number) => void;
   handleDeleteConfig: (id: string, index: number) => void;
   handleAddNewConfig: () => void;
@@ -38,11 +38,11 @@ export function ShellyConfigList({
             key={config.id || `new-${index}`}
             config={config}
             index={index}
-            savingConfig={savingConfig}
-            deletingConfig={deletingConfig}
+            saving={savingConfig === config.id || (savingConfig === "new" && !config.id)}
+            deleting={deletingConfig === config.id}
             onUpdateField={updateConfigField}
-            onUpdateConfig={handleUpdateConfig}
-            onDeleteConfig={handleDeleteConfig}
+            onSave={() => handleUpdateConfig(index)}
+            onDelete={() => handleDeleteConfig(config.id || "", index)}
           />
         ))}
       </div>

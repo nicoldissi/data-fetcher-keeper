@@ -13,7 +13,7 @@ interface ShellyConfigCardProps {
   index: number;
   saving: boolean;
   deleting: boolean;
-  onUpdateField: (field: keyof ShellyConfig, value: string | number | null) => void;
+  onUpdateField: (index: number, field: keyof ShellyConfig, value: string | number | null) => void;
   onSave: () => void;
   onDelete: () => void;
 }
@@ -51,7 +51,7 @@ export function ShellyConfigCard({
             id={`config-name-${index}`}
             placeholder="Nom de l'appareil"
             value={config.name || ""}
-            onChange={(e) => onUpdateField("name", e.target.value)}
+            onChange={(e) => onUpdateField(index, "name", e.target.value)}
           />
         </div>
 
@@ -59,7 +59,7 @@ export function ShellyConfigCard({
           <Label htmlFor={`device-type-${index}`}>Type d'appareil</Label>
           <Select
             value={config.deviceType || "ShellyEM"}
-            onValueChange={(value) => onUpdateField("deviceType", value)}
+            onValueChange={(value) => onUpdateField(index, "deviceType", value)}
           >
             <SelectTrigger id={`device-type-${index}`}>
               <SelectValue placeholder="Sélectionner un type" />
@@ -80,7 +80,7 @@ export function ShellyConfigCard({
               step="0.1"
               placeholder="3.0"
               value={config.inverter_power_kva ?? "3.0"}
-              onChange={(e) => onUpdateField("inverter_power_kva", parseFloat(e.target.value))}
+              onChange={(e) => onUpdateField(index, "inverter_power_kva", parseFloat(e.target.value))}
             />
           </div>
           <div className="space-y-2">
@@ -91,7 +91,7 @@ export function ShellyConfigCard({
               step="0.1"
               placeholder="6.0"
               value={config.grid_subscription_kva ?? "6.0"}
-              onChange={(e) => onUpdateField("grid_subscription_kva", parseFloat(e.target.value))}
+              onChange={(e) => onUpdateField(index, "grid_subscription_kva", parseFloat(e.target.value))}
             />
           </div>
         </div>
@@ -105,7 +105,7 @@ export function ShellyConfigCard({
               step="0.000001"
               placeholder="48.8566"
               value={config.latitude ?? ""}
-              onChange={(e) => onUpdateField("latitude", e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => onUpdateField(index, "latitude", e.target.value ? parseFloat(e.target.value) : null)}
             />
           </div>
           <div className="space-y-2">
@@ -116,7 +116,7 @@ export function ShellyConfigCard({
               step="0.000001"
               placeholder="2.3522"
               value={config.longitude ?? ""}
-              onChange={(e) => onUpdateField("longitude", e.target.value ? parseFloat(e.target.value) : null)}
+              onChange={(e) => onUpdateField(index, "longitude", e.target.value ? parseFloat(e.target.value) : null)}
             />
           </div>
         </div>
@@ -127,7 +127,7 @@ export function ShellyConfigCard({
             id={`device-id-${index}`}
             placeholder="ecfabcc7e123"
             value={config.deviceId || ""}
-            onChange={(e) => onUpdateField("deviceId", e.target.value)}
+            onChange={(e) => onUpdateField(index, "deviceId", e.target.value)}
           />
         </div>
 
@@ -138,7 +138,7 @@ export function ShellyConfigCard({
             type="password"
             placeholder="MmIzYzJ1aWQ9..."
             value={config.apiKey || ""}
-            onChange={(e) => onUpdateField("apiKey", e.target.value)}
+            onChange={(e) => onUpdateField(index, "apiKey", e.target.value)}
           />
         </div>
 
@@ -148,7 +148,7 @@ export function ShellyConfigCard({
             id={`server-url-${index}`}
             placeholder="https://shelly-12-eu.shelly.cloud"
             value={config.serverUrl || ""}
-            onChange={(e) => onUpdateField("serverUrl", e.target.value)}
+            onChange={(e) => onUpdateField(index, "serverUrl", e.target.value)}
           />
         </div>
       </CardContent>
