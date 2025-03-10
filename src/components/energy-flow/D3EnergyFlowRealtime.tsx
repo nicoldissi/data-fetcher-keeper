@@ -6,6 +6,7 @@ import { useD3EnergyFlowVisualization } from '@/hooks/useD3EnergyFlowVisualizati
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { Button } from '@/components/ui/button';
 import { Clock, Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface D3EnergyFlowRealtimeProps {
   data: ShellyEMData | null;
@@ -25,6 +26,26 @@ export function D3EnergyFlowRealtime({
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
   const { dailyTotals, loading } = useDailyEnergyTotals(configId || null);
+
+  // Subscribe to real-time updates from Supabase
+  useEffect(() => {
+    if (!configId) return;
+
+    const channel = supabase.channel('realtime-energy')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'energy_data',
+        filter: `shelly_config_id=eq.${configId}`
+      }, (payload) => {
+        console.log('New energy data:', payload.new);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [configId]);
   
   // Calculate realtime totals from current data
   const realtimeTotals = currentData ? {
