@@ -2,7 +2,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   CartesianGrid, Tooltip, 
-  ResponsiveContainer, Area, ComposedChart, ReferenceLine, Line, XAxis, YAxis
+  ResponsiveContainer, Area, ComposedChart, ReferenceLine, Line, XAxis, YAxis,
+  ReferenceDot, Label
 } from 'recharts';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -35,6 +36,12 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     calculateVoltageYAxisDomain
   } = useEnergyChartData(history, configId || null);
 
+  // Maximum values for each data series
+  const [maxConsumption, setMaxConsumption] = useState<{ value: number, index: number } | null>(null);
+  const [maxProduction, setMaxProduction] = useState<{ value: number, index: number } | null>(null);
+  const [maxExport, setMaxExport] = useState<{ value: number, index: number } | null>(null);
+  const [maxImport, setMaxImport] = useState<{ value: number, index: number } | null>(null);
+
   // Calculate and store domains once when data is first loaded
   useEffect(() => {
     if (chartData.length > 0 && !fixedYDomain) {
@@ -58,6 +65,61 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     const voltageDomain = calculateVoltageYAxisDomain(showVoltage);
     setFixedVoltageDomain(voltageDomain);
   }, [showVoltage, calculateVoltageYAxisDomain]);
+
+  // Find maximum values for each curve
+  useEffect(() => {
+    if (chartData.length === 0) {
+      setMaxConsumption(null);
+      setMaxProduction(null);
+      setMaxExport(null);
+      setMaxImport(null);
+      return;
+    }
+
+    // Find max consumption
+    let maxConsIndex = 0;
+    let maxCons = chartData[0].consumption;
+    chartData.forEach((point, index) => {
+      if (point.consumption > maxCons) {
+        maxCons = point.consumption;
+        maxConsIndex = index;
+      }
+    });
+    setMaxConsumption({ value: maxCons, index: maxConsIndex });
+
+    // Find max production
+    let maxProdIndex = 0;
+    let maxProd = chartData[0].production;
+    chartData.forEach((point, index) => {
+      if (point.production > maxProd) {
+        maxProd = point.production;
+        maxProdIndex = index;
+      }
+    });
+    setMaxProduction({ value: maxProd, index: maxProdIndex });
+
+    // Find max grid export (most negative)
+    let maxExportIndex = 0;
+    let maxExportVal = 0;
+    chartData.forEach((point, index) => {
+      if (point.grid < maxExportVal) {
+        maxExportVal = point.grid;
+        maxExportIndex = index;
+      }
+    });
+    setMaxExport(maxExportVal !== 0 ? { value: maxExportVal, index: maxExportIndex } : null);
+
+    // Find max grid import (most positive)
+    let maxImportIndex = 0;
+    let maxImportVal = 0;
+    chartData.forEach((point, index) => {
+      if (point.grid > maxImportVal) {
+        maxImportVal = point.grid;
+        maxImportIndex = index;
+      }
+    });
+    setMaxImport(maxImportVal !== 0 ? { value: maxImportVal, index: maxImportIndex } : null);
+  }, [chartData]);
 
   // Common font styling for the chart
   const fontStyle = {
@@ -139,8 +201,8 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
               <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
             </linearGradient>
             <linearGradient id="colorGridNeg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+              <stop offset="5%" stopColor="#ea384c" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#ea384c" stopOpacity={0.1}/>
             </linearGradient>
             <linearGradient id="colorVoltage" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#9b87f5" stopOpacity={0.8}/>
@@ -179,45 +241,155 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
           <ReferenceLine yAxisId="power" y={0} stroke="#666" strokeDasharray="3 3" />
           
           {showGrid && (
-            <Area
-              type="monotone"
-              dataKey="grid"
-              name="Réseau"
-              yAxisId="power"
-              fill="url(#colorGridPos)"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 6, strokeWidth: 2 }}
-            />
+            <>
+              {/* Grid import (positive values) */}
+              <Area
+                type="monotone"
+                dataKey={(dataPoint) => dataPoint.grid > 0 ? dataPoint.grid : 0}
+                name="Réseau (Import)"
+                yAxisId="power"
+                fill="url(#colorGridPos)"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 2 }}
+                connectNulls={true}
+              />
+              
+              {/* Grid export (negative values) */}
+              <Area
+                type="monotone"
+                dataKey={(dataPoint) => dataPoint.grid < 0 ? dataPoint.grid : null}
+                name="Réseau (Export)"
+                yAxisId="power"
+                fill="url(#colorGridNeg)"
+                stroke="#ea384c"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 2 }}
+                connectNulls={true}
+              />
+              
+              {/* Max export value marker */}
+              {maxExport && (
+                <ReferenceDot 
+                  x={chartData[maxExport.index].time} 
+                  y={maxExport.value} 
+                  yAxisId="power"
+                  r={6} 
+                  fill="#ea384c" 
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  <Label 
+                    value={`${Math.abs(maxExport.value).toFixed(0)}W`} 
+                    position="top" 
+                    fill="#ea384c"
+                    fontSize={12}
+                    fontWeight="bold"
+                    offset={10}
+                  />
+                </ReferenceDot>
+              )}
+              
+              {/* Max import value marker */}
+              {maxImport && (
+                <ReferenceDot 
+                  x={chartData[maxImport.index].time} 
+                  y={maxImport.value} 
+                  yAxisId="power"
+                  r={6} 
+                  fill="#3b82f6" 
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  <Label 
+                    value={`${maxImport.value.toFixed(0)}W`} 
+                    position="top" 
+                    fill="#3b82f6"
+                    fontSize={12}
+                    fontWeight="bold"
+                    offset={10}
+                  />
+                </ReferenceDot>
+              )}
+            </>
           )}
           
           {showProduction && (
-            <Area
-              type="monotone"
-              dataKey="production"
-              name="Production"
-              yAxisId="power"
-              fill="url(#colorProduction)"
-              stroke="#00FF59"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 6, strokeWidth: 2 }}
-            />
+            <>
+              <Area
+                type="monotone"
+                dataKey="production"
+                name="Production"
+                yAxisId="power"
+                fill="url(#colorProduction)"
+                stroke="#00FF59"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 2 }}
+              />
+              
+              {/* Max production marker */}
+              {maxProduction && (
+                <ReferenceDot 
+                  x={chartData[maxProduction.index].time} 
+                  y={maxProduction.value} 
+                  yAxisId="power"
+                  r={6} 
+                  fill="#00FF59" 
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  <Label 
+                    value={`${maxProduction.value.toFixed(0)}W`} 
+                    position="top" 
+                    fill="#00FF59"
+                    fontSize={12}
+                    fontWeight="bold"
+                    offset={10}
+                  />
+                </ReferenceDot>
+              )}
+            </>
           )}
           
           {showConsumption && (
-            <Area
-              type="monotone"
-              dataKey="consumption"
-              name="Consommation"
-              yAxisId="power"
-              fill="url(#colorConsumption)"
-              stroke="#F97415"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 6, strokeWidth: 2 }}
-            />
+            <>
+              <Area
+                type="monotone"
+                dataKey="consumption"
+                name="Consommation"
+                yAxisId="power"
+                fill="url(#colorConsumption)"
+                stroke="#F97415"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 2 }}
+              />
+              
+              {/* Max consumption marker */}
+              {maxConsumption && (
+                <ReferenceDot 
+                  x={chartData[maxConsumption.index].time} 
+                  y={maxConsumption.value} 
+                  yAxisId="power"
+                  r={6} 
+                  fill="#F97415" 
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  <Label 
+                    value={`${maxConsumption.value.toFixed(0)}W`} 
+                    position="top" 
+                    fill="#F97415"
+                    fontSize={12}
+                    fontWeight="bold"
+                    offset={10}
+                  />
+                </ReferenceDot>
+              )}
+            </>
           )}
 
           {showVoltage && (
