@@ -8,6 +8,7 @@ import { Clock, Calendar } from 'lucide-react'
 import { Toggle } from '@/components/ui/toggle'
 import { D3EnergyFlow } from './energy-flow/D3EnergyFlow'
 import { D3RealtimeEnergyFlow } from './energy-flow/D3RealtimeEnergyFlow'
+import { D3RealtimeEnergyFlowComponent } from './energy-flow/D3RealtimeEnergyFlowComponent'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
@@ -93,7 +94,9 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
               ref={containerRef} 
               className="relative w-full max-w-md aspect-square"
             >
-              <D3RealtimeEnergyFlow data={data} size={size} />
+              {/* Switch between the legacy and new component based on your preference */}
+              {false && <D3RealtimeEnergyFlow data={data} size={size} />}
+              <D3RealtimeEnergyFlowComponent data={data} className="w-full" />
             </div>
           ) : (
             <div className="text-center text-muted-foreground">

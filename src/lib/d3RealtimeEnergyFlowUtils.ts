@@ -22,7 +22,7 @@ interface NodeData {
   color: string;
   gaugeValue?: number;
   maxCapacity?: number;
-  direction?: 'import' | 'export';  // Fixed type to be a union of literals
+  direction?: 'import' | 'export';
   power?: number;
 }
 
