@@ -1,12 +1,13 @@
 
 import { useRef, useState, useEffect } from 'react';
-import { ShellyEMData } from '@/lib/types';
+import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useD3EnergyFlowVisualization } from '@/hooks/useD3EnergyFlowVisualization';
+import { useD3EnergyFlowVisualization, PowerData } from '@/hooks/useD3EnergyFlowVisualization';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { Button } from '@/components/ui/button';
 import { Clock, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getShellyConfig } from '@/lib/api';
 
 interface D3EnergyFlowRealtimeProps {
   data: ShellyEMData | null;
@@ -26,6 +27,19 @@ export function D3EnergyFlowRealtime({
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
   const { dailyTotals, loading } = useDailyEnergyTotals(configId || null);
+  const [shellyConfig, setShellyConfig] = useState<ShellyConfig | null>(null);
+
+  // Fetch Shelly config to get power limits
+  useEffect(() => {
+    const fetchConfig = async () => {
+      if (configId) {
+        const config = await getShellyConfig(configId);
+        setShellyConfig(config);
+      }
+    };
+    
+    fetchConfig();
+  }, [configId]);
 
   // Subscribe to real-time updates from Supabase
   useEffect(() => {
@@ -48,7 +62,7 @@ export function D3EnergyFlowRealtime({
   }, [configId]);
   
   // Calculate realtime totals from current data
-  const realtimeTotals = currentData ? {
+  const realtimeTotals: PowerData = currentData ? {
     production: currentData.pv_power,
     consumption: currentData.power + currentData.pv_power,
     importFromGrid: currentData.power > 0 ? currentData.power : 0,
@@ -66,13 +80,31 @@ export function D3EnergyFlowRealtime({
     selfConsumption: 0
   };
 
+  // Convert dailyTotals to PowerData
+  const dailyPowerData: PowerData = {
+    production: dailyTotals.production,
+    consumption: dailyTotals.consumption,
+    injection: dailyTotals.injection,
+    importFromGrid: dailyTotals.importFromGrid,
+    selfConsumption: Math.max(0, dailyTotals.production - dailyTotals.injection),
+    batteryCharge: 0,
+    batteryDischarge: 0
+  };
+
+  // Calculate max power values in watts
+  const maxValues = {
+    inverterPowerW: shellyConfig?.inverterPowerKva ? shellyConfig.inverterPowerKva * 1000 : 3000,
+    gridSubscriptionW: shellyConfig?.gridSubscriptionKva ? shellyConfig.gridSubscriptionKva * 1000 : 6000
+  };
+
   // Use the D3 visualization hook with the appropriate data
   useD3EnergyFlowVisualization({
     svgRef,
-    dailyTotals: showDaily ? dailyTotals : realtimeTotals,
+    powerData: showDaily ? dailyPowerData : realtimeTotals,
     loading: showDaily ? loading : !currentData,
     isClient,
-    setIsClient
+    setIsClient,
+    maxValues
   });
 
   if (!currentData && !showDaily) {

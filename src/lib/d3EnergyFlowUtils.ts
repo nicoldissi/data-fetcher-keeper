@@ -12,13 +12,14 @@ interface Center {
 interface FluxData {
   source: string;
   target: string;
-  kwh: number;
+  w: number;
 }
 
 interface DonutData {
   id: string;
   label: string;
-  totalKwh: number;
+  totalW: number;
+  maxW: number;
   ratio: number;
   importTotal?: number;
   exportTotal?: number;
@@ -30,12 +31,12 @@ export function createFluxPaths(
   centers: Record<string, Center>,
   outerRadius: number
 ) {
-  const kwhValues = fluxData.map(f => f.kwh);
-  const maxKwh = Math.max(...kwhValues);
-  const minKwh = Math.min(...kwhValues);
+  const wValues = fluxData.map(f => f.w);
+  const maxW = Math.max(...wValues, 1); // Ensure non-zero
+  const minW = Math.min(...wValues);
 
   const strokeScale = d3.scaleLinear()
-    .domain([Math.max(0.1, minKwh), Math.max(1, maxKwh)])
+    .domain([Math.max(0.1, minW), Math.max(1, maxW)])
     .range([2, 8]);
 
   function getFluxColor(d: FluxData) {
@@ -51,7 +52,7 @@ export function createFluxPaths(
     .attr("class", "flux")
     .attr("fill", "none")
     .attr("stroke", d => getFluxColor(d))
-    .attr("stroke-width", d => strokeScale(Math.max(0.1, d.kwh)))
+    .attr("stroke-width", d => strokeScale(Math.max(0.1, d.w)))
     .attr("stroke-linecap", "round")
     .attr("stroke-dasharray", "8 8")
     .attr("filter", "url(#glow)")
@@ -152,10 +153,19 @@ export function createFluxPaths(
         .attr("font-size", 12)
         .attr("font-weight", "medium")
         .attr("fill", textColor)
-        .text(`${d.kwh.toFixed(1)} kWh`);
+        .text(`${formatPower(d.w)}`);
     });
 
   return fluxPaths;
+}
+
+// Helper function to format power values
+function formatPower(watts: number): string {
+  if (watts >= 1000) {
+    return `${(watts / 1000).toFixed(1)} kW`;
+  } else {
+    return `${Math.round(watts)} W`;
+  }
 }
 
 export function createDonutCharts(
@@ -207,62 +217,92 @@ export function createDonutCharts(
     }
     
     if (d.id === "MAISON") {
+      // For MAISON, create a gauge from 0 to max consumption
+      const normalizedValue = Math.min(d.totalW / d.maxW, 1);
+      const angle = normalizedValue * 240 - 120; // -120 to +120 degrees
+      
       d3.select(this).append("path")
-        .attr("class", "arc-pv")
-        .attr("fill", "#66BB6A")
+        .attr("class", "arc-value")
+        .attr("fill", fillColor)
         .transition()
         .duration(800)
         .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
+          const interpolate = d3.interpolate(0, angle * Math.PI / 180);
           return (t: number) => {
             return d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
-              .startAngle(0)
-              .endAngle(interpolate(t))({} as any) as string;
-          };
-        });
-
-      d3.select(this).append("path")
-        .attr("class", "arc-grid")
-        .attr("fill", "#42A5F5")
-        .transition()
-        .duration(800)
-        .attrTween("d", function() {
-          const start = d.ratio * 2 * Math.PI;
-          const interpolate = d3.interpolate(start, 2 * Math.PI);
-          return (t: number) => {
-            return d3.arc()
-              .innerRadius(outerRadius - thickness)
-              .outerRadius(outerRadius)
-              .startAngle(start)
-              .endAngle(interpolate(t))({} as any) as string;
+              .startAngle(-Math.PI/2) // Start at top (North)
+              .endAngle(-Math.PI/2 + interpolate(t))({} as any) as string;
           };
         });
     } else if (d.id === "RESEAU") {
-      // For RESEAU, simply show a transparent/white gauge with network information
+      // For RESEAU, create a gauge from -max to +max power
+      // Negative = injection (export), Positive = consumption (import)
+      const importValue = d.importTotal || 0;
+      const exportValue = d.exportTotal || 0;
+      
+      // Export (negative, shown in green/blue)
+      if (exportValue > 0) {
+        const normalizedExport = Math.min(exportValue / d.maxW, 1);
+        const exportAngle = normalizedExport * 120; // 0 to 120 degrees
+        
+        d3.select(this).append("path")
+          .attr("class", "arc-export")
+          .attr("fill", "#388E3C") // Green for export
+          .transition()
+          .duration(800)
+          .attrTween("d", function() {
+            const interpolate = d3.interpolate(0, exportAngle * Math.PI / 180);
+            return (t: number) => {
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(-Math.PI/2) // Start at top (North)
+                .endAngle(-Math.PI/2 - interpolate(t))({} as any) as string;
+            };
+          });
+      }
+      
+      // Import (positive, shown in red/blue)
+      if (importValue > 0) {
+        const normalizedImport = Math.min(importValue / d.maxW, 1);
+        const importAngle = normalizedImport * 120; // 0 to 120 degrees
+        
+        d3.select(this).append("path")
+          .attr("class", "arc-import")
+          .attr("fill", "#EF5350") // Red for import
+          .transition()
+          .duration(800)
+          .attrTween("d", function() {
+            const interpolate = d3.interpolate(0, importAngle * Math.PI / 180);
+            return (t: number) => {
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(-Math.PI/2) // Start at top (North)
+                .endAngle(-Math.PI/2 + interpolate(t))({} as any) as string;
+            };
+          });
+      }
+    } else if (d.id === "PV") {
+      // For PV, create a gauge from 0 to max production (inverter power)
+      const normalizedValue = Math.min(d.totalW / d.maxW, 1);
+      const angle = normalizedValue * 240 - 120; // -120 to +120 degrees
+      
       d3.select(this).append("path")
         .attr("class", "arc-value")
         .attr("fill", fillColor)
-        .attr("fill-opacity", 0.4)
         .transition()
         .duration(800)
         .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
+          const interpolate = d3.interpolate(0, angle * Math.PI / 180);
           return (t: number) => {
-            return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
-          };
-        });
-    } else {
-      d3.select(this).append("path")
-        .attr("class", "arc-value")
-        .attr("fill", fillColor)
-        .transition()
-        .duration(800)
-        .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
-          return (t: number) => {
-            return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
+            return d3.arc()
+              .innerRadius(outerRadius - thickness)
+              .outerRadius(outerRadius)
+              .startAngle(-Math.PI/2) // Start at top (North)
+              .endAngle(-Math.PI/2 + interpolate(t))({} as any) as string;
           };
         });
     }
@@ -303,22 +343,30 @@ export function createDonutCharts(
       );
     }
 
-    // Percentage text (in the center)
-    if (d.id === "PV" || d.id === "MAISON") {
+    // Display the current power value in the center
+    if (d.id === "PV") {
       d3.select(this).append("text")
         .attr("fill", textColor)
         .attr("font-size", 16)
         .attr("font-weight", "bold")
         .attr("text-anchor", "middle") 
-        .attr("dy", 10)
-        .text(`${Math.round(d.ratio * 100)}%`);
+        .attr("dy", 5)
+        .text(formatPower(d.totalW));
 
       d3.select(this).append("text")
         .attr("fill", textColor)
-        .attr("font-size", 14)
+        .attr("font-size", 12)
         .attr("text-anchor", "middle")
-        .attr("dy", 30)
-        .text(`${d.totalKwh.toFixed(1)} kWh`);
+        .attr("dy", 25)
+        .text(`Max: ${formatPower(d.maxW)}`);
+    } else if (d.id === "MAISON") {
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 16)
+        .attr("font-weight", "bold")
+        .attr("text-anchor", "middle") 
+        .attr("dy", 5)
+        .text(formatPower(d.totalW));
     } else if (d.id === "RESEAU") {
       // For RESEAU, display the import and export values
       d3.select(this).append("text")
@@ -348,17 +396,17 @@ export function createDonutCharts(
         importForeignObject.node()?.appendChild(importContainer);
         
         ReactDOM.render(
-          React.createElement(ArrowRight, { size: 16, color: textColor, strokeWidth: 2 }),
+          React.createElement(ArrowRight, { size: 16, color: "#EF5350", strokeWidth: 2 }),
           importContainer
         );
 
         d3.select(this).append("text")
-          .attr("fill", textColor)
+          .attr("fill", "#EF5350")
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
           .attr("x", 10)
           .attr("dy", 25)
-          .text(`${d.importTotal.toFixed(1)} kWh`);
+          .text(formatPower(d.importTotal));
 
         // Export indicator with ArrowLeft icon
         const exportForeignObject = d3.select(this)
@@ -388,7 +436,7 @@ export function createDonutCharts(
           .attr("text-anchor", "middle")
           .attr("x", 10)
           .attr("dy", 42)
-          .text(`${d.exportTotal.toFixed(1)} kWh`);
+          .text(formatPower(d.exportTotal));
       }
     }
   });

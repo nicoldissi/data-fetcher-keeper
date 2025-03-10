@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
-import { useD3EnergyFlowVisualization } from '@/hooks/useD3EnergyFlowVisualization';
+import { useD3EnergyFlowVisualization, PowerData } from '@/hooks/useD3EnergyFlowVisualization';
 
 interface D3EnergyFlowProps {
   configId?: string;
@@ -14,10 +14,21 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
 
+  // Convert dailyTotals to PowerData
+  const powerData: PowerData = {
+    production: dailyTotals.production,
+    consumption: dailyTotals.consumption,
+    injection: dailyTotals.injection,
+    importFromGrid: dailyTotals.importFromGrid,
+    selfConsumption: Math.max(0, dailyTotals.production - dailyTotals.injection),
+    batteryCharge: 0,
+    batteryDischarge: 0
+  };
+
   // Initialize D3 visualization
   useD3EnergyFlowVisualization({
     svgRef,
-    dailyTotals,
+    powerData,
     loading,
     isClient,
     setIsClient
