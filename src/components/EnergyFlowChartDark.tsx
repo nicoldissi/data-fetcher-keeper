@@ -14,7 +14,6 @@ interface EnergyFlowChartDarkProps {
 
 interface FlowAnimationState {
   gridToHome: boolean
-  gridFromHome: boolean
   solarToHome: boolean
   solarToGrid: boolean
 }
@@ -33,7 +32,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
   const [size, setSize] = useState({ width: 400, height: 400 })
   const [flowAnimations, setFlowAnimations] = useState<FlowAnimationState>({
     gridToHome: false,
-    gridFromHome: false,
     solarToHome: false,
     solarToGrid: false
   })
@@ -79,9 +77,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     setFlowAnimations({
       // Only show grid to home flow when grid is supplying power AND PV isn't meeting all needs
       gridToHome: isGridImporting && !isPVExceedingHomeNeeds,
-      
-      // Only show grid from home when we're actually exporting TO the grid (negative power)
-      gridFromHome: isGridExporting,
       
       // Show solar to home when PV is producing
       solarToHome: isPVProducing,
@@ -225,15 +220,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
         power: data.power
       },
       {
-        id: "gridFromHome",
-        source: "home", 
-        target: "grid",
-        active: flowAnimations.gridFromHome,
-        color: "#388E3C",
-        curveOffset: 80, // Increased offset for wider spacing
-        power: -data.power
-      },
-      {
         id: "solarToHome",
         source: "solar",
         target: "home",
@@ -333,7 +319,6 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
           .text(() => {
             let power = 0
             if (path.id === 'gridToHome') power = data.power
-            else if (path.id === 'gridFromHome') power = -data.power
             else if (path.id === 'solarToHome') {
               const toGrid = data.power < 0 ? -data.power : 0
               power = data.pv_power - toGrid
