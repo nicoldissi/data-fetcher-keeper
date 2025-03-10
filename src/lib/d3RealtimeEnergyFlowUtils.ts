@@ -190,14 +190,14 @@ function createCircularGauge(
   const percentage = Math.min(100, Math.max(0, value)) / 100;
   
   // Create an arc generator
-  const arcGenerator = d3.arc<any>()
+  const arcGenerator = d3.arc()
     .innerRadius(nodeRadius + 5)
     .outerRadius(nodeRadius + 10)
     .startAngle(0)
     .endAngle(percentage * 2 * Math.PI);
   
   // Create background arc
-  const backgroundArc = d3.arc<any>()
+  const backgroundArc = d3.arc()
     .innerRadius(nodeRadius + 5)
     .outerRadius(nodeRadius + 10)
     .startAngle(0)
@@ -205,12 +205,12 @@ function createCircularGauge(
   
   // Add background arc
   nodeGroup.append("path")
-    .attr("d", backgroundArc())
+    .attr("d", backgroundArc as any)
     .attr("fill", "#e5e7eb");
   
   // Add foreground arc
   nodeGroup.append("path")
-    .attr("d", arcGenerator())
+    .attr("d", arcGenerator as any)
     .attr("fill", color);
 }
 
@@ -230,14 +230,14 @@ function createGridCircularGauge(
   const percentage = powerScale(power);
   
   // Create an arc generator
-  const arcGenerator = d3.arc<any>()
+  const arcGenerator = d3.arc()
     .innerRadius(nodeRadius + 5)
     .outerRadius(nodeRadius + 10)
     .startAngle(0)
     .endAngle(percentage * 2 * Math.PI);
   
   // Create background arc
-  const backgroundArc = d3.arc<any>()
+  const backgroundArc = d3.arc()
     .innerRadius(nodeRadius + 5)
     .outerRadius(nodeRadius + 10)
     .startAngle(0)
@@ -245,12 +245,12 @@ function createGridCircularGauge(
   
   // Add background arc
   nodeGroup.append("path")
-    .attr("d", backgroundArc())
+    .attr("d", backgroundArc as any)
     .attr("fill", "#e5e7eb");
   
   // Add foreground arc
   nodeGroup.append("path")
-    .attr("d", arcGenerator())
+    .attr("d", arcGenerator as any)
     .attr("fill", color);
   
   // Indicateur de direction

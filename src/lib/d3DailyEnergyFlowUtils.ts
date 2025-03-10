@@ -199,13 +199,13 @@ export function createDonutCharts(
   thickness: number,
   isDaily: boolean = false
 ) {
-  const arcBg = d3.arc<any>()
+  const arcBg = d3.arc()
     .innerRadius(outerRadius - thickness)
     .outerRadius(outerRadius)
     .startAngle(0)
     .endAngle(2 * Math.PI);
 
-  const arcValue = d3.arc<any>()
+  const arcValue = d3.arc()
     .innerRadius(outerRadius - thickness)
     .outerRadius(outerRadius)
     .startAngle(0);
@@ -221,7 +221,7 @@ export function createDonutCharts(
     });
 
   donutGroup.append("path")
-    .attr("d", arcBg())
+    .attr("d", arcBg as any)
     .attr("fill", (d: DonutData) => {
       return d.id === "GRID" ? "#F1F1F1" : "#eee";
     });
@@ -250,7 +250,7 @@ export function createDonutCharts(
         .attrTween("d", function() {
           const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
           return (t: number) => {
-            return d3.arc<any>()
+            return d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
               .startAngle(0)
@@ -267,7 +267,7 @@ export function createDonutCharts(
           const start = d.ratio * 2 * Math.PI;
           const interpolate = d3.interpolate(start, 2 * Math.PI);
           return (t: number) => {
-            return d3.arc<any>()
+            return d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
               .startAngle(start)
@@ -288,7 +288,7 @@ export function createDonutCharts(
             const importAngle = importRatio * 2 * Math.PI;
             const interpolate = d3.interpolate(0, importAngle);
             return (t: number) => {
-              return d3.arc<any>()
+              return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(0)
@@ -306,7 +306,7 @@ export function createDonutCharts(
             const exportAngle = 2 * Math.PI;
             const interpolate = d3.interpolate(importAngle, exportAngle);
             return (t: number) => {
-              return d3.arc<any>()
+              return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(importAngle)
@@ -327,7 +327,7 @@ export function createDonutCharts(
             const selfConsumptionAngle = selfConsumptionRate * 2 * Math.PI;
             const interpolate = d3.interpolate(0, selfConsumptionAngle);
             return (t: number) => {
-              return d3.arc<any>()
+              return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(0)
@@ -345,7 +345,7 @@ export function createDonutCharts(
             const totalAngle = 2 * Math.PI;
             const interpolate = d3.interpolate(selfConsumptionAngle, totalAngle);
             return (t: number) => {
-              return d3.arc<any>()
+              return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(selfConsumptionAngle)
