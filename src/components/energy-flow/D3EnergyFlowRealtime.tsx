@@ -1,5 +1,5 @@
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useD3EnergyFlowVisualization, PowerData } from '@/hooks/useD3EnergyFlowVisualization';
@@ -26,9 +26,9 @@ export function D3EnergyFlowRealtime({
 }: D3EnergyFlowRealtimeProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
-  const { dailyTotals, loading } = useDailyEnergyTotals(configId || null);
+  const { dailyTotals, loading: loadingDaily } = useDailyEnergyTotals(configId || null);
   const [shellyConfig, setShellyConfig] = useState<ShellyConfig | null>(null);
-
+  
   // Fetch Shelly config to get power limits
   useEffect(() => {
     const fetchConfig = async () => {
@@ -41,9 +41,9 @@ export function D3EnergyFlowRealtime({
     fetchConfig();
   }, [configId]);
 
-  // Subscribe to real-time updates from Supabase
+  // Réduire les souscriptions inutiles en n'activant que la vue en temps réel
   useEffect(() => {
-    if (!configId) return;
+    if (!configId || showDaily) return;
 
     const channel = supabase.channel('realtime-energy')
       .on('postgres_changes', {
@@ -59,29 +59,31 @@ export function D3EnergyFlowRealtime({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [configId]);
+  }, [configId, showDaily]);
   
-  // Calculate realtime totals from current data
-  const realtimeTotals: PowerData = currentData ? {
-    production: currentData.pv_power,
-    consumption: currentData.power + currentData.pv_power,
-    importFromGrid: currentData.power > 0 ? currentData.power : 0,
-    injection: currentData.power < 0 ? Math.abs(currentData.power) : 0,
-    batteryCharge: 0,
-    batteryDischarge: 0,
-    selfConsumption: Math.min(currentData.pv_power, currentData.power + currentData.pv_power)
-  } : {
-    production: 0,
-    consumption: 0,
-    importFromGrid: 0,
-    injection: 0,
-    batteryCharge: 0,
-    batteryDischarge: 0,
-    selfConsumption: 0
-  };
+  // Calculate realtime totals from current data using useMemo to prevent unnecessary recalculations
+  const realtimeTotals: PowerData = useMemo(() => {
+    return currentData ? {
+      production: currentData.pv_power,
+      consumption: currentData.power > 0 ? currentData.power + currentData.pv_power : currentData.pv_power - Math.abs(currentData.power),
+      importFromGrid: currentData.power > 0 ? currentData.power : 0,
+      injection: currentData.power < 0 ? Math.abs(currentData.power) : 0,
+      batteryCharge: 0,
+      batteryDischarge: 0,
+      selfConsumption: Math.min(currentData.pv_power, currentData.power > 0 ? currentData.power + currentData.pv_power : currentData.pv_power)
+    } : {
+      production: 0,
+      consumption: 0,
+      importFromGrid: 0,
+      injection: 0,
+      batteryCharge: 0,
+      batteryDischarge: 0,
+      selfConsumption: 0
+    };
+  }, [currentData]);
 
   // Convert dailyTotals to PowerData
-  const dailyPowerData: PowerData = {
+  const dailyPowerData: PowerData = useMemo(() => ({
     production: dailyTotals.production,
     consumption: dailyTotals.consumption,
     injection: dailyTotals.injection,
@@ -89,19 +91,19 @@ export function D3EnergyFlowRealtime({
     selfConsumption: Math.max(0, dailyTotals.production - dailyTotals.injection),
     batteryCharge: 0,
     batteryDischarge: 0
-  };
+  }), [dailyTotals]);
 
   // Calculate max power values in watts
-  const maxValues = {
+  const maxValues = useMemo(() => ({
     inverterPowerW: shellyConfig?.inverterPowerKva ? shellyConfig.inverterPowerKva * 1000 : 3000,
     gridSubscriptionW: shellyConfig?.gridSubscriptionKva ? shellyConfig.gridSubscriptionKva * 1000 : 6000
-  };
+  }), [shellyConfig]);
 
   // Use the D3 visualization hook with the appropriate data
   useD3EnergyFlowVisualization({
     svgRef,
     powerData: showDaily ? dailyPowerData : realtimeTotals,
-    loading: showDaily ? loading : !currentData,
+    loading: showDaily ? loadingDaily : !currentData,
     isClient,
     setIsClient,
     maxValues

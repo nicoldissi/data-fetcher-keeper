@@ -1,8 +1,10 @@
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { useD3EnergyFlowVisualization, PowerData } from '@/hooks/useD3EnergyFlowVisualization';
+import { getShellyConfig } from '@/lib/api';
+import { ShellyConfig } from '@/lib/types';
 
 interface D3EnergyFlowProps {
   configId?: string;
@@ -13,8 +15,21 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
   const { dailyTotals, loading } = useDailyEnergyTotals(configId);
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
+  const [shellyConfig, setShellyConfig] = useState<ShellyConfig | null>(null);
 
-  // Convert dailyTotals to PowerData
+  // Fetch Shelly config to get power limits
+  useEffect(() => {
+    const fetchConfig = async () => {
+      if (configId) {
+        const config = await getShellyConfig(configId);
+        setShellyConfig(config);
+      }
+    };
+    
+    fetchConfig();
+  }, [configId]);
+
+  // Convert dailyTotals to PowerData (only when dailyTotals changes)
   const powerData: PowerData = {
     production: dailyTotals.production,
     consumption: dailyTotals.consumption,
@@ -25,13 +40,20 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
     batteryDischarge: 0
   };
 
+  // Calculate max power values in watts
+  const maxValues = {
+    inverterPowerW: shellyConfig?.inverterPowerKva ? shellyConfig.inverterPowerKva * 1000 : 3000,
+    gridSubscriptionW: shellyConfig?.gridSubscriptionKva ? shellyConfig.gridSubscriptionKva * 1000 : 6000
+  };
+
   // Initialize D3 visualization
   useD3EnergyFlowVisualization({
     svgRef,
     powerData,
     loading,
     isClient,
-    setIsClient
+    setIsClient,
+    maxValues
   });
 
   if (loading) {

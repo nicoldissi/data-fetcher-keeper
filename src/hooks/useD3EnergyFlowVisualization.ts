@@ -1,5 +1,5 @@
 
-import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
+import { useEffect, RefObject, Dispatch, SetStateAction, useRef } from 'react';
 import * as d3 from 'd3';
 import { DailyTotals } from './useDailyEnergyTotals';
 import { createFluxPaths, createDonutCharts } from '@/lib/d3EnergyFlowUtils';
@@ -36,6 +36,9 @@ export function useD3EnergyFlowVisualization({
   setIsClient,
   maxValues
 }: UseD3EnergyFlowVisualizationProps) {
+  // Store previous data for smoother transitions
+  const prevDataRef = useRef<PowerData>(powerData);
+  
   // Set isClient to true on client side
   useEffect(() => {
     setIsClient(true);
@@ -49,7 +52,8 @@ export function useD3EnergyFlowVisualization({
     const cleanup = () => {
       if (svgRef.current) {
         const svg = d3.select(svgRef.current);
-        svg.selectAll("*").remove();
+        // Do not remove all elements, just update them
+        // svg.selectAll("*").remove();
       }
     };
 
@@ -115,56 +119,61 @@ export function useD3EnergyFlowVisualization({
       fluxData.push({ source: "PV", target: "RESEAU", w: gridExportTotal });
     }
 
-    // Nettoyer le SVG existant
+    // Get the SVG element
     const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
 
-    // Appliquer les dimensions
-    const svgWidth = 700;
-    const svgHeight = 500;
-    svg.attr("width", svgWidth)
-       .attr("height", svgHeight)
-       .attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`)
-       .attr("preserveAspectRatio", "xMidYMid meet");
+    // Initialize SVG if it's empty
+    if (svg.select("defs").empty()) {
+      // Appliquer les dimensions
+      const svgWidth = 700;
+      const svgHeight = 500;
+      svg.attr("width", svgWidth)
+         .attr("height", svgHeight)
+         .attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`)
+         .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Créer les définitions pour les effets
-    const defs = svg.append("defs");
-    defs.append("filter")
-      .attr("id", "glow")
-      .html(`
-        <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-        <feMerge>
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      `);
+      // Créer les définitions pour les effets
+      const defs = svg.append("defs");
+      defs.append("filter")
+        .attr("id", "glow")
+        .html(`
+          <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        `);
+
+      // Ajouter un titre
+      svg.append("text")
+        .attr("x", svgWidth / 2)
+        .attr("y", 40)
+        .attr("text-anchor", "middle")
+        .attr("font-size", 18)
+        .attr("font-weight", "bold")
+        .attr("fill", "#555")
+        .text("Bilan Énergétique");
+    }
 
     // Définir les positions des centres avec plus d'écart
     const centers = {
-      PV:     { x: svgWidth / 2,        y: 120 },
-      RESEAU: { x: svgWidth / 2 - 240,  y: 380 }, // Écarté à gauche
-      MAISON: { x: svgWidth / 2 + 240,  y: 380 }  // Écarté à droite
+      PV:     { x: 700 / 2,        y: 120 },
+      RESEAU: { x: 700 / 2 - 240,  y: 380 }, // Écarté à gauche
+      MAISON: { x: 700 / 2 + 240,  y: 380 }  // Écarté à droite
     };
 
     // Définir les dimensions des donuts
     const outerRadius = 60;
     const thickness = 12;
 
-    // Create flux paths between nodes
-    const fluxPaths = createFluxPaths(svg, fluxData, centers, outerRadius);
+    // Create or update flux paths between nodes
+    createFluxPaths(svg, fluxData, centers, outerRadius);
 
-    // Create donut charts with icons on top
-    createDonutCharts(svg, donutsData, centers, outerRadius, thickness);
+    // Create or update donut charts with icons on top
+    createDonutCharts(svg, donutsData, centers, outerRadius, thickness, prevDataRef);
 
-    // Ajouter un titre
-    svg.append("text")
-      .attr("x", svgWidth / 2)
-      .attr("y", 40)
-      .attr("text-anchor", "middle")
-      .attr("font-size", 18)
-      .attr("font-weight", "bold")
-      .attr("fill", "#555")
-      .text("Bilan Énergétique");
+    // Update the previous data reference for next render
+    prevDataRef.current = powerData;
 
     // Return cleanup function to prevent memory leaks
     return cleanup;

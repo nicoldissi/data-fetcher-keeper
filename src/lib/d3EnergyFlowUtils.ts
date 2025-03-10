@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { PowerData } from '@/hooks/useD3EnergyFlowVisualization';
 
 interface Center {
   x: number;
@@ -44,6 +45,10 @@ export function createFluxPaths(
     if(d.source === "RESEAU") return "#42A5F5";
     return "#888";
   }
+
+  // Clear any existing flux paths
+  svg.selectAll(".flux").remove();
+  svg.selectAll(".flux-label-container").remove();
 
   const fluxPaths = svg.selectAll(".flux")
     .data(fluxData)
@@ -173,7 +178,8 @@ export function createDonutCharts(
   donutsData: DonutData[],
   centers: Record<string, Center>,
   outerRadius: number,
-  thickness: number
+  thickness: number,
+  prevDataRef?: React.MutableRefObject<PowerData>
 ) {
   const arcBg = d3.arc()
     .innerRadius(outerRadius - thickness)
@@ -186,22 +192,31 @@ export function createDonutCharts(
     .outerRadius(outerRadius)
     .startAngle(0);
 
-  const donutGroup = svg.selectAll(".donut")
-    .data(donutsData)
-    .enter()
-    .append("g")
-    .attr("class", "donut")
-    .attr("transform", (d: DonutData) => {
-      const c = centers[d.id as keyof typeof centers];
-      return `translate(${c.x}, ${c.y})`;
-    });
+  // Create donut group containers if they don't exist
+  donutsData.forEach(data => {
+    const id = data.id;
+    const center = centers[id as keyof typeof centers];
+    
+    // Check if group exists
+    if (svg.select(`.donut-${id}`).empty()) {
+      svg.append("g")
+        .attr("class", `donut donut-${id}`)
+        .attr("transform", `translate(${center.x}, ${center.y})`);
+    }
+  });
 
-  // Background circle for donuts - explicitly setting a light fill color, not black
-  donutGroup.append("path")
-    .attr("d", arcBg({} as any) as string)
-    .attr("fill", "#F1F1F1");
+  // Update each donut independently
+  donutsData.forEach(d => {
+    const donutGroup = svg.select(`.donut-${d.id}`);
+    
+    // Create background circle for donuts if it doesn't exist
+    if (donutGroup.select(".donut-bg").empty()) {
+      donutGroup.append("path")
+        .attr("class", "donut-bg")
+        .attr("d", arcBg({} as any))
+        .attr("fill", "#F1F1F1");
+    }
 
-  donutGroup.each(function(d: DonutData) {
     let fillColor = "";
     let textColor = "";
     
@@ -220,132 +235,241 @@ export function createDonutCharts(
       // For MAISON, create a gauge from 0 to max consumption
       const normalizedValue = Math.min(d.totalW / d.maxW, 1);
       const angle = normalizedValue * 240 - 120; // -120 to +120 degrees
+
+      // Select the arc path for maison gauge (or create it if it doesn't exist)
+      let arcPath = donutGroup.select(".arc-value-maison");
       
-      d3.select(this).append("path")
-        .attr("class", "arc-value")
-        .attr("fill", fillColor)
-        .transition()
+      if (arcPath.empty()) {
+        arcPath = donutGroup.append("path")
+          .attr("class", "arc-value-maison")
+          .attr("fill", fillColor)
+          .attr("d", d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(-Math.PI/2) // Start at top (North)
+            .endAngle(-Math.PI/2)({} as any));
+      }
+      
+      // Update with transition
+      arcPath.transition()
         .duration(800)
         .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, angle * Math.PI / 180);
+          // Smooth transition from previous angle to new angle
+          const currentEndAngle = this.current || -Math.PI/2;
+          const targetEndAngle = -Math.PI/2 + angle * Math.PI / 180;
+          this.current = targetEndAngle;
+          
           return (t: number) => {
+            const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
             return d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
               .startAngle(-Math.PI/2) // Start at top (North)
-              .endAngle(-Math.PI/2 + interpolate(t))({} as any) as string;
+              .endAngle(interpolatedAngle)({} as any);
           };
         });
+      
     } else if (d.id === "RESEAU") {
       // For RESEAU, create a gauge from -max to +max power
       // Negative = injection (export), Positive = consumption (import)
       const importValue = d.importTotal || 0;
       const exportValue = d.exportTotal || 0;
       
-      // Export (negative, shown in green/blue)
+      // Export (negative, shown in green)
       if (exportValue > 0) {
         const normalizedExport = Math.min(exportValue / d.maxW, 1);
         const exportAngle = normalizedExport * 120; // 0 to 120 degrees
         
-        d3.select(this).append("path")
-          .attr("class", "arc-export")
-          .attr("fill", "#388E3C") // Green for export
-          .transition()
+        let exportArc = donutGroup.select(".arc-export");
+        
+        if (exportArc.empty()) {
+          exportArc = donutGroup.append("path")
+            .attr("class", "arc-export")
+            .attr("fill", "#388E3C") // Green for export
+            .attr("d", d3.arc()
+              .innerRadius(outerRadius - thickness)
+              .outerRadius(outerRadius)
+              .startAngle(-Math.PI/2) // Start at top (North)
+              .endAngle(-Math.PI/2)({} as any));
+        }
+        
+        exportArc.transition()
           .duration(800)
           .attrTween("d", function() {
-            const interpolate = d3.interpolate(0, exportAngle * Math.PI / 180);
+            const currentEndAngle = this.current || -Math.PI/2;
+            const targetEndAngle = -Math.PI/2 - exportAngle * Math.PI / 180;
+            this.current = targetEndAngle;
+            
             return (t: number) => {
+              const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
               return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(-Math.PI/2) // Start at top (North)
-                .endAngle(-Math.PI/2 - interpolate(t))({} as any) as string;
+                .endAngle(interpolatedAngle)({} as any);
             };
           });
+      } else {
+        // If no export, reset the export arc
+        const exportArc = donutGroup.select(".arc-export");
+        if (!exportArc.empty()) {
+          exportArc.transition()
+            .duration(800)
+            .attrTween("d", function() {
+              const currentEndAngle = this.current || -Math.PI/2;
+              const targetEndAngle = -Math.PI/2;
+              this.current = targetEndAngle;
+              
+              return (t: number) => {
+                const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
+                return d3.arc()
+                  .innerRadius(outerRadius - thickness)
+                  .outerRadius(outerRadius)
+                  .startAngle(-Math.PI/2)
+                  .endAngle(interpolatedAngle)({} as any);
+              };
+            });
+        }
       }
       
-      // Import (positive, shown in red/blue)
+      // Import (positive, shown in red)
       if (importValue > 0) {
         const normalizedImport = Math.min(importValue / d.maxW, 1);
         const importAngle = normalizedImport * 120; // 0 to 120 degrees
         
-        d3.select(this).append("path")
-          .attr("class", "arc-import")
-          .attr("fill", "#EF5350") // Red for import
-          .transition()
+        let importArc = donutGroup.select(".arc-import");
+        
+        if (importArc.empty()) {
+          importArc = donutGroup.append("path")
+            .attr("class", "arc-import")
+            .attr("fill", "#EF5350") // Red for import
+            .attr("d", d3.arc()
+              .innerRadius(outerRadius - thickness)
+              .outerRadius(outerRadius)
+              .startAngle(-Math.PI/2) // Start at top (North)
+              .endAngle(-Math.PI/2)({} as any));
+        }
+        
+        importArc.transition()
           .duration(800)
           .attrTween("d", function() {
-            const interpolate = d3.interpolate(0, importAngle * Math.PI / 180);
+            const currentEndAngle = this.current || -Math.PI/2;
+            const targetEndAngle = -Math.PI/2 + importAngle * Math.PI / 180;
+            this.current = targetEndAngle;
+            
             return (t: number) => {
+              const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
               return d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
-                .startAngle(-Math.PI/2) // Start at top (North)
-                .endAngle(-Math.PI/2 + interpolate(t))({} as any) as string;
+                .startAngle(-Math.PI/2)
+                .endAngle(interpolatedAngle)({} as any);
             };
           });
+      } else {
+        // If no import, reset the import arc
+        const importArc = donutGroup.select(".arc-import");
+        if (!importArc.empty()) {
+          importArc.transition()
+            .duration(800)
+            .attrTween("d", function() {
+              const currentEndAngle = this.current || -Math.PI/2;
+              const targetEndAngle = -Math.PI/2;
+              this.current = targetEndAngle;
+              
+              return (t: number) => {
+                const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
+                return d3.arc()
+                  .innerRadius(outerRadius - thickness)
+                  .outerRadius(outerRadius)
+                  .startAngle(-Math.PI/2)
+                  .endAngle(interpolatedAngle)({} as any);
+              };
+            });
+        }
       }
     } else if (d.id === "PV") {
       // For PV, create a gauge from 0 to max production (inverter power)
       const normalizedValue = Math.min(d.totalW / d.maxW, 1);
       const angle = normalizedValue * 240 - 120; // -120 to +120 degrees
       
-      d3.select(this).append("path")
-        .attr("class", "arc-value")
-        .attr("fill", fillColor)
-        .transition()
+      let pvArc = donutGroup.select(".arc-value-pv");
+      
+      if (pvArc.empty()) {
+        pvArc = donutGroup.append("path")
+          .attr("class", "arc-value-pv")
+          .attr("fill", fillColor)
+          .attr("d", d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(-Math.PI/2) // Start at top (North)
+            .endAngle(-Math.PI/2)({} as any));
+      }
+      
+      pvArc.transition()
         .duration(800)
         .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, angle * Math.PI / 180);
+          const currentEndAngle = this.current || -Math.PI/2;
+          const targetEndAngle = -Math.PI/2 + angle * Math.PI / 180;
+          this.current = targetEndAngle;
+          
           return (t: number) => {
+            const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
             return d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
-              .startAngle(-Math.PI/2) // Start at top (North)
-              .endAngle(-Math.PI/2 + interpolate(t))({} as any) as string;
+              .startAngle(-Math.PI/2)
+              .endAngle(interpolatedAngle)({} as any);
           };
         });
     }
     
-    // Create icon container at the top of donut
-    const iconY = -40;
-    
-    const foreignObject = d3.select(this)
-      .append("foreignObject")
-      .attr("width", 28)
-      .attr("height", 28)
-      .attr("x", -14)
-      .attr("y", iconY);
-    
-    const container = document.createElement('div');
-    container.style.display = 'flex';
-    container.style.justifyContent = 'center';
-    container.style.alignItems = 'center';
-    container.style.width = '100%';
-    container.style.height = '100%';
-    
-    foreignObject.node()?.appendChild(container);
-    
-    if (d.id === "PV") {
-      ReactDOM.render(
-        React.createElement(Sun, { size: 24, color: textColor, strokeWidth: 2 }),
-        container
-      );
-    } else if (d.id === "MAISON") {
-      ReactDOM.render(
-        React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
-        container
-      );
-    } else if (d.id === "RESEAU") {
-      ReactDOM.render(
-        React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
-        container
-      );
+    // Handle the icon and text only once
+    if (donutGroup.select(".icon-container").empty()) {
+      // Create icon container at the top of donut
+      const iconY = -40;
+      
+      const foreignObject = donutGroup
+        .append("foreignObject")
+        .attr("class", "icon-container")
+        .attr("width", 28)
+        .attr("height", 28)
+        .attr("x", -14)
+        .attr("y", iconY);
+      
+      const container = document.createElement('div');
+      container.style.display = 'flex';
+      container.style.justifyContent = 'center';
+      container.style.alignItems = 'center';
+      container.style.width = '100%';
+      container.style.height = '100%';
+      
+      foreignObject.node()?.appendChild(container);
+      
+      if (d.id === "PV") {
+        ReactDOM.render(
+          React.createElement(Sun, { size: 24, color: textColor, strokeWidth: 2 }),
+          container
+        );
+      } else if (d.id === "MAISON") {
+        ReactDOM.render(
+          React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
+          container
+        );
+      } else if (d.id === "RESEAU") {
+        ReactDOM.render(
+          React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
+          container
+        );
+      }
     }
 
-    // Display the current power value in the center
+    // Update the power values in the center (update these on every render)
+    donutGroup.selectAll(".power-value").remove();
+    
     if (d.id === "PV") {
-      d3.select(this).append("text")
+      donutGroup.append("text")
+        .attr("class", "power-value")
         .attr("fill", textColor)
         .attr("font-size", 16)
         .attr("font-weight", "bold")
@@ -353,14 +477,16 @@ export function createDonutCharts(
         .attr("dy", 5)
         .text(formatPower(d.totalW));
 
-      d3.select(this).append("text")
+      donutGroup.append("text")
+        .attr("class", "power-value")
         .attr("fill", textColor)
         .attr("font-size", 12)
         .attr("text-anchor", "middle")
         .attr("dy", 25)
         .text(`Max: ${formatPower(d.maxW)}`);
     } else if (d.id === "MAISON") {
-      d3.select(this).append("text")
+      donutGroup.append("text")
+        .attr("class", "power-value")
         .attr("fill", textColor)
         .attr("font-size", 16)
         .attr("font-weight", "bold")
@@ -369,7 +495,8 @@ export function createDonutCharts(
         .text(formatPower(d.totalW));
     } else if (d.id === "RESEAU") {
       // For RESEAU, display the import and export values
-      d3.select(this).append("text")
+      donutGroup.append("text")
+        .attr("class", "power-value")
         .attr("fill", textColor)
         .attr("font-size", 16)
         .attr("font-weight", "bold")
@@ -379,28 +506,32 @@ export function createDonutCharts(
 
       if (d.importTotal !== undefined && d.exportTotal !== undefined) {
         // Import indicator with ArrowRight icon
-        const importForeignObject = d3.select(this)
-          .append("foreignObject")
-          .attr("width", 16)
-          .attr("height", 16)
-          .attr("x", -36)
-          .attr("y", 15);
-        
-        const importContainer = document.createElement('div');
-        importContainer.style.display = 'flex';
-        importContainer.style.justifyContent = 'center';
-        importContainer.style.alignItems = 'center';
-        importContainer.style.width = '100%';
-        importContainer.style.height = '100%';
-        
-        importForeignObject.node()?.appendChild(importContainer);
-        
-        ReactDOM.render(
-          React.createElement(ArrowRight, { size: 16, color: "#EF5350", strokeWidth: 2 }),
-          importContainer
-        );
+        if (donutGroup.select(".import-icon").empty()) {
+          const importForeignObject = donutGroup
+            .append("foreignObject")
+            .attr("class", "import-icon")
+            .attr("width", 16)
+            .attr("height", 16)
+            .attr("x", -36)
+            .attr("y", 15);
+          
+          const importContainer = document.createElement('div');
+          importContainer.style.display = 'flex';
+          importContainer.style.justifyContent = 'center';
+          importContainer.style.alignItems = 'center';
+          importContainer.style.width = '100%';
+          importContainer.style.height = '100%';
+          
+          importForeignObject.node()?.appendChild(importContainer);
+          
+          ReactDOM.render(
+            React.createElement(ArrowRight, { size: 16, color: "#EF5350", strokeWidth: 2 }),
+            importContainer
+          );
+        }
 
-        d3.select(this).append("text")
+        donutGroup.append("text")
+          .attr("class", "power-value")
           .attr("fill", "#EF5350")
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
@@ -409,28 +540,32 @@ export function createDonutCharts(
           .text(formatPower(d.importTotal));
 
         // Export indicator with ArrowLeft icon
-        const exportForeignObject = d3.select(this)
-          .append("foreignObject")
-          .attr("width", 16)
-          .attr("height", 16)
-          .attr("x", -36)
-          .attr("y", 35);
-        
-        const exportContainer = document.createElement('div');
-        exportContainer.style.display = 'flex';
-        exportContainer.style.justifyContent = 'center';
-        exportContainer.style.alignItems = 'center';
-        exportContainer.style.width = '100%';
-        exportContainer.style.height = '100%';
-        
-        exportForeignObject.node()?.appendChild(exportContainer);
-        
-        ReactDOM.render(
-          React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
-          exportContainer
-        );
+        if (donutGroup.select(".export-icon").empty()) {
+          const exportForeignObject = donutGroup
+            .append("foreignObject")
+            .attr("class", "export-icon")
+            .attr("width", 16)
+            .attr("height", 16)
+            .attr("x", -36)
+            .attr("y", 35);
+          
+          const exportContainer = document.createElement('div');
+          exportContainer.style.display = 'flex';
+          exportContainer.style.justifyContent = 'center';
+          exportContainer.style.alignItems = 'center';
+          exportContainer.style.width = '100%';
+          exportContainer.style.height = '100%';
+          
+          exportForeignObject.node()?.appendChild(exportContainer);
+          
+          ReactDOM.render(
+            React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
+            exportContainer
+          );
+        }
 
-        d3.select(this).append("text")
+        donutGroup.append("text")
+          .attr("class", "power-value")
           .attr("fill", "#388E3C")
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
