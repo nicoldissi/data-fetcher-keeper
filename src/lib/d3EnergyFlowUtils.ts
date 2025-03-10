@@ -26,6 +26,14 @@ interface DonutData {
   exportTotal?: number;
 }
 
+// Helper to store the current angle state for animations
+interface AngleState {
+  [key: string]: number;
+}
+
+// Global state to store current angles per element for smooth transitions
+const currentAngles: AngleState = {};
+
 export function createFluxPaths(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   fluxData: FluxData[],
@@ -236,6 +244,14 @@ export function createDonutCharts(
       const normalizedValue = Math.min(d.totalW / d.maxW, 1);
       const angle = normalizedValue * 240 - 120; // -120 to +120 degrees
 
+      // Get the element ID for the angle state
+      const elementId = `arc-value-maison`;
+      
+      // Initialize or get the current angle from our state object
+      if (currentAngles[elementId] === undefined) {
+        currentAngles[elementId] = -Math.PI/2; // Initial angle (vertical top)
+      }
+
       // Select the arc path for maison gauge (or create it if it doesn't exist)
       let arcPath = donutGroup.select(".arc-value-maison");
       
@@ -254,10 +270,12 @@ export function createDonutCharts(
       arcPath.transition()
         .duration(800)
         .attrTween("d", function() {
-          // Smooth transition from previous angle to new angle
-          const currentEndAngle = this.current || -Math.PI/2;
+          // Get the current angle from our state object
+          const currentEndAngle = currentAngles[elementId];
           const targetEndAngle = -Math.PI/2 + angle * Math.PI / 180;
-          this.current = targetEndAngle;
+          
+          // Store the target angle as the new current for next update
+          currentAngles[elementId] = targetEndAngle;
           
           return (t: number) => {
             const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
@@ -280,6 +298,14 @@ export function createDonutCharts(
         const normalizedExport = Math.min(exportValue / d.maxW, 1);
         const exportAngle = normalizedExport * 120; // 0 to 120 degrees
         
+        // Get the element ID for the angle state
+        const exportElementId = `arc-export`;
+        
+        // Initialize or get the current angle from our state object
+        if (currentAngles[exportElementId] === undefined) {
+          currentAngles[exportElementId] = -Math.PI/2; // Initial angle
+        }
+        
         let exportArc = donutGroup.select(".arc-export");
         
         if (exportArc.empty()) {
@@ -296,9 +322,11 @@ export function createDonutCharts(
         exportArc.transition()
           .duration(800)
           .attrTween("d", function() {
-            const currentEndAngle = this.current || -Math.PI/2;
+            const currentEndAngle = currentAngles[exportElementId];
             const targetEndAngle = -Math.PI/2 - exportAngle * Math.PI / 180;
-            this.current = targetEndAngle;
+            
+            // Store the target angle as the new current for next update
+            currentAngles[exportElementId] = targetEndAngle;
             
             return (t: number) => {
               const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
@@ -311,14 +339,18 @@ export function createDonutCharts(
           });
       } else {
         // If no export, reset the export arc
+        const exportElementId = `arc-export`;
         const exportArc = donutGroup.select(".arc-export");
+        
         if (!exportArc.empty()) {
           exportArc.transition()
             .duration(800)
             .attrTween("d", function() {
-              const currentEndAngle = this.current || -Math.PI/2;
+              const currentEndAngle = currentAngles[exportElementId] || -Math.PI/2;
               const targetEndAngle = -Math.PI/2;
-              this.current = targetEndAngle;
+              
+              // Store the target angle as the new current for next update
+              currentAngles[exportElementId] = targetEndAngle;
               
               return (t: number) => {
                 const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
@@ -337,6 +369,14 @@ export function createDonutCharts(
         const normalizedImport = Math.min(importValue / d.maxW, 1);
         const importAngle = normalizedImport * 120; // 0 to 120 degrees
         
+        // Get the element ID for the angle state
+        const importElementId = `arc-import`;
+        
+        // Initialize or get the current angle from our state object
+        if (currentAngles[importElementId] === undefined) {
+          currentAngles[importElementId] = -Math.PI/2; // Initial angle
+        }
+        
         let importArc = donutGroup.select(".arc-import");
         
         if (importArc.empty()) {
@@ -353,9 +393,11 @@ export function createDonutCharts(
         importArc.transition()
           .duration(800)
           .attrTween("d", function() {
-            const currentEndAngle = this.current || -Math.PI/2;
+            const currentEndAngle = currentAngles[importElementId];
             const targetEndAngle = -Math.PI/2 + importAngle * Math.PI / 180;
-            this.current = targetEndAngle;
+            
+            // Store the target angle as the new current for next update
+            currentAngles[importElementId] = targetEndAngle;
             
             return (t: number) => {
               const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
@@ -368,14 +410,18 @@ export function createDonutCharts(
           });
       } else {
         // If no import, reset the import arc
+        const importElementId = `arc-import`;
         const importArc = donutGroup.select(".arc-import");
+        
         if (!importArc.empty()) {
           importArc.transition()
             .duration(800)
             .attrTween("d", function() {
-              const currentEndAngle = this.current || -Math.PI/2;
+              const currentEndAngle = currentAngles[importElementId] || -Math.PI/2;
               const targetEndAngle = -Math.PI/2;
-              this.current = targetEndAngle;
+              
+              // Store the target angle as the new current for next update
+              currentAngles[importElementId] = targetEndAngle;
               
               return (t: number) => {
                 const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
@@ -393,6 +439,14 @@ export function createDonutCharts(
       const normalizedValue = Math.min(d.totalW / d.maxW, 1);
       const angle = normalizedValue * 240 - 120; // -120 to +120 degrees
       
+      // Get the element ID for the angle state
+      const elementId = `arc-value-pv`;
+      
+      // Initialize or get the current angle from our state object
+      if (currentAngles[elementId] === undefined) {
+        currentAngles[elementId] = -Math.PI/2; // Initial angle
+      }
+      
       let pvArc = donutGroup.select(".arc-value-pv");
       
       if (pvArc.empty()) {
@@ -409,9 +463,11 @@ export function createDonutCharts(
       pvArc.transition()
         .duration(800)
         .attrTween("d", function() {
-          const currentEndAngle = this.current || -Math.PI/2;
+          const currentEndAngle = currentAngles[elementId];
           const targetEndAngle = -Math.PI/2 + angle * Math.PI / 180;
-          this.current = targetEndAngle;
+          
+          // Store the target angle as the new current for next update
+          currentAngles[elementId] = targetEndAngle;
           
           return (t: number) => {
             const interpolatedAngle = d3.interpolate(currentEndAngle, targetEndAngle)(t);
