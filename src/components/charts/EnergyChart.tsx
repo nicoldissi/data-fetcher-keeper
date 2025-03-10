@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { 
   CartesianGrid, Tooltip, 
@@ -196,13 +195,9 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
               <stop offset="5%" stopColor="#00FF59" stopOpacity={0.8}/>
               <stop offset="95%" stopColor="#00FF59" stopOpacity={0.1}/>
             </linearGradient>
-            <linearGradient id="colorGridPos" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="colorGrid" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
               <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-            </linearGradient>
-            <linearGradient id="colorGridNeg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ea384c" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#ea384c" stopOpacity={0.1}/>
             </linearGradient>
             <linearGradient id="colorVoltage" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#9b87f5" stopOpacity={0.8}/>
@@ -248,7 +243,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
                 dataKey={(dataPoint) => dataPoint.grid > 0 ? dataPoint.grid : 0}
                 name="Réseau (Import)"
                 yAxisId="power"
-                fill="url(#colorGridPos)"
+                fill="url(#colorGrid)"
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
@@ -256,14 +251,14 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
                 connectNulls={true}
               />
               
-              {/* Grid export (negative values) */}
+              {/* Grid export (negative values) - now using the same color as import */}
               <Area
                 type="monotone"
                 dataKey={(dataPoint) => dataPoint.grid < 0 ? dataPoint.grid : null}
                 name="Réseau (Export)"
                 yAxisId="power"
-                fill="url(#colorGridNeg)"
-                stroke="#ea384c"
+                fill="url(#colorGrid)"
+                stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 6, strokeWidth: 2 }}
@@ -277,14 +272,14 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
                   y={maxExport.value} 
                   yAxisId="power"
                   r={6} 
-                  fill="#ea384c" 
+                  fill="#3b82f6" 
                   stroke="#fff"
                   strokeWidth={2}
                 >
                   <Label 
                     value={`${Math.abs(maxExport.value).toFixed(0)}W`} 
                     position="top" 
-                    fill="#ea384c"
+                    fill="#3b82f6"
                     fontSize={12}
                     fontWeight="bold"
                     offset={10}
@@ -420,3 +415,4 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     </EnergyChartWrapper>
   );
 }
+
