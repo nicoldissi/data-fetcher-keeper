@@ -66,7 +66,7 @@ export function D3EnergyFlowRealtime({
             className="flex items-center gap-1"
           >
             <Calendar className="h-4 w-4" />
-            Journalier
+            Voir journalier
           </Button>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[400px]">
@@ -94,12 +94,12 @@ export function D3EnergyFlowRealtime({
           {showDaily ? (
             <>
               <Clock className="h-4 w-4" />
-              Temps réel
+              Voir temps réel
             </>
           ) : (
             <>
               <Calendar className="h-4 w-4" />
-              Journalier
+              Voir journalier
             </>
           )}
         </Button>

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -52,13 +53,13 @@ export function PowerTriangleCard({
     powerFactor: isNaN(actualPowerFactor1) ? 0 : Math.abs(actualPowerFactor1),
   };
 
-  // 3) Paramètres pour le quarter circle
+  // 3) Paramètres pour le quarter circle - Adjusted height
   const cx = 50; // centre X
-  const cy = 350; // centre Y
-  const R = 300; // rayon
+  const cy = 300; // centre Y (reduced from 350 to 300)
+  const R = 250; // rayon (reduced from 300 to 250)
 
-  // 4) Pour qu'un PF=1 => sommet = (350,350)
-  //    Pour qu'un PF=0 => sommet = (50,50)
+  // 4) Pour qu'un PF=1 => sommet = (cx+R,cy)
+  //    Pour qu'un PF=0 => sommet = (cx,cy-R)
   //    On définit φ = acos(PF) dans [0.. π/2]
   //    apex = (cx + R*cos(φ), cy - R*sin(φ))
   const PF1 = Math.max(0, Math.min(1, powerValues1.powerFactor));
@@ -83,11 +84,11 @@ export function PowerTriangleCard({
       </CardHeader>
       <CardContent className="p-0 px-4">
         <div className="relative">
-          <div className="h-[370px] w-full">
-            <svg viewBox="0 0 400 400" className="w-full h-full">
-              {/* Quarter circle (inchangé) */}
+          <div className="h-[320px] w-full"> {/* Reduced height from 370px to 320px */}
+            <svg viewBox="0 0 400 350" className="w-full h-full"> {/* Changed viewBox from "0 0 400 400" to "0 0 400 350" */}
+              {/* Quarter circle (adjusted) */}
               <path
-                d="M 350,350 A 300,300 0 0 0 50,50"
+                d={`M ${cx + R},${cy} A ${R},${R} 0 0 0 ${cx},${cy - R}`}
                 fill="none"
                 stroke="#e5e7eb"
                 strokeWidth="4"
