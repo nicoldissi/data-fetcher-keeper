@@ -209,7 +209,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               {/* For PV gauge labels */}
               <Text
                 x={-nodeRadius * 0.866}
-                y={60} // Descendu davantage
+                y={nodeRadius + 20} // Repositioned label
                 text="0"
                 fontSize={9}
                 fill="#666"
@@ -218,7 +218,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               
               <Text
                 x={nodeRadius * 0.866}
-                y={60} // Descendu davantage
+                y={nodeRadius + 20} // Repositioned label
                 text="3kW"
                 fontSize={9}
                 fill="#666"
@@ -316,7 +316,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               {/* For grid gauge labels */}
               <Text
                 x={-nodeRadius * 0.866}
-                y={60} // Descendu davantage
+                y={nodeRadius + 20} // Repositioned label
                 text={`-${maxGridPower}kVA`}
                 fontSize={9}
                 fill="#1EAEDB"
@@ -325,7 +325,7 @@ export function EnergyFlowChartDark({ data: currentData, configId, className }: 
               
               <Text
                 x={nodeRadius * 0.866}
-                y={60} // Descendu davantage
+                y={nodeRadius + 20} // Repositioned label
                 text={`+${maxGridPower}kVA`}
                 fontSize={9}
                 fill="#ea384c"

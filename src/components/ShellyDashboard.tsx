@@ -31,6 +31,7 @@ export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showRealTime, setShowRealTime] = useState(true);
   
   useEffect(() => {
     const checkConfigValidity = async () => {
@@ -118,6 +119,30 @@ export function ShellyDashboard() {
 
         <Separator className="my-6" />
 
+        {/* Boutons de basculement entre temps réel et journalier */}
+        <div className="flex justify-end mb-4">
+          <div className="bg-secondary rounded-lg p-1 flex space-x-1">
+            <Button 
+              variant={showRealTime ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setShowRealTime(true)}
+              className="flex items-center gap-1"
+            >
+              <Clock className="h-4 w-4" />
+              <span>Temps réel</span>
+            </Button>
+            <Button 
+              variant={!showRealTime ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setShowRealTime(false)}
+              className="flex items-center gap-1"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Journalier</span>
+            </Button>
+          </div>
+        </div>
+
         {/* Modified this section to ensure proper alignment */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="md:col-span-1 flex flex-col">
@@ -141,11 +166,18 @@ export function ShellyDashboard() {
           </div>
 
           <div className="md:col-span-2 flex flex-col">
-            <EnergyFlowChartDark 
-              data={currentData} 
-              configId={activeConfigId || undefined}
-              className="w-full h-full" 
-            />
+            {showRealTime ? (
+              <EnergyFlowChartDark 
+                data={currentData} 
+                configId={activeConfigId || undefined}
+                className="w-full h-full" 
+              />
+            ) : (
+              <D3EnergyFlow 
+                configId={activeConfigId || undefined}
+                className="w-full h-full" 
+              />
+            )}
           </div>
         </div>
         
