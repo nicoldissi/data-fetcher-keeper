@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +17,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
   const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const hasInitializedRef = useRef(false);
   
   useEffect(() => {
     if (!configId) return;
@@ -180,8 +180,11 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   }, [configId]);
 
   useEffect(() => {
+    if (hasInitializedRef.current) return;
+    
     if (fullDayData.length > 0) {
       setChartData(fullDayData);
+      hasInitializedRef.current = true;
     } else if (history.length > 0) {
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
         const formattedTime = formatLocalDate(item.timestamp, {
@@ -209,6 +212,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       });
 
       setChartData(transformedData);
+      hasInitializedRef.current = true;
     }
   }, [history, fullDayData]);
 

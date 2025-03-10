@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { 
   CartesianGrid, Tooltip, 
   ResponsiveContainer, Area, ComposedChart, ReferenceLine, Line, XAxis, YAxis,
@@ -66,9 +66,9 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     setFixedVoltageDomain(voltageDomain);
   }, [showVoltage, calculateVoltageYAxisDomain]);
 
-  // Find maximum values for each curve
+  // Find maximum values for each curve - memoize to prevent recalculation on every render
   useEffect(() => {
-    if (chartData.length === 0) {
+    if (!chartData || chartData.length === 0) {
       setMaxConsumption(null);
       setMaxProduction(null);
       setMaxExport(null);
@@ -172,7 +172,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
 
   // Render the main chart content
   const renderChartContent = () => {
-    if (chartData.length === 0) {
+    if (!chartData || chartData.length === 0) {
       return null;
     }
 
