@@ -31,8 +31,7 @@ export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [flowViewMode, setFlowViewMode] = useState<'realtime' | 'daily'>('realtime');
-
+  
   useEffect(() => {
     const checkConfigValidity = async () => {
       try {
@@ -142,36 +141,11 @@ export function ShellyDashboard() {
           </div>
 
           <div className="md:col-span-2 flex flex-col">
-            <div className="flex justify-end mb-3">
-              <div className="bg-muted inline-flex items-center rounded-md p-1">
-                <Toggle
-                  pressed={flowViewMode === 'realtime'}
-                  onPressedChange={() => setFlowViewMode('realtime')}
-                  variant="outline"
-                  size="sm"
-                  className="px-3 data-[state=on]:bg-background"
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  <span>Temps réel</span>
-                </Toggle>
-                <Toggle
-                  pressed={flowViewMode === 'daily'}
-                  onPressedChange={() => setFlowViewMode('daily')}
-                  variant="outline"
-                  size="sm"
-                  className="px-3 data-[state=on]:bg-background"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <span>Journalier</span>
-                </Toggle>
-              </div>
-            </div>
-            
-            {flowViewMode === 'realtime' ? (
-              <EnergyFlowChartDark data={currentData} className="w-full h-full" />
-            ) : (
-              <D3EnergyFlow configId={activeConfigId || undefined} className="w-full h-full" />
-            )}
+            <EnergyFlowChartDark 
+              data={currentData} 
+              configId={activeConfigId || undefined}
+              className="w-full h-full" 
+            />
           </div>
         </div>
         

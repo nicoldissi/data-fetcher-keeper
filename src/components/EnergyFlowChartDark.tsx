@@ -1,15 +1,19 @@
+
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils'
 import * as d3 from 'd3'
-import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react'
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Clock, Calendar } from 'lucide-react'
 import * as ReactDOM from 'react-dom'
+import { Toggle } from '@/components/ui/toggle'
+import { D3EnergyFlow } from './energy-flow/D3EnergyFlow'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
   className?: string
+  configId?: string
 }
 
 interface FlowAnimationState {
@@ -26,7 +30,7 @@ interface NodePosition {
   color: string
 }
 
-export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProps) {
+export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowChartDarkProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 400, height: 400 })
@@ -35,6 +39,7 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     solarToHome: false,
     solarToGrid: false
   })
+  const [viewMode, setViewMode] = useState<'realtime' | 'daily'>('realtime')
   
   useEffect(() => {
     const updateSize = () => {
@@ -331,21 +336,48 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     })
     
   }, [data, flowAnimations, size])
-  
+
   if (!data) {
     return (
       <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium flex items-center">
-            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>
-            Flux d'Énergie
+          <CardTitle className="text-lg font-medium flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">FLUX D'ÉNERGIE</span>
+            </div>
+            <div className="bg-muted inline-flex items-center rounded-md p-1">
+              <Toggle
+                pressed={viewMode === 'realtime'}
+                onPressedChange={() => setViewMode('realtime')}
+                variant="outline"
+                size="sm"
+                className="px-3 data-[state=on]:bg-background"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                <span>Temps réel</span>
+              </Toggle>
+              <Toggle
+                pressed={viewMode === 'daily'}
+                onPressedChange={() => setViewMode('daily')}
+                variant="outline"
+                size="sm"
+                className="px-3 data-[state=on]:bg-background"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                <span>Journalier</span>
+              </Toggle>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center p-6 min-h-[300px]">
-          <div className="text-center text-muted-foreground">
-            <p>En attente de données...</p>
-            <p className="text-sm">Les données seront affichées dès qu'elles seront disponibles.</p>
-          </div>
+          {viewMode === 'realtime' ? (
+            <div className="text-center text-muted-foreground">
+              <p>En attente de données...</p>
+              <p className="text-sm">Les données seront affichées dès qu'elles seront disponibles.</p>
+            </div>
+          ) : (
+            <D3EnergyFlow configId={configId} />
+          )}
         </CardContent>
       </Card>
     );
@@ -354,23 +386,50 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium flex items-center">
-          <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">TEMPS RÉEL</span>
-          Flux d'Énergie
+        <CardTitle className="text-lg font-medium flex items-center justify-between">
+          <div className="flex items-center">
+            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">FLUX D'ÉNERGIE</span>
+          </div>
+          <div className="bg-muted inline-flex items-center rounded-md p-1">
+            <Toggle
+              pressed={viewMode === 'realtime'}
+              onPressedChange={() => setViewMode('realtime')}
+              variant="outline"
+              size="sm"
+              className="px-3 data-[state=on]:bg-background"
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              <span>Temps réel</span>
+            </Toggle>
+            <Toggle
+              pressed={viewMode === 'daily'}
+              onPressedChange={() => setViewMode('daily')}
+              variant="outline"
+              size="sm"
+              className="px-3 data-[state=on]:bg-background"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>Journalier</span>
+            </Toggle>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex items-center justify-center p-6">
-        <div 
-          ref={containerRef} 
-          className="relative w-full max-w-md aspect-square"
-        >
-          <svg 
-            ref={svgRef} 
-            width={size.width} 
-            height={size.height} 
-            className="overflow-visible"
-          />
-        </div>
+        {viewMode === 'realtime' ? (
+          <div 
+            ref={containerRef} 
+            className="relative w-full max-w-md aspect-square"
+          >
+            <svg 
+              ref={svgRef} 
+              width={size.width} 
+              height={size.height} 
+              className="overflow-visible"
+            />
+          </div>
+        ) : (
+          <D3EnergyFlow configId={configId} />
+        )}
       </CardContent>
     </Card>
   )
