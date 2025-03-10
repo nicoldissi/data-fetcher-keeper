@@ -127,26 +127,16 @@ export function createFluxPaths(
       const borderColor = getBorderColor(d);
       const textColor = getTextColor(d);
 
-      // Add title based on flow type
+      // Get the title based on flow type
       const title = d.title || getFlowTitle(d);
       
-      d3.select(this)
-        .append("text")
-        .attr("x", bezierX)
-        .attr("y", bezierY - 20)
-        .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "middle")
-        .attr("font-size", 12)
-        .attr("font-weight", "medium")
-        .attr("fill", textColor)
-        .text(title);
-
+      // Create a rectangle with rounded corners for the label background
       d3.select(this)
         .append("rect")
         .attr("x", bezierX - 40)
-        .attr("y", bezierY - 15)
+        .attr("y", bezierY - 25) // Increased height to fit two lines of text
         .attr("width", 80)
-        .attr("height", 24)
+        .attr("height", 36) // Increased height for two text lines
         .attr("rx", 12)
         .attr("ry", 12)
         .attr("fill", "white")
@@ -155,14 +145,27 @@ export function createFluxPaths(
         .attr("fill-opacity", 0.9)
         .attr("filter", "drop-shadow(0px 1px 2px rgba(0,0,0,0.1))");
 
+      // Add the title inside the bubble (first line)
       d3.select(this)
         .append("text")
         .attr("x", bezierX)
-        .attr("y", bezierY)
+        .attr("y", bezierY - 8) // Position for the first line (title)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("font-size", 11)
+        .attr("font-weight", "medium")
+        .attr("fill", textColor)
+        .text(title);
+
+      // Add the value as second line
+      d3.select(this)
+        .append("text")
+        .attr("x", bezierX)
+        .attr("y", bezierY + 8) // Position for the second line (value)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
         .attr("font-size", 12)
-        .attr("font-weight", "medium")
+        .attr("font-weight", "bold") // Made the values bold
         .attr("fill", textColor)
         .text(`${d.kwh.toFixed(1)} kWh`);
     });

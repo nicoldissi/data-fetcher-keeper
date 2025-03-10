@@ -311,24 +311,12 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         const labelGroup = svg.append('g')
           .attr('class', `path-label-${path.id}`)
         
-        // Add flow title if available
-        if (path.title) {
-          labelGroup.append('text')
-            .attr('x', bezierX)
-            .attr('y', bezierY - 20) // Position above the value label
-            .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'middle')
-            .attr('font-size', 10)
-            .attr('font-weight', 'medium')
-            .attr('fill', path.color)
-            .text(path.title);
-        }
-        
+        // Create taller rounded rectangle for label to fit both title and value
         labelGroup.append('rect')
           .attr('x', bezierX - 40)
-          .attr('y', bezierY - 15)
+          .attr('y', bezierY - 25)
           .attr('width', 80)
-          .attr('height', 24)
+          .attr('height', 36)
           .attr('rx', 12)
           .attr('ry', 12)
           .attr('fill', 'white')
@@ -336,12 +324,25 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .attr('stroke-width', 1)
           .attr('fill-opacity', 0.9)
         
+        // Add title as first line in the label
         labelGroup.append('text')
           .attr('x', bezierX)
-          .attr('y', bezierY)
+          .attr('y', bezierY - 8)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .attr('font-size', 11)
+          .attr('font-weight', 'medium')
+          .attr('fill', path.color)
+          .text(path.title);
+        
+        // Add value as second line
+        labelGroup.append('text')
+          .attr('x', bezierX)
+          .attr('y', bezierY + 8)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('font-size', 12)
+          .attr('font-weight', 'bold') // Bold value text
           .attr('fill', path.color)
           .text(() => {
             let power = 0
