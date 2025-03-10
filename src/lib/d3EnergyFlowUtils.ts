@@ -324,7 +324,7 @@ export function createDonutCharts(
           .attr("font-size", 14)
           .attr("text-anchor", "middle")
           .attr("dy", 30)
-          .text(`${Math.round(d.selfConsumptionRatio)}% autoconso`);
+          .text(`${Math.round(d.selfConsumptionRatio)}%`);
       }
     } 
     // For MAISON node
@@ -334,22 +334,32 @@ export function createDonutCharts(
         .attr("font-size", 16)
         .attr("font-weight", "bold")
         .attr("text-anchor", "middle") 
-        .attr("dy", 10)
+        .attr("dy", 5)
         .text(isDaily 
           ? `${d.totalKwh.toFixed(1)} kWh` 
-          : `${Math.round(d.ratio * 100)}%`
+          : `${Math.round(d.totalKwh)} W`
         );
+      
+      // Ajout du taux d'autoproduction
+      if (isDaily && d.ratio !== undefined) {
+        d3.select(this).append("text")
+          .attr("fill", textColor)
+          .attr("font-size", 14)
+          .attr("text-anchor", "middle")
+          .attr("dy", 30)
+          .text(`${Math.round(d.ratio * 100)}% autoprod`);
+      }
     } 
     // For GRID node
     else if (d.id === "GRID") {
       if (d.importTotal !== undefined && d.exportTotal !== undefined) {
-        // Import indicator with ArrowRight icon
+        // Import indicator with ArrowRight icon - Remonte de 20px
         const importForeignObject = d3.select(this)
           .append("foreignObject")
           .attr("width", 16)
           .attr("height", 16)
           .attr("x", -36)
-          .attr("y", 15);
+          .attr("y", -5); // Changé de 15 à -5 (remontée de 20px)
         
         const importContainer = document.createElement('div');
         importContainer.style.display = 'flex';
@@ -370,19 +380,19 @@ export function createDonutCharts(
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
           .attr("x", 10)
-          .attr("dy", 25)
+          .attr("dy", 5) // Changé de 25 à 5 (remontée de 20px)
           .text(isDaily 
             ? `${d.importTotal.toFixed(1)} kWh` 
             : `${Math.round(d.importTotal)} W`
           );
 
-        // Export indicator with ArrowLeft icon
+        // Export indicator with ArrowLeft icon - Remonte de 20px
         const exportForeignObject = d3.select(this)
           .append("foreignObject")
           .attr("width", 16)
           .attr("height", 16)
           .attr("x", -36)
-          .attr("y", 35);
+          .attr("y", 15); // Changé de 35 à 15 (remontée de 20px)
         
         const exportContainer = document.createElement('div');
         exportContainer.style.display = 'flex';
@@ -403,7 +413,7 @@ export function createDonutCharts(
           .attr("font-size", 12)
           .attr("text-anchor", "middle")
           .attr("x", 10)
-          .attr("dy", 42)
+          .attr("dy", 22) // Changé de 42 à 22 (remontée de 20px)
           .text(isDaily 
             ? `${d.exportTotal.toFixed(1)} kWh` 
             : `${Math.round(d.exportTotal)} W`
