@@ -186,7 +186,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const localDate = new Date(item.timestamp);
         
         const grid = Math.round(item.power);
-        const production = Math.round(item.pv_power || 0); // Use pv_power instead of production
+        const production = Math.round(item.pv_power || 0);
         const consumption = grid + production;
         
         return {
@@ -203,7 +203,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     }
   }, [history, fullDayData]);
 
-  const calculateYAxisDomain = useCallback((showConsumption: boolean, showProduction: boolean, showGrid: boolean) => {
+  const calculateYAxisDomain = useCallback((showConsumption: boolean, showProduction: boolean, showGrid: boolean): [number, number] => {
     if (chartData.length === 0) {
       return [-500, 3000];
     }
@@ -222,10 +222,10 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       ))
     );
     
-    return [minValue < 0 ? 1.1 * minValue : -100, 1.1 * maxValue];
+    return [minValue < 0 ? 1.1 * minValue : -100, 1.1 * maxValue] as [number, number];
   }, [chartData]);
 
-  const calculateVoltageYAxisDomain = useCallback((showVoltage: boolean) => {
+  const calculateVoltageYAxisDomain = useCallback((showVoltage: boolean): [number, number] => {
     if (chartData.length === 0 || !showVoltage) {
       return [220, 240];
     }
@@ -245,7 +245,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     return [
       Math.floor(minVoltage - padding), 
       Math.ceil(maxVoltage + padding)
-    ];
+    ] as [number, number];
   }, [chartData]);
 
   return {

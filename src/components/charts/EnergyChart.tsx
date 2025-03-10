@@ -38,21 +38,25 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
   // Calculate and store domains once when data is first loaded
   useEffect(() => {
     if (chartData.length > 0 && !fixedYDomain) {
-      setFixedYDomain(calculateYAxisDomain(showConsumption, showProduction, showGrid));
+      const domain = calculateYAxisDomain(showConsumption, showProduction, showGrid);
+      setFixedYDomain(domain);
     }
     
     if (chartData.length > 0 && !fixedVoltageDomain && showVoltage) {
-      setFixedVoltageDomain(calculateVoltageYAxisDomain(showVoltage));
+      const voltageDomain = calculateVoltageYAxisDomain(showVoltage);
+      setFixedVoltageDomain(voltageDomain);
     }
   }, [chartData, fixedYDomain, fixedVoltageDomain, showConsumption, showProduction, showGrid, showVoltage, calculateYAxisDomain, calculateVoltageYAxisDomain]);
 
   // Update domains when toggles change
   useEffect(() => {
-    setFixedYDomain(calculateYAxisDomain(showConsumption, showProduction, showGrid));
+    const domain = calculateYAxisDomain(showConsumption, showProduction, showGrid);
+    setFixedYDomain(domain);
   }, [showConsumption, showProduction, showGrid, calculateYAxisDomain]);
   
   useEffect(() => {
-    setFixedVoltageDomain(calculateVoltageYAxisDomain(showVoltage));
+    const voltageDomain = calculateVoltageYAxisDomain(showVoltage);
+    setFixedVoltageDomain(voltageDomain);
   }, [showVoltage, calculateVoltageYAxisDomain]);
 
   // Common font styling for the chart
