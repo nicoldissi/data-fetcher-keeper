@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -8,6 +7,8 @@ import { ShellyConfig } from "@/lib/types";
 import { UserProfileCard } from "@/components/profile/UserProfileCard";
 import { ShellyConfigList } from "@/components/profile/ShellyConfigList";
 import { PreferencesCard } from "@/components/profile/PreferencesCard";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -154,6 +155,10 @@ export default function Profile() {
     setShellyConfigs(newConfigs);
   };
 
+  const handleBack = () => {
+    navigate('/');
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Chargement...</div>;
   }
@@ -164,7 +169,13 @@ export default function Profile() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Profil utilisateur</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Profil utilisateur</h1>
+        <Button onClick={handleBack} variant="outline" className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Retour</span>
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 gap-6">
         <UserProfileCard 

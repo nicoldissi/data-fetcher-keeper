@@ -73,6 +73,10 @@ export function UserMenu() {
     }
   };
 
+  const handleProfileClick = () => {
+    navigate("/profile");
+  };
+
   if (!userEmail) return null;
 
   return (
@@ -93,7 +97,7 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/profile")}>
+        <DropdownMenuItem onClick={handleProfileClick}>
           <User className="mr-2 h-4 w-4" />
           <span>Profil</span>
         </DropdownMenuItem>

@@ -1,6 +1,5 @@
 
 import { useRef, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { useD3EnergyFlowVisualization } from '@/hooks/useD3EnergyFlowVisualization';

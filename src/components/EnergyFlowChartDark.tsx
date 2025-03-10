@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,6 +39,14 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     solarToGrid: false
   })
   const [viewMode, setViewMode] = useState<'realtime' | 'daily'>('realtime')
+  const [lastData, setLastData] = useState<ShellyEMData | null>(null)
+  
+  // Store the last valid data
+  useEffect(() => {
+    if (data) {
+      setLastData(data);
+    }
+  }, [data]);
   
   useEffect(() => {
     const updateSize = () => {
@@ -60,6 +67,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     }
   }, [])
   
+  // Update flow animations when data changes
   useEffect(() => {
     if (!data) return
     
@@ -92,8 +100,11 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     
   }, [data])
   
+  // D3 visualization effect
   useEffect(() => {
-    if (!svgRef.current || !data) return
+    // Use lastData when available, otherwise fallback to data
+    const currentData = viewMode === 'realtime' ? (data || lastData) : null;
+    if (!svgRef.current || !currentData) return
     
     const svg = d3.select(svgRef.current)
     svg.selectAll("*").remove()
@@ -119,21 +130,21 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         x: width * 0.5,
         y: height * 0.2,
         label: 'PV',
-        value: `${data.pv_power.toFixed(1)} W`,
+        value: `${currentData.pv_power.toFixed(1)} W`,
         color: '#66BB6A'
       },
       grid: {
         x: width * 0.15, // Position like in daily view
         y: height * 0.7,
         label: 'Réseau',
-        value: `${Math.abs(data.power).toFixed(1)} W`,
+        value: `${Math.abs(currentData.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
         x: width * 0.85, // Position like in daily view
         y: height * 0.7,
         label: 'Maison',
-        value: `${(data.power + data.pv_power).toFixed(1)} W`,
+        value: `${(currentData.power + currentData.pv_power).toFixed(1)} W`,
         color: '#F97316'
       }
     }
@@ -222,7 +233,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         active: flowAnimations.gridToHome,
         color: "#42A5F5", // Blue color consistent with daily view
         curveOffset: -100, // Same curve offset as daily view
-        power: data.power
+        power: currentData.power
       },
       {
         id: "solarToHome",
@@ -231,7 +242,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         active: flowAnimations.solarToHome,
         color: "#66BB6A",
         curveOffset: 0,
-        power: Math.min(data.pv_power, data.pv_power + data.power)
+        power: Math.min(currentData.pv_power, currentData.pv_power + currentData.power)
       },
       {
         id: "solarToGrid",
@@ -240,7 +251,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         active: flowAnimations.solarToGrid,
         color: "#388E3C",
         curveOffset: 0,
-        power: Math.max(0, -data.power)
+        power: Math.max(0, -currentData.power)
       }
     ]
     
@@ -323,21 +334,26 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .attr('fill', path.color)
           .text(() => {
             let power = 0
-            if (path.id === 'gridToHome') power = data.power
+            if (path.id === 'gridToHome') power = currentData.power
             else if (path.id === 'solarToHome') {
-              const toGrid = data.power < 0 ? -data.power : 0
-              power = data.pv_power - toGrid
+              const toGrid = currentData.power < 0 ? -currentData.power : 0
+              power = currentData.pv_power - toGrid
             }
-            else if (path.id === 'solarToGrid') power = -data.power
+            else if (path.id === 'solarToGrid') power = -currentData.power
             
             return `${Math.abs(power).toFixed(1)} W`
           })
       }
     })
     
-  }, [data, flowAnimations, size])
+  }, [data, lastData, flowAnimations, size, viewMode])
 
-  if (!data) {
+  // Handle view mode toggle
+  const handleViewModeChange = (mode: 'realtime' | 'daily') => {
+    setViewMode(mode);
+  };
+
+  if (!data && !lastData) {
     return (
       <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
         <CardHeader className="pb-2">
@@ -348,7 +364,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
             <div className="bg-muted inline-flex items-center rounded-md p-1">
               <Toggle
                 pressed={viewMode === 'realtime'}
-                onPressedChange={() => setViewMode('realtime')}
+                onPressedChange={() => handleViewModeChange('realtime')}
                 variant="outline"
                 size="sm"
                 className="px-3 data-[state=on]:bg-background"
@@ -358,7 +374,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
               </Toggle>
               <Toggle
                 pressed={viewMode === 'daily'}
-                onPressedChange={() => setViewMode('daily')}
+                onPressedChange={() => handleViewModeChange('daily')}
                 variant="outline"
                 size="sm"
                 className="px-3 data-[state=on]:bg-background"
@@ -393,7 +409,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           <div className="bg-muted inline-flex items-center rounded-md p-1">
             <Toggle
               pressed={viewMode === 'realtime'}
-              onPressedChange={() => setViewMode('realtime')}
+              onPressedChange={() => handleViewModeChange('realtime')}
               variant="outline"
               size="sm"
               className="px-3 data-[state=on]:bg-background"
@@ -403,7 +419,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
             </Toggle>
             <Toggle
               pressed={viewMode === 'daily'}
-              onPressedChange={() => setViewMode('daily')}
+              onPressedChange={() => handleViewModeChange('daily')}
               variant="outline"
               size="sm"
               className="px-3 data-[state=on]:bg-background"
@@ -428,9 +444,9 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
             />
           </div>
         ) : (
-          <D3EnergyFlow configId={configId} />
+          <D3EnergyFlow configId={configId} className="w-full h-full" />
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
