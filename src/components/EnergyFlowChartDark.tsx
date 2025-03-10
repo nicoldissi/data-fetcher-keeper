@@ -147,15 +147,15 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: '#66BB6A'
       },
       grid: {
-        x: width * 0.15,
-        y: height * 0.8, // Moved down from 0.7 to 0.8
+        x: width * 0.1, // Moved more to the left from 0.15 to 0.1
+        y: height * 0.8,
         label: 'Réseau',
         value: `${Math.abs(currentData.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
-        x: width * 0.9, // Moved right from 0.85 to 0.9
-        y: height * 0.8, // Moved down from 0.7 to 0.8
+        x: width * 0.95, // Moved more to the right from 0.9 to 0.95
+        y: height * 0.8,
         label: 'Maison',
         value: `${(currentData.power + currentData.pv_power).toFixed(1)} W`,
         color: '#F97316'
@@ -219,16 +219,16 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         
         // For PV gauge labels
         nodeGroup.append('text')
-          .attr('x', -nodeRadius * 0.866) // cos(120°) * radius
-          .attr('y', 15) // Changed from 5 to 15 (10px lower)
+          .attr('x', -nodeRadius * 0.866)
+          .attr('y', 30) // Changed from 15 to 30 (15px lower)
           .attr('text-anchor', 'start')
           .attr('font-size', '9px')
           .attr('fill', '#666')
           .text('0');
           
         nodeGroup.append('text')
-          .attr('x', nodeRadius * 0.866) // cos(120°) * radius
-          .attr('y', 15) // Changed from 5 to 15 (10px lower)
+          .attr('x', nodeRadius * 0.866)
+          .attr('y', 30) // Changed from 15 to 30 (15px lower)
           .attr('text-anchor', 'end')
           .attr('font-size', '9px')
           .attr('fill', '#666')
@@ -288,19 +288,19 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         
         // For grid gauge labels
         nodeGroup.append('text')
-          .attr('x', -nodeRadius * 0.866)  // Left side at -120°
-          .attr('y', 15) // Changed from 5 to 15 (10px lower)
+          .attr('x', -nodeRadius * 0.866)
+          .attr('y', 30) // Changed from 15 to 30 (15px lower)
           .attr('text-anchor', 'start')
           .attr('font-size', '9px')
-          .attr('fill', '#1EAEDB')  // Blue for export
+          .attr('fill', '#1EAEDB')
           .text(`-${maxGridPower}kVA`);
           
         nodeGroup.append('text')
-          .attr('x', nodeRadius * 0.866)  // Right side at +120°
-          .attr('y', 15) // Changed from 5 to 15 (10px lower)
+          .attr('x', nodeRadius * 0.866)
+          .attr('y', 30) // Changed from 15 to 30 (15px lower)
           .attr('text-anchor', 'end')
           .attr('font-size', '9px')
-          .attr('fill', '#ea384c')  // Red for import
+          .attr('fill', '#ea384c')
           .text(`+${maxGridPower}kVA`);
       }
       
