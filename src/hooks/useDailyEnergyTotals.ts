@@ -1,7 +1,9 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay } from 'date-fns';
 import { shouldFetchData } from '@/lib/dataUtils';
+import { getShellyConfig } from '@/lib/api';
 
 export interface DailyTotals {
   consumption: number;
@@ -29,8 +31,28 @@ export function useDailyEnergyTotals(configId?: string) {
   const [dailyData, setDailyData] = useState<DailyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deviceType, setDeviceType] = useState<'ShellyEM' | 'ShellyProEM'>('ShellyEM');
   const lastFetchTimeRef = useRef<number>(0);
   const CACHE_DURATION = 60000; // 60 seconds cache to reduce database load
+
+  // Fetch device type when configId changes
+  useEffect(() => {
+    const fetchDeviceType = async () => {
+      if (!configId) return;
+      
+      try {
+        const config = await getShellyConfig(configId);
+        if (config && config.deviceType) {
+          setDeviceType(config.deviceType);
+          console.log(`Device type set to: ${config.deviceType}`);
+        }
+      } catch (err) {
+        console.error('Error fetching device type:', err);
+      }
+    };
+    
+    fetchDeviceType();
+  }, [configId]);
 
   useEffect(() => {
     const fetchDailyTotals = async () => {
@@ -46,6 +68,7 @@ export function useDailyEnergyTotals(configId?: string) {
         const startOfTodayISO = todayStart.toISOString();
         
         console.log('Fetching daily energy totals from Supabase since:', startOfTodayISO);
+        console.log('Device type for calculations:', deviceType);
 
         if (!configId) {
           setDailyTotals({ consumption: 0, production: 0, injection: 0, importFromGrid: 0 });
@@ -81,17 +104,34 @@ export function useDailyEnergyTotals(configId?: string) {
             const firstReading = validData[0];
             const lastReading = validData[validData.length - 1];
 
-            const consumption = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
-            const injection = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
-            const production = Math.max(0, (lastReading.production_total - firstReading.production_total));
+            // Énergie consommée du réseau (import) en Wh
+            const gridImport = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
             
-            const consumedFromProduction = Math.max(0, production - injection);
-            const importFromGrid = Math.max(0, consumption - consumedFromProduction);
+            // Énergie injectée vers le réseau (export) en Wh
+            const gridExport = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
+            
+            // Énergie produite par les panneaux solaires en Wh
+            const production = Math.max(0, (lastReading.production_total - firstReading.production_total));
+
+            let consumption, importFromGrid;
+
+            // Calcul différent selon le type d'appareil
+            if (deviceType === 'ShellyProEM') {
+              // Pour Shelly Pro EM, la consommation est la somme de l'import du réseau et de la production locale consommée
+              const productionConsumed = Math.max(0, production - gridExport);
+              consumption = gridImport + productionConsumed;
+              importFromGrid = gridImport;
+            } else {
+              // Pour Shelly EM standard
+              consumption = Math.max(0, gridImport + production - gridExport);
+              const consumedFromProduction = Math.max(0, production - gridExport);
+              importFromGrid = Math.max(0, consumption - consumedFromProduction);
+            }
 
             const totals = {
               consumption,
-              injection,
               production,
+              injection: gridExport,
               importFromGrid
             };
 
@@ -105,6 +145,7 @@ export function useDailyEnergyTotals(configId?: string) {
             });
 
             console.log('Daily energy totals calculated:', totals);
+            console.log('Calculation method used:', deviceType);
             setDailyTotals(totals);
           } else {
             console.warn('Insufficient valid data points for calculation');
@@ -149,7 +190,7 @@ export function useDailyEnergyTotals(configId?: string) {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [configId]);
+  }, [configId, deviceType]); // Ajout de deviceType comme dépendance
 
   return { dailyTotals, dailyData, loading, error };
 }

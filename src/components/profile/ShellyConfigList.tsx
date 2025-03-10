@@ -8,7 +8,7 @@ interface ShellyConfigListProps {
   shellyConfigs: ShellyConfig[];
   savingConfig: string | null;
   deletingConfig: string | null;
-  updateConfigField: (index: number, field: keyof ShellyConfig, value: string) => void;
+  updateConfigField: (index: number, field: keyof ShellyConfig, value: string | number) => void;
   handleUpdateConfig: (index: number) => void;
   handleDeleteConfig: (id: string, index: number) => void;
   handleAddNewConfig: () => void;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -72,7 +73,11 @@ export default function Profile() {
         apiKey: config.apiKey?.trim() || '',
         serverUrl: config.serverUrl?.trim() || '',
         name: config.name?.trim() || `Appareil ${index + 1}`,
-        deviceType: config.deviceType || 'ShellyEM'
+        deviceType: config.deviceType || 'ShellyEM',
+        inverterPowerKva: config.inverterPowerKva || 3.0,
+        gridSubscriptionKva: config.gridSubscriptionKva || 6.0,
+        latitude: config.latitude,
+        longitude: config.longitude
       });
       
       if (updatedConfig) {
@@ -139,14 +144,18 @@ export default function Profile() {
       apiKey: "",
       serverUrl: "https://shelly-12-eu.shelly.cloud",
       name: `Appareil ${shellyConfigs.length + 1}`,
-      deviceType: "ShellyEM"
+      deviceType: "ShellyEM",
+      inverterPowerKva: 3.0,
+      gridSubscriptionKva: 6.0,
+      latitude: null,
+      longitude: null
     };
     
     setShellyConfigs([...shellyConfigs, newConfigItem]);
     setNewConfig(true);
   };
 
-  const updateConfigField = (index: number, field: keyof ShellyConfig, value: string) => {
+  const updateConfigField = (index: number, field: keyof ShellyConfig, value: string | number | null) => {
     const newConfigs = [...shellyConfigs];
     newConfigs[index] = {
       ...newConfigs[index],

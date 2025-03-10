@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShellyConfig } from "@/lib/types";
-import { Trash2, Save } from "lucide-react";
+import { Trash2, Save, MapPin } from "lucide-react";
+import { PVPanelsList } from "./PVPanelsList";
+import { Separator } from "@/components/ui/separator";
 
 interface ShellyConfigCardProps {
   config: ShellyConfig;
@@ -27,6 +29,13 @@ export function ShellyConfigCard({
   onUpdateConfig,
   onDeleteConfig
 }: ShellyConfigCardProps) {
+  const [showPvPanels, setShowPvPanels] = useState(false);
+
+  // Helper pour formater les coordonnées
+  const formatCoordinate = (value: number | undefined): string => {
+    return value === undefined || value === null ? '' : value.toString();
+  };
+
   return (
     <Card key={config.id || `new-${index}`}>
       <CardHeader>
@@ -110,27 +119,80 @@ export function ShellyConfigCard({
             onChange={(e) => onUpdateField(index, 'gridSubscriptionKva', parseFloat(e.target.value) || 0)}
           />
         </div>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          onClick={() => onUpdateConfig(index)} 
-          disabled={savingConfig === (config.id || "new")}
-          className="flex items-center gap-2"
-        >
-          <Save className="h-4 w-4" />
-          {savingConfig === (config.id || "new") ? "Enregistrement..." : "Enregistrer"}
-        </Button>
+
+        <Separator className="my-2" />
         
-        {config.id && (
+        <div className="pt-2">
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-medium">Géolocalisation</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="space-y-2">
+              <Label htmlFor={`latitude-${index}`}>Latitude</Label>
+              <Input
+                id={`latitude-${index}`}
+                type="number"
+                step="0.000001"
+                placeholder="48.856614"
+                value={formatCoordinate(config.latitude)}
+                onChange={(e) => onUpdateField(index, 'latitude', parseFloat(e.target.value) || null)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`longitude-${index}`}>Longitude</Label>
+              <Input
+                id={`longitude-${index}`}
+                type="number"
+                step="0.000001"
+                placeholder="2.352222"
+                value={formatCoordinate(config.longitude)}
+                onChange={(e) => onUpdateField(index, 'longitude', parseFloat(e.target.value) || null)}
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col">
+        <div className="w-full flex justify-between mb-4">
           <Button 
-            variant="destructive" 
-            onClick={() => onDeleteConfig(config.id!, index)}
-            disabled={deletingConfig === config.id}
+            onClick={() => onUpdateConfig(index)} 
+            disabled={savingConfig === (config.id || "new")}
             className="flex items-center gap-2"
           >
-            <Trash2 className="h-4 w-4" />
-            {deletingConfig === config.id ? "Suppression..." : "Supprimer"}
+            <Save className="h-4 w-4" />
+            {savingConfig === (config.id || "new") ? "Enregistrement..." : "Enregistrer"}
           </Button>
+          
+          {config.id && (
+            <Button 
+              variant="destructive" 
+              onClick={() => onDeleteConfig(config.id!, index)}
+              disabled={deletingConfig === config.id}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deletingConfig === config.id ? "Suppression..." : "Supprimer"}
+            </Button>
+          )}
+        </div>
+        
+        {config.id && (
+          <>
+            <Separator className="my-2" />
+            <Button 
+              variant="outline" 
+              className="w-full mt-2" 
+              onClick={() => setShowPvPanels(!showPvPanels)}
+            >
+              {showPvPanels ? "Masquer les panneaux PV" : "Configurer les panneaux PV"}
+            </Button>
+            
+            {showPvPanels && (
+              <PVPanelsList shellyConfigId={config.id} />
+            )}
+          </>
         )}
       </CardFooter>
     </Card>

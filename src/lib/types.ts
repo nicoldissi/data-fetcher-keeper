@@ -55,6 +55,8 @@ export interface ShellyConfig {
   deviceType?: 'ShellyEM' | 'ShellyProEM';
   inverterPowerKva?: number;
   gridSubscriptionKva?: number;
+  latitude?: number;
+  longitude?: number;
   
   // Database field mappings - snake_case format from Supabase
   deviceid?: string;
@@ -63,4 +65,27 @@ export interface ShellyConfig {
   device_type?: string;
   inverter_power_kva?: number;
   grid_subscription_kva?: number;
+}
+
+export interface PVPanel {
+  id?: string;
+  shellyConfigId: string;
+  powerWp: number;  // Watt-peak
+  inclination: number;  // degrees
+  azimuth: number;  // degrees (180 = south)
+  name?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface pour la base de données (snake_case)
+export interface DbPVPanel {
+  id?: string;
+  shelly_config_id: string;
+  power_wp: number;
+  inclination: number;
+  azimuth: number;
+  name?: string;
+  created_at?: string;
+  updated_at?: string;
 }

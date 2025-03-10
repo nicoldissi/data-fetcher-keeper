@@ -1,4 +1,4 @@
-import { ShellyConfig } from '../types';
+import { ShellyConfig, PVPanel, DbPVPanel } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
 const SHELLY_CONFIG_KEY = 'shelly_config';
@@ -15,7 +15,9 @@ const DEFAULT_CONFIG: ShellyConfig = {
   name: 'Default Device',
   deviceType: 'ShellyEM',
   inverterPowerKva: 3.0,
-  gridSubscriptionKva: 6.0
+  gridSubscriptionKva: 6.0,
+  latitude: null,
+  longitude: null
 };
 
 export const getLocalShellyConfig = (): ShellyConfig => {
@@ -42,6 +44,8 @@ interface DbShellyConfig {
   device_type?: string;
   inverter_power_kva?: number;
   grid_subscription_kva?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Helper function to map database fields to frontend model
@@ -54,7 +58,9 @@ export const mapDbConfigToFrontend = (dbConfig: DbShellyConfig): ShellyConfig =>
     name: dbConfig.name,
     deviceType: (dbConfig.device_type as 'ShellyEM' | 'ShellyProEM') || 'ShellyEM', // Cast and provide default
     inverterPowerKva: dbConfig.inverter_power_kva || 3.0,
-    gridSubscriptionKva: dbConfig.grid_subscription_kva || 6.0
+    gridSubscriptionKva: dbConfig.grid_subscription_kva || 6.0,
+    latitude: dbConfig.latitude,
+    longitude: dbConfig.longitude
   };
 };
 
@@ -68,7 +74,9 @@ export const mapFrontendToDbConfig = (config: ShellyConfig): DbShellyConfig => {
     name: config.name || 'Default Device',
     device_type: config.deviceType || 'ShellyEM', //Add default value, as it can be undefined.
     inverter_power_kva: config.inverterPowerKva || 3.0,
-    grid_subscription_kva: config.gridSubscriptionKva || 6.0
+    grid_subscription_kva: config.gridSubscriptionKva || 6.0,
+    latitude: config.latitude,
+    longitude: config.longitude
   };
 };
 
@@ -372,4 +380,117 @@ export const getShellyCloudUrl = async (id?: string): Promise<string | null> => 
   const config = await getShellyConfig(id);
   if (!config) return null;
   return `${config.serverUrl}/device/status?id=${config.deviceId}&auth_key=${config.apiKey}`;
+};
+
+export const getPVPanels = async (shellyConfigId: string): Promise<PVPanel[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('pv_panels')
+      .select('*')
+      .eq('shelly_config_id', shellyConfigId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Convertir les données de la base de données en format frontend
+    return data.map(mapDbPanelToFrontend);
+  } catch (error) {
+    console.error("Error fetching PV panels:", error);
+    return [];
+  }
+};
+
+export const createPVPanel = async (panel: PVPanel): Promise<PVPanel | null> => {
+  try {
+    if (!panel.shellyConfigId) {
+      throw new Error('shellyConfigId is required');
+    }
+
+    const dbPanel = mapFrontendToDbPanel(panel);
+
+    const { data, error } = await supabase
+      .from('pv_panels')
+      .insert(dbPanel)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return mapDbPanelToFrontend(data);
+  } catch (error) {
+    console.error("Error creating PV panel:", error);
+    return null;
+  }
+};
+
+export const updatePVPanel = async (panel: PVPanel): Promise<PVPanel | null> => {
+  try {
+    if (!panel.id) {
+      throw new Error('Panel ID is required for update');
+    }
+
+    const dbPanel = mapFrontendToDbPanel(panel);
+
+    const { data, error } = await supabase
+      .from('pv_panels')
+      .update(dbPanel)
+      .eq('id', panel.id)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return mapDbPanelToFrontend(data);
+  } catch (error) {
+    console.error("Error updating PV panel:", error);
+    return null;
+  }
+};
+
+export const deletePVPanel = async (panelId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('pv_panels')
+      .delete()
+      .eq('id', panelId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting PV panel:", error);
+    return false;
+  }
+};
+
+// Helper functions for PV panel data mapping
+export const mapDbPanelToFrontend = (dbPanel: DbPVPanel): PVPanel => {
+  return {
+    id: dbPanel.id,
+    shellyConfigId: dbPanel.shelly_config_id,
+    powerWp: dbPanel.power_wp,
+    inclination: dbPanel.inclination,
+    azimuth: dbPanel.azimuth,
+    name: dbPanel.name,
+    createdAt: dbPanel.created_at,
+    updatedAt: dbPanel.updated_at
+  };
+};
+
+export const mapFrontendToDbPanel = (panel: PVPanel): DbPVPanel => {
+  return {
+    id: panel.id,
+    shelly_config_id: panel.shellyConfigId,
+    power_wp: panel.powerWp,
+    inclination: panel.inclination,
+    azimuth: panel.azimuth,
+    name: panel.name,
+    created_at: panel.createdAt,
+    updated_at: panel.updatedAt
+  };
 };
