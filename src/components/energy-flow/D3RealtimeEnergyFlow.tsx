@@ -64,19 +64,32 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       HOME: { x: width * 0.85, y: height * 0.7 }
     };
     
+    // Get maximum PV capacity from inverter (in W)
+    // Default to 6000 W (6 kW) if not specified
+    const maxPVCapacity = data.shelly_config_id && window.__INITIAL_DATA__?.configs?.[data.shelly_config_id]?.inverter_power_kva 
+      ? window.__INITIAL_DATA__.configs[data.shelly_config_id].inverter_power_kva * 1000 
+      : 6000;
+    
+    // Calculate PV production percentage
+    const pvProductionPercentage = Math.min(100, (data.pv_power / maxPVCapacity) * 100);
+    
     // Prepare data for nodes
     const nodesData = [
       {
         id: "PV",
         label: "PV",
         value: `${data.pv_power.toFixed(1)} W`,
-        color: '#66BB6A'
+        color: '#66BB6A',
+        gaugeValue: pvProductionPercentage,
+        maxCapacity: maxPVCapacity
       },
       {
         id: "GRID",
         label: "Réseau",
         value: `${Math.abs(data.power).toFixed(1)} W`,
-        color: '#42A5F5'
+        color: '#42A5F5',
+        direction: data.power >= 0 ? 'import' : 'export',
+        power: data.power
       },
       {
         id: "HOME",
@@ -97,8 +110,7 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       flowData.push({
         source: "GRID",
         target: "HOME",
-        power: data.power,
-        title: "Réseau"
+        power: data.power
       });
     }
     
@@ -108,8 +120,7 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       flowData.push({
         source: "PV",
         target: "HOME",
-        power: pvToHome,
-        title: "Autoconsommation"
+        power: pvToHome
       });
     }
     
@@ -119,12 +130,11 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       flowData.push({
         source: "PV",
         target: "GRID",
-        power: excessPower,
-        title: "Injection"
+        power: excessPower
       });
     }
     
-    // Create the flow paths between nodes
+    // Create the flow paths between nodes without labels
     createRealtimeFluxPaths(svg, flowData, centers, nodeRadius);
   };
   

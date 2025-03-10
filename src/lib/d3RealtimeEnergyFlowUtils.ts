@@ -1,6 +1,6 @@
 
 import * as d3 from 'd3';
-import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Gauge, TrendingUp, TrendingDown } from 'lucide-react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -13,7 +13,6 @@ interface FlowData {
   source: string;
   target: string;
   power: number;
-  title: string;
 }
 
 interface NodeData {
@@ -21,6 +20,10 @@ interface NodeData {
   label: string;
   value: string;
   color: string;
+  gaugeValue?: number;
+  maxCapacity?: number;
+  direction?: 'import' | 'export';
+  power?: number;
 }
 
 export function createRealtimeFluxPaths(
@@ -80,98 +83,6 @@ export function createRealtimeFluxPaths(
       .on("end", animateFlux);
   }
   animateFlux();
-
-  function getBorderColor(d: FlowData) {
-    if (d.source === "PV") return "#4CAF50";
-    if (d.source === "GRID") return "#2196F3";
-    return "#888";
-  }
-
-  function getTextColor(d: FlowData) {
-    if (d.source === "PV") return "#4CAF50";
-    if (d.source === "GRID") return "#2196F3";
-    return "#555";
-  }
-
-  svg.selectAll(".flux-label-container")
-    .data(fluxData)
-    .enter()
-    .append("g")
-    .attr("class", "flux-label-container")
-    .each(function(d: FlowData) {
-      const s = centers[d.source];
-      const t = centers[d.target];
-      
-      const dx = t.x - s.x;
-      const dy = t.y - s.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const offset = nodeRadius + 5;
-      const ratioStart = offset / dist;
-      const x1 = s.x + dx * ratioStart;
-      const y1 = s.y + dy * ratioStart;
-      const ratioEnd = (dist - offset) / dist;
-      const x2 = s.x + dx * ratioEnd;
-      const y2 = s.y + dy * ratioEnd;
-      
-      const mx = (x1 + x2) / 2;
-      const my = (y1 + y2) / 2 - 40;
-      
-      const tParam = 0.5;
-      const bezierX = (1-tParam)*(1-tParam)*x1 + 2*(1-tParam)*tParam*mx + tParam*tParam*x2;
-      const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
-
-      const borderColor = getBorderColor(d);
-      const textColor = getTextColor(d);
-
-      // Prepare label content
-      const title = d.title;
-      const valueText = `${Math.abs(d.power).toFixed(1)} W`;
-      
-      // Calculate responsive width based on text content
-      const titleLength = title.length;
-      const valueLength = valueText.length;
-      const maxLength = Math.max(titleLength, valueLength);
-      const labelWidth = Math.max(80, maxLength * 8); // 8px per character with minimum of 80px
-      
-      // Create a rectangle with rounded corners for the label background
-      d3.select(this)
-        .append("rect")
-        .attr("x", bezierX - labelWidth/2)
-        .attr("y", bezierY - 25)
-        .attr("width", labelWidth)
-        .attr("height", 40)
-        .attr("rx", 12)
-        .attr("ry", 12)
-        .attr("fill", "white")
-        .attr("stroke", borderColor)
-        .attr("stroke-width", 1)
-        .attr("fill-opacity", 0.9)
-        .attr("filter", "drop-shadow(0px 1px 2px rgba(0,0,0,0.1))");
-
-      // Add the title inside the bubble (first line)
-      d3.select(this)
-        .append("text")
-        .attr("x", bezierX)
-        .attr("y", bezierY - 8)
-        .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "middle")
-        .attr("font-size", 12)
-        .attr("font-weight", "medium")
-        .attr("fill", textColor)
-        .text(title);
-
-      // Add the value as second line
-      d3.select(this)
-        .append("text")
-        .attr("x", bezierX)
-        .attr("y", bezierY + 10)
-        .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "middle")
-        .attr("font-size", 13)
-        .attr("font-weight", "bold")
-        .attr("fill", textColor)
-        .text(valueText);
-    });
 
   return fluxPaths;
 }
@@ -255,5 +166,135 @@ export function createRealtimeNodes(
     .attr("font-size", "14px")
     .text(d => d.value);
 
+  // Add gauges for specific nodes
+  nodeGroups.each(function(d) {
+    if (d.id === "PV" && d.gaugeValue !== undefined) {
+      createPVGauge(d3.select(this), d.gaugeValue, nodeRadius, d.color);
+    }
+    
+    if (d.id === "GRID" && d.direction && d.power !== undefined) {
+      createGridGauge(d3.select(this), d.direction, Math.abs(d.power), nodeRadius, d.color);
+    }
+  });
+
   return nodeGroups;
+}
+
+function createPVGauge(
+  nodeGroup: d3.Selection<d3.BaseType, NodeData, null, undefined>,
+  value: number,
+  nodeRadius: number,
+  color: string
+) {
+  const gaugeY = nodeRadius * 1.5;
+  const gaugeWidth = nodeRadius * 2;
+  const gaugeHeight = 12;
+  
+  // Gauge background
+  nodeGroup.append("rect")
+    .attr("x", -gaugeWidth / 2)
+    .attr("y", gaugeY)
+    .attr("width", gaugeWidth)
+    .attr("height", gaugeHeight)
+    .attr("rx", gaugeHeight / 2)
+    .attr("fill", "#e5e7eb"); // Light gray background
+
+  // Calculate gauge fill width based on percentage
+  const fillWidth = (value / 100) * gaugeWidth;
+  
+  // Gauge fill (progress bar)
+  nodeGroup.append("rect")
+    .attr("x", -gaugeWidth / 2)
+    .attr("y", gaugeY)
+    .attr("width", fillWidth)
+    .attr("height", gaugeHeight)
+    .attr("rx", gaugeHeight / 2)
+    .attr("fill", color);
+    
+  // Add percentage text below gauge
+  nodeGroup.append("text")
+    .attr("text-anchor", "middle")
+    .attr("y", gaugeY + gaugeHeight + 15)
+    .attr("fill", color)
+    .attr("font-size", "11px")
+    .attr("font-weight", "medium")
+    .text(`${Math.round(value)}% de capacité`);
+}
+
+function createGridGauge(
+  nodeGroup: d3.Selection<d3.BaseType, NodeData, null, undefined>,
+  direction: 'import' | 'export',
+  power: number,
+  nodeRadius: number,
+  color: string
+) {
+  const isImport = direction === 'import';
+  const gaugeY = nodeRadius * 1.5;
+  const maxWidth = nodeRadius * 2;
+  const gaugeHeight = 12;
+
+  // Add direction icon
+  const arrowY = gaugeY - 18;
+  
+  // Create container for icon
+  const foreignObject = nodeGroup
+    .append("foreignObject")
+    .attr("width", 20)
+    .attr("height", 20)
+    .attr("x", -10)
+    .attr("y", arrowY);
+
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.justifyContent = 'center';
+  container.style.alignItems = 'center';
+  container.style.width = '100%';
+  container.style.height = '100%';
+  
+  foreignObject.node()?.appendChild(container);
+  
+  ReactDOM.render(
+    React.createElement(
+      isImport ? TrendingDown : TrendingUp, 
+      { size: 18, color: color, strokeWidth: 2 }
+    ),
+    container
+  );
+  
+  // Build a power scale for visualization
+  // This is a simplified scale. In a real app, you might want to use a logarithmic scale
+  // or a more sophisticated approach to handle various power ranges
+  const powerScale = d3.scaleLinear()
+    .domain([0, 5000]) // Assuming max power of 5kW. Adjust as needed
+    .range([0, maxWidth])
+    .clamp(true);
+  
+  const gaugeWidth = powerScale(power);
+  
+  // Gauge background
+  nodeGroup.append("rect")
+    .attr("x", -maxWidth / 2)
+    .attr("y", gaugeY)
+    .attr("width", maxWidth)
+    .attr("height", gaugeHeight)
+    .attr("rx", gaugeHeight / 2)
+    .attr("fill", "#e5e7eb"); // Light gray background
+
+  // Gauge fill (progress bar)
+  nodeGroup.append("rect")
+    .attr("x", -maxWidth / 2)
+    .attr("y", gaugeY)
+    .attr("width", gaugeWidth)
+    .attr("height", gaugeHeight)
+    .attr("rx", gaugeHeight / 2)
+    .attr("fill", color);
+    
+  // Add direction text below gauge
+  nodeGroup.append("text")
+    .attr("text-anchor", "middle")
+    .attr("y", gaugeY + gaugeHeight + 15)
+    .attr("fill", color)
+    .attr("font-size", "11px")
+    .attr("font-weight", "medium")
+    .text(isImport ? "Consommation" : "Injection");
 }
