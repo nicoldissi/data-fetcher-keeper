@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -96,7 +95,6 @@ export function createFluxPaths(
     return "#555";
   }
 
-  // Calculate position exactly on the flow path for the labels
   svg.selectAll(".flux-label-container")
     .data(fluxData)
     .enter()
@@ -106,7 +104,6 @@ export function createFluxPaths(
       const s = centers[d.source as keyof typeof centers];
       const t = centers[d.target as keyof typeof centers];
       
-      // Use Bezier curve calculations to find the exact midpoint of the curve
       const dx = t.x - s.x;
       const dy = t.y - s.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
@@ -118,12 +115,10 @@ export function createFluxPaths(
       const x2 = s.x + dx * ratioEnd;
       const y2 = s.y + dy * ratioEnd;
       
-      // Control point
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2 - 40;
       
-      // Calculate point at t=0.5 on the Bezier curve for perfect centering
-      const tParam = 0.5; // Renamed from 't' to avoid redeclaration
+      const tParam = 0.5;
       const bezierX = (1-tParam)*(1-tParam)*x1 + 2*(1-tParam)*tParam*mx + tParam*tParam*x2;
       const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
 
@@ -243,35 +238,87 @@ export function createDonutCharts(
           };
         });
     } else if (d.id === "GRID") {
-      // For GRID, simply show a transparent/white gauge with network information
-      d3.select(this).append("path")
-        .attr("class", "arc-value")
-        .attr("fill", fillColor)
-        .attr("fill-opacity", 0.4)
-        .transition()
-        .duration(800)
-        .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
-          return (t: number) => {
-            return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
-          };
-        });
-    } else {
-      d3.select(this).append("path")
-        .attr("class", "arc-value")
-        .attr("fill", fillColor)
-        .transition()
-        .duration(800)
-        .attrTween("d", function() {
-          const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
-          return (t: number) => {
-            return (arcValue as any).endAngle(interpolate(t))({} as any) as string;
-          };
-        });
+      if (d.importTotal !== undefined && d.exportTotal !== undefined) {
+        const totalGrid = d.importTotal + d.exportTotal;
+        const importRatio = totalGrid > 0 ? d.importTotal / totalGrid : 0;
+        
+        d3.select(this).append("path")
+          .attr("class", "arc-import")
+          .attr("fill", "#42A5F5")
+          .transition()
+          .duration(800)
+          .attrTween("d", function() {
+            const importAngle = importRatio * 2 * Math.PI;
+            const interpolate = d3.interpolate(0, importAngle);
+            return (t: number) => {
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(0)
+                .endAngle(interpolate(t))({} as any) as string;
+            };
+          });
+        
+        d3.select(this).append("path")
+          .attr("class", "arc-export")
+          .attr("fill", "#66BB6A")
+          .transition()
+          .duration(800)
+          .attrTween("d", function() {
+            const importAngle = importRatio * 2 * Math.PI;
+            const exportAngle = 2 * Math.PI;
+            const interpolate = d3.interpolate(importAngle, exportAngle);
+            return (t: number) => {
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(importAngle)
+                .endAngle(interpolate(t))({} as any) as string;
+            };
+          });
+      }
+    } else if (d.id === "PV") {
+      if (d.selfConsumptionRatio !== undefined) {
+        const selfConsumptionRate = d.selfConsumptionRatio / 100;
+        
+        d3.select(this).append("path")
+          .attr("class", "arc-self-consumption")
+          .attr("fill", "#66BB6A")
+          .transition()
+          .duration(800)
+          .attrTween("d", function() {
+            const selfConsumptionAngle = selfConsumptionRate * 2 * Math.PI;
+            const interpolate = d3.interpolate(0, selfConsumptionAngle);
+            return (t: number) => {
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(0)
+                .endAngle(interpolate(t))({} as any) as string;
+            };
+          });
+        
+        d3.select(this).append("path")
+          .attr("class", "arc-export")
+          .attr("fill", "#42A5F5")
+          .transition()
+          .duration(800)
+          .attrTween("d", function() {
+            const selfConsumptionAngle = selfConsumptionRate * 2 * Math.PI;
+            const totalAngle = 2 * Math.PI;
+            const interpolate = d3.interpolate(selfConsumptionAngle, totalAngle);
+            return (t: number) => {
+              return d3.arc()
+                .innerRadius(outerRadius - thickness)
+                .outerRadius(outerRadius)
+                .startAngle(selfConsumptionAngle)
+                .endAngle(interpolate(t))({} as any) as string;
+            };
+          });
+      }
     }
     
-    // Create icon container at the top of donut - Moving it up by 5 more pixels
-    const iconY = -40; // Changed from -35 to -40 to move up by another 5 pixels
+    const iconY = -40;
     
     const foreignObject = d3.select(this)
       .append("foreignObject")
@@ -306,28 +353,32 @@ export function createDonutCharts(
       );
     }
 
-    // For PV node - Display production in kWh and self-consumption ratio if available
     if (d.id === "PV") {
-      // Production value
       d3.select(this).append("text")
         .attr("fill", textColor)
         .attr("font-size", 16)
         .attr("font-weight", "bold")
         .attr("text-anchor", "middle") 
         .attr("dy", 5)
-        .text(isDaily ? `${d.totalKwh.toFixed(1)} kWh` : `${Math.round(d.totalKwh)} W`);
+        .text(isDaily ? `${d.totalKwh.toFixed(1)}` : `${Math.round(d.totalKwh)}`);
       
-      // Self-consumption ratio (only for daily view)
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 10)
+        .attr("text-anchor", "middle")
+        .attr("dy", 20)
+        .text("kWh");
+      
       if (isDaily && d.selfConsumptionRatio !== undefined) {
         d3.select(this).append("text")
           .attr("fill", textColor)
-          .attr("font-size", 14)
+          .attr("font-size", 16)
+          .attr("font-weight", "bold")
           .attr("text-anchor", "middle")
-          .attr("dy", 30)
+          .attr("dy", 35)
           .text(`${Math.round(d.selfConsumptionRatio)}%`);
       }
     } 
-    // For MAISON node
     else if (d.id === "MAISON") {
       d3.select(this).append("text")
         .attr("fill", textColor)
@@ -335,31 +386,33 @@ export function createDonutCharts(
         .attr("font-weight", "bold")
         .attr("text-anchor", "middle") 
         .attr("dy", 5)
-        .text(isDaily 
-          ? `${d.totalKwh.toFixed(1)} kWh` 
-          : `${Math.round(d.totalKwh)} W`
-        );
+        .text(isDaily ? `${d.totalKwh.toFixed(1)}` : `${Math.round(d.totalKwh)}`);
       
-      // Ajout du taux d'autoproduction
+      d3.select(this).append("text")
+        .attr("fill", textColor)
+        .attr("font-size", 10)
+        .attr("text-anchor", "middle")
+        .attr("dy", 20)
+        .text("kWh");
+      
       if (isDaily && d.ratio !== undefined) {
         d3.select(this).append("text")
           .attr("fill", textColor)
-          .attr("font-size", 14)
+          .attr("font-size", 16)
+          .attr("font-weight", "bold")
           .attr("text-anchor", "middle")
-          .attr("dy", 30)
-          .text(`${Math.round(d.ratio * 100)}% autoprod`);
+          .attr("dy", 35)
+          .text(`${Math.round(d.ratio * 100)}%`);
       }
     } 
-    // For GRID node
     else if (d.id === "GRID") {
       if (d.importTotal !== undefined && d.exportTotal !== undefined) {
-        // Import indicator with ArrowRight icon - Remonte de 20px
         const importForeignObject = d3.select(this)
           .append("foreignObject")
           .attr("width", 16)
           .attr("height", 16)
           .attr("x", -36)
-          .attr("y", -5); // Changé de 15 à -5 (remontée de 20px)
+          .attr("y", -5);
         
         const importContainer = document.createElement('div');
         importContainer.style.display = 'flex';
@@ -378,21 +431,18 @@ export function createDonutCharts(
         d3.select(this).append("text")
           .attr("fill", textColor)
           .attr("font-size", 12)
+          .attr("font-weight", "bold")
           .attr("text-anchor", "middle")
           .attr("x", 10)
-          .attr("dy", 5) // Changé de 25 à 5 (remontée de 20px)
-          .text(isDaily 
-            ? `${d.importTotal.toFixed(1)} kWh` 
-            : `${Math.round(d.importTotal)} W`
-          );
-
-        // Export indicator with ArrowLeft icon - Remonte de 20px
+          .attr("dy", 5)
+          .text(isDaily ? `${d.importTotal.toFixed(1)} kWh` : `${Math.round(d.importTotal)} W`);
+        
         const exportForeignObject = d3.select(this)
           .append("foreignObject")
           .attr("width", 16)
           .attr("height", 16)
           .attr("x", -36)
-          .attr("y", 15); // Changé de 35 à 15 (remontée de 20px)
+          .attr("y", 15);
         
         const exportContainer = document.createElement('div');
         exportContainer.style.display = 'flex';
@@ -411,13 +461,11 @@ export function createDonutCharts(
         d3.select(this).append("text")
           .attr("fill", "#388E3C")
           .attr("font-size", 12)
+          .attr("font-weight", "bold")
           .attr("text-anchor", "middle")
           .attr("x", 10)
-          .attr("dy", 22) // Changé de 42 à 22 (remontée de 20px)
-          .text(isDaily 
-            ? `${d.exportTotal.toFixed(1)} kWh` 
-            : `${Math.round(d.exportTotal)} W`
-          );
+          .attr("dy", 22)
+          .text(isDaily ? `${d.exportTotal.toFixed(1)} kWh` : `${Math.round(d.exportTotal)} W`);
       }
     }
   });
