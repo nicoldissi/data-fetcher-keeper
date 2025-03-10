@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   CartesianGrid, Tooltip, 
   ResponsiveContainer, Area, ComposedChart, ReferenceLine, Line, XAxis, YAxis
@@ -22,6 +22,10 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
   const [showProduction, setShowProduction] = useState(true);
   const [showGrid, setShowGrid] = useState(false);
   const [showVoltage, setShowVoltage] = useState(false);
+  
+  // Maintain fixed domain state to prevent zoom resets
+  const [fixedYDomain, setFixedYDomain] = useState<[number, number] | null>(null);
+  const [fixedVoltageDomain, setFixedVoltageDomain] = useState<[number, number] | null>(null);
 
   // Use the extracted hook for data processing
   const { 
@@ -30,6 +34,26 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     calculateYAxisDomain,
     calculateVoltageYAxisDomain
   } = useEnergyChartData(history, configId || null);
+
+  // Calculate and store domains once when data is first loaded
+  useEffect(() => {
+    if (chartData.length > 0 && !fixedYDomain) {
+      setFixedYDomain(calculateYAxisDomain(showConsumption, showProduction, showGrid));
+    }
+    
+    if (chartData.length > 0 && !fixedVoltageDomain && showVoltage) {
+      setFixedVoltageDomain(calculateVoltageYAxisDomain(showVoltage));
+    }
+  }, [chartData, fixedYDomain, fixedVoltageDomain, showConsumption, showProduction, showGrid, showVoltage, calculateYAxisDomain, calculateVoltageYAxisDomain]);
+
+  // Update domains when toggles change
+  useEffect(() => {
+    setFixedYDomain(calculateYAxisDomain(showConsumption, showProduction, showGrid));
+  }, [showConsumption, showProduction, showGrid, calculateYAxisDomain]);
+  
+  useEffect(() => {
+    setFixedVoltageDomain(calculateVoltageYAxisDomain(showVoltage));
+  }, [showVoltage, calculateVoltageYAxisDomain]);
 
   // Common font styling for the chart
   const fontStyle = {
@@ -134,7 +158,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
           />
           <YAxis 
             yAxisId="power"
-            domain={calculateYAxisDomain(showConsumption, showProduction, showGrid)}
+            domain={fixedYDomain || calculateYAxisDomain(showConsumption, showProduction, showGrid)}
             tickFormatter={(value) => `${Math.round(value)} W`}
             tick={fontStyle}
           />
@@ -142,7 +166,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
             <YAxis 
               yAxisId="voltage"
               orientation="right"
-              domain={calculateVoltageYAxisDomain(showVoltage)}
+              domain={fixedVoltageDomain || calculateVoltageYAxisDomain(showVoltage)}
               tickFormatter={(value) => `${Math.round(value)} V`}
               tick={fontStyle}
             />
