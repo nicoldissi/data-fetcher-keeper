@@ -15,6 +15,9 @@ import { SelfProductionCard } from './SelfProductionCard';
 import { PowerTriangleCard } from './PowerTriangleCard';
 import { UserMenu } from './UserMenu';
 import { D3EnergyFlow } from './energy-flow/D3EnergyFlow';
+import { Button } from '@/components/ui/button';
+import { Clock, Calendar } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -28,6 +31,7 @@ export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [flowViewMode, setFlowViewMode] = useState<'realtime' | 'daily'>('realtime');
 
   useEffect(() => {
     const checkConfigValidity = async () => {
@@ -137,15 +141,40 @@ export function ShellyDashboard() {
             )}
           </div>
 
-          <div className="md:col-span-2 flex">
-            <EnergyFlowChartDark data={currentData} className="w-full" />
+          <div className="md:col-span-2 flex flex-col">
+            <div className="flex justify-end mb-3">
+              <div className="bg-muted inline-flex items-center rounded-md p-1">
+                <Toggle
+                  pressed={flowViewMode === 'realtime'}
+                  onPressedChange={() => setFlowViewMode('realtime')}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 data-[state=on]:bg-background"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span>Temps réel</span>
+                </Toggle>
+                <Toggle
+                  pressed={flowViewMode === 'daily'}
+                  onPressedChange={() => setFlowViewMode('daily')}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 data-[state=on]:bg-background"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span>Journalier</span>
+                </Toggle>
+              </div>
+            </div>
+            
+            {flowViewMode === 'realtime' ? (
+              <EnergyFlowChartDark data={currentData} className="w-full h-full" />
+            ) : (
+              <D3EnergyFlow configId={activeConfigId || undefined} className="w-full h-full" />
+            )}
           </div>
         </div>
         
-        <div className="mb-6">
-          <D3EnergyFlow configId={activeConfigId || undefined} />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <SelfConsumptionCard data={currentData} configId={activeConfigId} />
           <SelfProductionCard data={currentData} configId={activeConfigId} />
