@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -129,14 +128,21 @@ export function createFluxPaths(
 
       // Get the title based on flow type
       const title = d.title || getFlowTitle(d);
+      const valueText = `${d.kwh.toFixed(1)} kWh`;
       
-      // Create a rectangle with rounded corners for the label background
+      // Calculate responsive width based on text content
+      const titleLength = title.length;
+      const valueLength = valueText.length;
+      const maxLength = Math.max(titleLength, valueLength);
+      const labelWidth = Math.max(80, maxLength * 7); // 7px per character with minimum of 80px
+      
+      // Create a rectangle with rounded corners for the label background with responsive width
       d3.select(this)
         .append("rect")
-        .attr("x", bezierX - 40)
-        .attr("y", bezierY - 25) // Increased height to fit two lines of text
-        .attr("width", 80)
-        .attr("height", 36) // Increased height for two text lines
+        .attr("x", bezierX - labelWidth/2)
+        .attr("y", bezierY - 25) 
+        .attr("width", labelWidth)
+        .attr("height", 40) // Increased height for better spacing
         .attr("rx", 12)
         .attr("ry", 12)
         .attr("fill", "white")
@@ -149,10 +155,10 @@ export function createFluxPaths(
       d3.select(this)
         .append("text")
         .attr("x", bezierX)
-        .attr("y", bezierY - 8) // Position for the first line (title)
+        .attr("y", bezierY - 8) 
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .attr("font-size", 11)
+        .attr("font-size", 12)
         .attr("font-weight", "medium")
         .attr("fill", textColor)
         .text(title);
@@ -161,19 +167,18 @@ export function createFluxPaths(
       d3.select(this)
         .append("text")
         .attr("x", bezierX)
-        .attr("y", bezierY + 8) // Position for the second line (value)
+        .attr("y", bezierY + 10) // Slight adjustment to better center vertically
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .attr("font-size", 12)
+        .attr("font-size", 13) // Slightly larger for better readability
         .attr("font-weight", "bold") // Made the values bold
         .attr("fill", textColor)
-        .text(`${d.kwh.toFixed(1)} kWh`);
+        .text(valueText);
     });
 
   return fluxPaths;
 }
 
-// Helper function to get the title based on flow type
 function getFlowTitle(d: FluxData) {
   if (d.source === "PV" && d.target === "MAISON") {
     return "Autoconsommation";
@@ -501,3 +506,4 @@ export function createDonutCharts(
     }
   });
 }
+

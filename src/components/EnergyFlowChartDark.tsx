@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,7 +63,6 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
   useEffect(() => {
     if (!data) return
     
-    // Set hasData to true once we receive data
     if (!hasData) {
       setHasData(true)
     }
@@ -79,23 +77,15 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     const isPVProducing = data.pv_power > 6
     const homeConsumption = data.pv_power + data.power
     
-    // Determine flow directions based on power values
-    const isGridImporting = data.power > 0  // Positive means importing FROM grid
-    const isGridExporting = data.power < 0  // Negative means exporting TO grid
+    const isGridImporting = data.power > 0
+    const isGridExporting = data.power < 0
     const isPVExceedingHomeNeeds = isPVProducing && data.pv_power > homeConsumption
     
-    // Fix: Use correct logic for determining flow animations
     setFlowAnimations({
-      // Only show grid to home flow when grid is supplying power AND PV isn't meeting all needs
       gridToHome: isGridImporting && !isPVExceedingHomeNeeds,
-      
-      // Show solar to home when PV is producing
       solarToHome: isPVProducing,
-      
-      // Only show solar to grid when PV is producing AND we're exporting to grid
       solarToGrid: isPVProducing && isGridExporting
     })
-    
   }, [data])
   
   useEffect(() => {
@@ -105,9 +95,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 60 // Increased circle size from 50 to 60 to match daily view
+    const nodeRadius = 60
     
-    // Add filter definition for glow effect
     const defs = svg.append("defs")
     defs.append("filter")
       .attr("id", "glow")
@@ -119,7 +108,6 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         </feMerge>
       `)
     
-    // Define node positions with same spacing as daily view
     const centers = {
       solar: {
         x: width * 0.5,
@@ -129,14 +117,14 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: '#66BB6A'
       },
       grid: {
-        x: width * 0.15, // Position like in daily view
+        x: width * 0.15,
         y: height * 0.7,
         label: 'Réseau',
         value: `${Math.abs(data.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
-        x: width * 0.85, // Position like in daily view
+        x: width * 0.85,
         y: height * 0.7,
         label: 'Maison',
         value: `${(data.power + data.pv_power).toFixed(1)} W`,
@@ -144,13 +132,11 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
       }
     }
     
-    // Create node circles with icon on top
     Object.entries(centers).forEach(([key, node]) => {
       const nodeGroup = svg.append('g')
         .attr('transform', `translate(${node.x}, ${node.y})`)
         .attr('class', `node-${key}`)
       
-      // Background circle
       nodeGroup.append('circle')
         .attr('r', nodeRadius)
         .attr('fill', 'white')
@@ -158,8 +144,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         .attr('stroke-width', 3)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
-      // Create icon container at the top of circle
-      const iconY = -40; // Same as daily view
+      const iconY = -40
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -195,7 +180,6 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         );
       }
       
-      // Power value text
       nodeGroup.append('text')
         .attr('text-anchor', 'middle')
         .attr('dy', '5px')
@@ -212,24 +196,21 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         .text(node.value)
     })
     
-    // Helper function to normalize power values to stroke widths
     const getStrokeWidth = (power: number) => {
       const absValue = Math.abs(power);
-      // Min 2, max 10, with a logarithmic scale to better visualize different power levels
       return Math.max(2, Math.min(10, 2 + 8 * Math.log10(1 + absValue / 100)));
     };
     
-    // Create flow paths between nodes with animations - increased curve offset for wider spacing
     const arrowPaths = [
       {
         id: "gridToHome",
         source: "grid",
         target: "home",
         active: flowAnimations.gridToHome,
-        color: "#42A5F5", // Blue color consistent with daily view
-        curveOffset: -100, // Same curve offset as daily view
+        color: "#42A5F5",
+        curveOffset: -100,
         power: data.power,
-        title: "Réseau" // Added title
+        title: "Réseau"
       },
       {
         id: "solarToHome",
@@ -239,7 +220,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: "#66BB6A",
         curveOffset: 0,
         power: Math.min(data.pv_power, data.pv_power + data.power),
-        title: "Autoconsommation" // Added title
+        title: "Autoconsommation"
       },
       {
         id: "solarToGrid",
@@ -249,22 +230,19 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: "#388E3C",
         curveOffset: 0,
         power: Math.max(0, -data.power),
-        title: "Injection" // Added title
+        title: "Injection"
       }
     ]
     
-    // Create paths with curved lines
     arrowPaths.forEach(path => {
       if (path.active) {
         const sourceNode = centers[path.source as keyof typeof centers]
         const targetNode = centers[path.target as keyof typeof centers]
         
-        // Calculate path points
         const dx = targetNode.x - sourceNode.x
         const dy = targetNode.y - sourceNode.y
         const dist = Math.sqrt(dx*dx + dy*dy)
         
-        // Start and end points with offset from circle edge
         const offset = nodeRadius + 5
         const ratioStart = offset / dist
         const ratioEnd = (dist - offset) / dist
@@ -274,14 +252,11 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         const x2 = sourceNode.x + dx * ratioEnd
         const y2 = sourceNode.y + dy * ratioEnd
         
-        // Control point for curve
         const mx = (x1 + x2) / 2
         const my = (y1 + y2) / 2 + path.curveOffset
         
-        // Get appropriate stroke width based on power
         const strokeWidth = getStrokeWidth(path.power);
         
-        // Create the path
         const flowPath = svg.append('path')
           .attr('d', `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`)
           .attr('fill', 'none')
@@ -290,7 +265,6 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .attr('stroke-dasharray', '8 8')
           .attr('filter', 'url(#glow)')
         
-        // Animate the dash offset for flowing effect
         function animateDash() {
           flowPath.transition()
             .duration(1500)
@@ -301,22 +275,36 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         
         animateDash()
         
-        // Calculate position exactly on the flow path for the label
-        // First, find a point on the quadratic Bezier curve
-        // We want the label to be centered on the path
-        const t = 0.5; // Parameter t for the Bezier curve (0.5 = middle)
+        const t = 0.5
         const bezierX = (1-t)*(1-t)*x1 + 2*(1-t)*t*mx + t*t*x2;
         const bezierY = (1-t)*(1-t)*y1 + 2*(1-t)*t*my + t*t*y2;
+        
+        let labelTitle = path.title;
+        let labelValue = "";
+        
+        if (path.id === 'gridToHome') {
+          labelValue = `${Math.abs(data.power).toFixed(1)} W`;
+        } else if (path.id === 'solarToHome') {
+          const toGrid = data.power < 0 ? -data.power : 0;
+          const powerValue = data.pv_power - toGrid;
+          labelValue = `${Math.abs(powerValue).toFixed(1)} W`;
+        } else if (path.id === 'solarToGrid') {
+          labelValue = `${Math.abs(data.power).toFixed(1)} W`;
+        }
+        
+        const titleLength = labelTitle.length;
+        const valueLength = labelValue.length;
+        const maxLength = Math.max(titleLength, valueLength);
+        const labelWidth = Math.max(80, maxLength * 8);
         
         const labelGroup = svg.append('g')
           .attr('class', `path-label-${path.id}`)
         
-        // Create taller rounded rectangle for label to fit both title and value
         labelGroup.append('rect')
-          .attr('x', bezierX - 40)
+          .attr('x', bezierX - labelWidth/2)
           .attr('y', bezierY - 25)
-          .attr('width', 80)
-          .attr('height', 36)
+          .attr('width', labelWidth)
+          .attr('height', 40)
           .attr('rx', 12)
           .attr('ry', 12)
           .attr('fill', 'white')
@@ -324,42 +312,29 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .attr('stroke-width', 1)
           .attr('fill-opacity', 0.9)
         
-        // Add title as first line in the label
         labelGroup.append('text')
           .attr('x', bezierX)
           .attr('y', bezierY - 8)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
-          .attr('font-size', 11)
+          .attr('font-size', 12)
           .attr('font-weight', 'medium')
           .attr('fill', path.color)
-          .text(path.title);
+          .text(labelTitle);
         
-        // Add value as second line
         labelGroup.append('text')
           .attr('x', bezierX)
-          .attr('y', bezierY + 8)
+          .attr('y', bezierY + 10)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
-          .attr('font-size', 12)
-          .attr('font-weight', 'bold') // Bold value text
+          .attr('font-size', 13)
+          .attr('font-weight', 'bold')
           .attr('fill', path.color)
-          .text(() => {
-            let power = 0
-            if (path.id === 'gridToHome') power = data.power
-            else if (path.id === 'solarToHome') {
-              const toGrid = data.power < 0 ? -data.power : 0
-              power = data.pv_power - toGrid
-            }
-            else if (path.id === 'solarToGrid') power = -data.power
-            
-            return `${Math.abs(power).toFixed(1)} W`
-          })
+          .text(labelValue);
       }
     })
-    
   }, [data, flowAnimations, size])
-
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
