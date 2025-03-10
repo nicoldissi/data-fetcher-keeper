@@ -101,8 +101,8 @@ export function useD3EnergyFlowVisualization({
     // Définir les positions des centres avec plus d'écart
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
-      RESEAU: { x: svgWidth / 2 - 240,  y: 380 }, // Écarté encore plus à gauche (était -220)
-      MAISON: { x: svgWidth / 2 + 240,  y: 380 }  // Écarté encore plus à droite (était +220)
+      RESEAU: { x: svgWidth / 2 - 240,  y: 380 }, // Écarté à gauche
+      MAISON: { x: svgWidth / 2 + 240,  y: 380 }  // Écarté à droite
     };
 
     // Définir les dimensions des donuts
@@ -123,7 +123,7 @@ export function useD3EnergyFlowVisualization({
       .attr("font-size", 18)
       .attr("font-weight", "bold")
       .attr("fill", "#555")
-      .text("Bilan Énergétique Journalier");
+      .text("Bilan Énergétique");
 
     // Return cleanup function to prevent memory leaks
     return cleanup;

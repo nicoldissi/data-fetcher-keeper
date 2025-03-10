@@ -186,11 +186,10 @@ export function createDonutCharts(
       return `translate(${c.x}, ${c.y})`;
     });
 
+  // Background circle for donuts - explicitly setting a light fill color, not black
   donutGroup.append("path")
     .attr("d", arcBg({} as any) as string)
-    .attr("fill", (d: DonutData) => {
-      return d.id === "RESEAU" ? "#F1F1F1" : "#eee";
-    });
+    .attr("fill", "#F1F1F1");
 
   donutGroup.each(function(d: DonutData) {
     let fillColor = "";
@@ -268,8 +267,8 @@ export function createDonutCharts(
         });
     }
     
-    // Create icon container at the top of donut - Moving it up by 5 more pixels
-    const iconY = -40; // Changed from -35 to -40 to move up by another 5 pixels
+    // Create icon container at the top of donut
+    const iconY = -40;
     
     const foreignObject = d3.select(this)
       .append("foreignObject")

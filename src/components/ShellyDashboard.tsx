@@ -9,12 +9,12 @@ import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { EnergyFlowChartDark } from './EnergyFlowChartDark';
 import { SelfConsumptionCard } from './SelfConsumptionCard';
 import { SelfProductionCard } from './SelfProductionCard';
 import { PowerTriangleCard } from './PowerTriangleCard';
 import { UserMenu } from './UserMenu';
 import { D3EnergyFlow } from './energy-flow/D3EnergyFlow';
+import { D3EnergyFlowRealtime } from './energy-flow/D3EnergyFlowRealtime';
 import { Button } from '@/components/ui/button';
 import { Clock, Calendar } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
@@ -31,6 +31,7 @@ export function ShellyDashboard() {
   const [showConfig, setShowConfig] = useState(false);
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showDailyFlow, setShowDailyFlow] = useState(false);
   
   useEffect(() => {
     const checkConfigValidity = async () => {
@@ -78,6 +79,10 @@ export function ShellyDashboard() {
 
   const handleConfigClick = () => {
     setShowConfig(true);
+  };
+
+  const toggleFlowView = () => {
+    setShowDailyFlow(!showDailyFlow);
   };
 
   if (isInitializing) {
@@ -141,10 +146,12 @@ export function ShellyDashboard() {
           </div>
 
           <div className="md:col-span-2 flex flex-col">
-            <EnergyFlowChartDark 
+            <D3EnergyFlowRealtime 
               data={currentData} 
               configId={activeConfigId || undefined}
-              className="w-full h-full" 
+              className="w-full h-full"
+              onToggleView={toggleFlowView}
+              showDaily={showDailyFlow}
             />
           </div>
         </div>
