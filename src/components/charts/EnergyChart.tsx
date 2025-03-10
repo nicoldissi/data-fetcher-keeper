@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { 
   CartesianGrid, Tooltip, 
@@ -237,25 +238,11 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
           
           {showGrid && (
             <>
-              {/* Grid import (positive values) */}
+              {/* Single grid Area for both import and export */}
               <Area
                 type="monotone"
-                dataKey={(dataPoint) => dataPoint.grid > 0 ? dataPoint.grid : 0}
-                name="Réseau (Import)"
-                yAxisId="power"
-                fill="url(#colorGrid)"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 6, strokeWidth: 2 }}
-                connectNulls={true}
-              />
-              
-              {/* Grid export (negative values) - now using the same color as import */}
-              <Area
-                type="monotone"
-                dataKey={(dataPoint) => dataPoint.grid < 0 ? dataPoint.grid : null}
-                name="Réseau (Export)"
+                dataKey="grid"
+                name="Réseau"
                 yAxisId="power"
                 fill="url(#colorGrid)"
                 stroke="#3b82f6"
@@ -415,4 +402,3 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
     </EnergyChartWrapper>
   );
 }
-

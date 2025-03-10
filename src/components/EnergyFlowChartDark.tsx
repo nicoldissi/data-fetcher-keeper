@@ -99,7 +99,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 50 // Keeping the circle size at 50 pixels
+    const nodeRadius = 60 // Increased circle size from 50 to 60 to match daily view
     
     // Add filter definition for glow effect
     const defs = svg.append("defs")
@@ -113,8 +113,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         </feMerge>
       `)
     
-    // Define node positions with more spacing between them
-    const nodes = {
+    // Define node positions with more spacing between them to match daily view
+    const centers = {
       solar: {
         x: width * 0.5,
         y: height * 0.2,
@@ -123,15 +123,15 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: '#66BB6A'
       },
       grid: {
-        x: width * 0.15, // Moved further left (was 0.2)
-        y: height * 0.7,  // Moved slightly lower (was 0.65)
+        x: width * 0.15, // Moved further left like in daily view
+        y: height * 0.7,
         label: 'Réseau',
         value: `${Math.abs(data.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
-        x: width * 0.85, // Moved further right (was 0.8)
-        y: height * 0.7,  // Moved slightly lower (was 0.65)
+        x: width * 0.85, // Moved further right like in daily view
+        y: height * 0.7,
         label: 'Maison',
         value: `${(data.power + data.pv_power).toFixed(1)} W`,
         color: '#F97316'
@@ -139,7 +139,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     }
     
     // Create node circles with icon on top
-    Object.entries(nodes).forEach(([key, node]) => {
+    Object.entries(centers).forEach(([key, node]) => {
       const nodeGroup = svg.append('g')
         .attr('transform', `translate(${node.x}, ${node.y})`)
         .attr('class', `node-${key}`)
@@ -153,7 +153,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
       // Create icon container at the top of circle - moved 5px higher
-      const iconY = -35; // Changed from -30 to -35 to move up by 5px
+      const iconY = -40; // Moved higher to match daily view (was -35)
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -213,15 +213,15 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
       return Math.max(2, Math.min(10, 2 + 8 * Math.log10(1 + absValue / 100)));
     };
     
-    // Create flow paths between nodes with animations
+    // Create flow paths between nodes with animations - increased curve offset for wider spacing
     const arrowPaths = [
       {
         id: "gridToHome",
         source: "grid",
         target: "home",
         active: flowAnimations.gridToHome,
-        color: "#ef4444",
-        curveOffset: -80, // Increased offset for wider spacing
+        color: "#42A5F5", // Using blue consistent with daily view
+        curveOffset: -100, // Increased offset for wider spacing (was -80)
         power: data.power
       },
       {
@@ -247,8 +247,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     // Create paths with curved lines like in D3EnergyFlow
     arrowPaths.forEach(path => {
       if (path.active) {
-        const sourceNode = nodes[path.source as keyof typeof nodes]
-        const targetNode = nodes[path.target as keyof typeof nodes]
+        const sourceNode = centers[path.source as keyof typeof centers]
+        const targetNode = centers[path.target as keyof typeof centers]
         
         // Calculate path points
         const dx = targetNode.x - sourceNode.x
