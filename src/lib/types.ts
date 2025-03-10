@@ -53,6 +53,10 @@ export interface ShellyConfig {
   id?: string;
   user_id?: string;
   deviceType?: 'ShellyEM' | 'ShellyProEM';
+  inverter_power_kva?: number;
+  grid_subscription_kva?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   
   // Database field mappings - snake_case format from Supabase
   deviceid?: string;

@@ -7,7 +7,7 @@ import { getShellyConfigs, updateShellyConfig, deleteShellyConfig } from "@/lib/
 import { ShellyConfig } from "@/lib/types";
 import { UserProfileCard } from "@/components/profile/UserProfileCard";
 import { ShellyConfigList } from "@/components/profile/ShellyConfigList";
-import { PreferencesCard } from "@/components/profile/PreferencesCard";
+import { RoofSections } from "@/components/profile/RoofSections";
 
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -71,7 +71,11 @@ export default function Profile() {
         apiKey: config.apiKey?.trim() || '',
         serverUrl: config.serverUrl?.trim() || '',
         name: config.name?.trim() || `Appareil ${index + 1}`,
-        deviceType: config.deviceType || 'ShellyEM'
+        deviceType: config.deviceType || 'ShellyEM',
+        inverter_power_kva: config.inverter_power_kva || 3.0,
+        grid_subscription_kva: config.grid_subscription_kva || 6.0,
+        latitude: config.latitude || null,
+        longitude: config.longitude || null
       });
       
       if (updatedConfig) {
@@ -138,14 +142,18 @@ export default function Profile() {
       apiKey: "",
       serverUrl: "https://shelly-12-eu.shelly.cloud",
       name: `Appareil ${shellyConfigs.length + 1}`,
-      deviceType: "ShellyEM"
+      deviceType: "ShellyEM",
+      inverter_power_kva: 3.0,
+      grid_subscription_kva: 6.0,
+      latitude: null,
+      longitude: null
     };
     
     setShellyConfigs([...shellyConfigs, newConfigItem]);
     setNewConfig(true);
   };
 
-  const updateConfigField = (index: number, field: keyof ShellyConfig, value: string) => {
+  const updateConfigField = (index: number, field: keyof ShellyConfig, value: any) => {
     const newConfigs = [...shellyConfigs];
     newConfigs[index] = {
       ...newConfigs[index],
@@ -183,7 +191,10 @@ export default function Profile() {
           handleAddNewConfig={handleAddNewConfig}
         />
         
-        <PreferencesCard />
+        <RoofSections 
+          shellyConfigs={shellyConfigs} 
+          selectedConfigId={shellyConfigs.length > 0 ? shellyConfigs[0].id : undefined}
+        />
       </div>
     </div>
   );

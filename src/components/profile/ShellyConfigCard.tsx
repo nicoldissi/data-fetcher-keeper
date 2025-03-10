@@ -1,88 +1,68 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShellyConfig } from "@/lib/types";
-import { Trash2, Save } from "lucide-react";
 
 interface ShellyConfigCardProps {
   config: ShellyConfig;
   index: number;
-  savingConfig: string | null;
-  deletingConfig: string | null;
-  onUpdateField: (index: number, field: keyof ShellyConfig, value: string) => void;
-  onUpdateConfig: (index: number) => void;
-  onDeleteConfig: (id: string, index: number) => void;
+  saving: boolean;
+  deleting: boolean;
+  onUpdateField: (field: keyof ShellyConfig, value: string | number | null) => void;
+  onSave: () => void;
+  onDelete: () => void;
 }
 
 export function ShellyConfigCard({
   config,
   index,
-  savingConfig,
-  deletingConfig,
+  saving,
+  deleting,
   onUpdateField,
-  onUpdateConfig,
-  onDeleteConfig
+  onSave,
+  onDelete,
 }: ShellyConfigCardProps) {
   return (
-    <Card key={config.id || `new-${index}`}>
+    <Card className="w-full">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>
-            <div className="flex items-center space-x-2">
-              <Input 
-                className="font-semibold text-lg h-8 w-full"
-                value={config.name || `Appareil ${index + 1}`}
-                onChange={(e) => onUpdateField(index, 'name', e.target.value)}
-                placeholder="Nom de l'appareil"
-              />
-            </div>
-          </CardTitle>
-        </div>
-        <CardDescription>
-          Paramètres de connexion à votre appareil Shelly
-        </CardDescription>
+        <CardTitle className="flex justify-between items-center">
+          <span>{config.name || `Appareil ${index + 1}`}</span>
+          {config.id && (
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deleting}
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor={`deviceId-${index}`}>ID de l'appareil</Label>
+          <Label htmlFor={`config-name-${index}`}>Nom de l'appareil</Label>
           <Input
-            id={`deviceId-${index}`}
-            placeholder="shellyem3-XXXXXXXXXXXX"
-            value={config.deviceId}
-            onChange={(e) => onUpdateField(index, 'deviceId', e.target.value)}
+            id={`config-name-${index}`}
+            placeholder="Nom de l'appareil"
+            value={config.name || ""}
+            onChange={(e) => onUpdateField("name", e.target.value)}
           />
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor={`apiKey-${index}`}>Clé API</Label>
-          <Input
-            id={`apiKey-${index}`}
-            type="password"
-            placeholder="MWRiNzA1dWlk1234567890EXAMPLE"
-            value={config.apiKey}
-            onChange={(e) => onUpdateField(index, 'apiKey', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`serverUrl-${index}`}>URL du serveur</Label>
-          <Input
-            id={`serverUrl-${index}`}
-            placeholder="https://shelly-12-eu.shelly.cloud"
-            value={config.serverUrl}
-            onChange={(e) => onUpdateField(index, 'serverUrl', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`deviceType-${index}`}>Type d'appareil</Label>
+          <Label htmlFor={`device-type-${index}`}>Type d'appareil</Label>
           <Select
-            value={config.deviceType || 'ShellyEM'}
-            onValueChange={(value) => onUpdateField(index, 'deviceType', value)}
+            value={config.deviceType || "ShellyEM"}
+            onValueChange={(value) => onUpdateField("deviceType", value)}
           >
-            <SelectTrigger id={`deviceType-${index}`}>
-              <SelectValue placeholder="Sélectionnez le type d'appareil" />
+            <SelectTrigger id={`device-type-${index}`}>
+              <SelectValue placeholder="Sélectionner un type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ShellyEM">Shelly EM</SelectItem>
@@ -90,28 +70,96 @@ export function ShellyConfigCard({
             </SelectContent>
           </Select>
         </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor={`inverter-power-${index}`}>Puissance onduleur (kVA)</Label>
+            <Input
+              id={`inverter-power-${index}`}
+              type="number"
+              step="0.1"
+              placeholder="3.0"
+              value={config.inverter_power_kva ?? "3.0"}
+              onChange={(e) => onUpdateField("inverter_power_kva", parseFloat(e.target.value))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`grid-subscription-${index}`}>Puissance abonnement (kVA)</Label>
+            <Input
+              id={`grid-subscription-${index}`}
+              type="number"
+              step="0.1"
+              placeholder="6.0"
+              value={config.grid_subscription_kva ?? "6.0"}
+              onChange={(e) => onUpdateField("grid_subscription_kva", parseFloat(e.target.value))}
+            />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor={`latitude-${index}`}>Latitude</Label>
+            <Input
+              id={`latitude-${index}`}
+              type="number"
+              step="0.000001"
+              placeholder="48.8566"
+              value={config.latitude ?? ""}
+              onChange={(e) => onUpdateField("latitude", e.target.value ? parseFloat(e.target.value) : null)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`longitude-${index}`}>Longitude</Label>
+            <Input
+              id={`longitude-${index}`}
+              type="number"
+              step="0.000001"
+              placeholder="2.3522"
+              value={config.longitude ?? ""}
+              onChange={(e) => onUpdateField("longitude", e.target.value ? parseFloat(e.target.value) : null)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`device-id-${index}`}>ID de l'appareil Shelly</Label>
+          <Input
+            id={`device-id-${index}`}
+            placeholder="ecfabcc7e123"
+            value={config.deviceId || ""}
+            onChange={(e) => onUpdateField("deviceId", e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`api-key-${index}`}>Clé API Shelly</Label>
+          <Input
+            id={`api-key-${index}`}
+            type="password"
+            placeholder="MmIzYzJ1aWQ9..."
+            value={config.apiKey || ""}
+            onChange={(e) => onUpdateField("apiKey", e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`server-url-${index}`}>URL du serveur Shelly</Label>
+          <Input
+            id={`server-url-${index}`}
+            placeholder="https://shelly-12-eu.shelly.cloud"
+            value={config.serverUrl || ""}
+            onChange={(e) => onUpdateField("serverUrl", e.target.value)}
+          />
+        </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          onClick={() => onUpdateConfig(index)} 
-          disabled={savingConfig === (config.id || "new")}
-          className="flex items-center gap-2"
+      <CardFooter>
+        <Button
+          onClick={onSave}
+          disabled={saving}
+          className="ml-auto"
         >
-          <Save className="h-4 w-4" />
-          {savingConfig === (config.id || "new") ? "Enregistrement..." : "Enregistrer"}
+          {saving ? "Enregistrement..." : "Enregistrer"}
         </Button>
-        
-        {config.id && (
-          <Button 
-            variant="destructive" 
-            onClick={() => onDeleteConfig(config.id!, index)}
-            disabled={deletingConfig === config.id}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            {deletingConfig === config.id ? "Suppression..." : "Supprimer"}
-          </Button>
-        )}
       </CardFooter>
     </Card>
   );
