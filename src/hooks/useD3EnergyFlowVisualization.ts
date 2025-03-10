@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { DailyTotals } from './useDailyEnergyTotals';
@@ -53,11 +52,20 @@ export function useD3EnergyFlowVisualization({
       { id: "RESEAU", label: "Réseau", totalKwh: gridTotalFlux, ratio: 1, importTotal: gridImportTotal, exportTotal: gridExportTotal }
     ];
 
+    // Fix: Only include grid to home flow if there is actual import from grid and PV isn't exceeding needs
     const fluxData = [
       { source: "PV", target: "MAISON", kwh: pvToHome },
-      { source: "PV", target: "RESEAU", kwh: gridExportTotal },
-      { source: "RESEAU", target: "MAISON", kwh: gridImportTotal }
     ];
+    
+    // Only add grid->home flow when there's actual import from grid
+    if (gridImportTotal > 0) {
+      fluxData.push({ source: "RESEAU", target: "MAISON", kwh: gridImportTotal });
+    }
+    
+    // Only add PV->grid flow when there's actual export
+    if (gridExportTotal > 0) {
+      fluxData.push({ source: "PV", target: "RESEAU", kwh: gridExportTotal });
+    }
 
     // Nettoyer le SVG existant
     const svg = d3.select(svgRef.current);

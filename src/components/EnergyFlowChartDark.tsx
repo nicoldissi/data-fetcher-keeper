@@ -69,11 +69,14 @@ export function EnergyFlowChartDark({ data, className }: EnergyFlowChartDarkProp
     console.log('Converted timestamp:', formattedTime)
     
     const isPVProducing = data.pv_power > 6
+    const homeConsumption = data.pv_power + data.power
     const isGridSupplyingHome = data.power > 0
     const isGridReceivingExcess = data.power < 0
+    const isPVExceedingHomeNeeds = isPVProducing && data.pv_power >= homeConsumption
     
+    // Fix: Only show grid to home flow when grid is supplying AND PV isn't meeting all needs
     setFlowAnimations({
-      gridToHome: isGridSupplyingHome,
+      gridToHome: isGridSupplyingHome && !isPVExceedingHomeNeeds,
       gridFromHome: isGridReceivingExcess,
       solarToHome: isPVProducing,
       solarToGrid: isPVProducing && isGridReceivingExcess
