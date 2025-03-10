@@ -1,13 +1,15 @@
+
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils'
 import * as d3 from 'd3'
-import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Clock, Calendar } from 'lucide-react'
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Clock, Calendar, Gauge } from 'lucide-react'
 import * as ReactDOM from 'react-dom'
 import { Toggle } from '@/components/ui/toggle'
 import { D3EnergyFlow } from './energy-flow/D3EnergyFlow'
+import { getShellyConfig } from '@/lib/api'
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null
@@ -40,6 +42,19 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
   })
   const [viewMode, setViewMode] = useState<'realtime' | 'daily'>('realtime')
   const [lastData, setLastData] = useState<ShellyEMData | null>(null)
+  const [maxInverterPower, setMaxInverterPower] = useState<number>(3.0)
+  const [maxGridPower, setMaxGridPower] = useState<number>(6.0)
+  
+  // Load Shelly config to get max power values
+  useEffect(() => {
+    const loadConfig = async () => {
+      const config = await getShellyConfig(configId);
+      setMaxInverterPower(config.inverterPowerKva || 3.0);
+      setMaxGridPower(config.gridSubscriptionKva || 6.0);
+    };
+    
+    loadConfig();
+  }, [configId]);
   
   // Store the last valid data
   useEffect(() => {
@@ -110,7 +125,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     svg.selectAll("*").remove()
     
     const { width, height } = size
-    const nodeRadius = 60 // Increased circle size from 50 to 60 to match daily view
+    const nodeRadius = 60
     
     // Add filter definition for glow effect
     const defs = svg.append("defs")
@@ -134,14 +149,14 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: '#66BB6A'
       },
       grid: {
-        x: width * 0.15, // Position like in daily view
+        x: width * 0.15,
         y: height * 0.7,
         label: 'Réseau',
         value: `${Math.abs(currentData.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
-        x: width * 0.85, // Position like in daily view
+        x: width * 0.85,
         y: height * 0.7,
         label: 'Maison',
         value: `${(currentData.power + currentData.pv_power).toFixed(1)} W`,
@@ -163,8 +178,112 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         .attr('stroke-width', 3)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
+      // Create gauge arcs for solar and grid
+      if (key === 'solar') {
+        // Convert Watts to kW for comparison with inverter kVA
+        const pvPowerKw = currentData.pv_power / 1000;
+        const percentOfMax = Math.min(1, pvPowerKw / maxInverterPower);
+        
+        // Draw gauge background
+        const arcBg = d3.arc()
+          .innerRadius(nodeRadius - 8)
+          .outerRadius(nodeRadius)
+          .startAngle(-Math.PI / 2)
+          .endAngle(Math.PI / 2);
+          
+        nodeGroup.append('path')
+          .attr('d', arcBg() as string)
+          .attr('fill', '#f0f0f0');
+          
+        // Draw gauge value
+        const arcValue = d3.arc()
+          .innerRadius(nodeRadius - 8)
+          .outerRadius(nodeRadius)
+          .startAngle(-Math.PI / 2)
+          .endAngle(-Math.PI / 2 + percentOfMax * Math.PI);
+          
+        nodeGroup.append('path')
+          .attr('d', arcValue() as string)
+          .attr('fill', '#66BB6A');
+          
+        // Add min/max labels
+        nodeGroup.append('text')
+          .attr('x', -nodeRadius + 5)
+          .attr('y', 5)
+          .attr('text-anchor', 'start')
+          .attr('font-size', '9px')
+          .attr('fill', '#666')
+          .text('0');
+          
+        nodeGroup.append('text')
+          .attr('x', nodeRadius - 5)
+          .attr('y', 5)
+          .attr('text-anchor', 'end')
+          .attr('font-size', '9px')
+          .attr('fill', '#666')
+          .text(`${maxInverterPower}kVA`);
+          
+      } else if (key === 'grid') {
+        // For grid, create a bidirectional gauge from -max to +max
+        // Convert Watts to kW
+        const gridPowerKw = currentData.power / 1000;
+        // Power is positive when importing, negative when exporting
+        const percentOfMax = gridPowerKw / maxGridPower; // Will be negative for export
+        
+        // Draw gauge background
+        const arcBg = d3.arc()
+          .innerRadius(nodeRadius - 8)
+          .outerRadius(nodeRadius)
+          .startAngle(-Math.PI)
+          .endAngle(0);
+          
+        nodeGroup.append('path')
+          .attr('d', arcBg() as string)
+          .attr('fill', '#f0f0f0');
+          
+        // Draw gauge value - different logic for import vs export
+        if (gridPowerKw >= 0) { // Importing
+          const arcValue = d3.arc()
+            .innerRadius(nodeRadius - 8)
+            .outerRadius(nodeRadius)
+            .startAngle(-Math.PI / 2)
+            .endAngle(-Math.PI / 2 + Math.min(1, percentOfMax) * (Math.PI / 2));
+            
+          nodeGroup.append('path')
+            .attr('d', arcValue() as string)
+            .attr('fill', '#42A5F5');
+        } else { // Exporting
+          const arcValue = d3.arc()
+            .innerRadius(nodeRadius - 8)
+            .outerRadius(nodeRadius)
+            .startAngle(-Math.PI / 2 + Math.max(-1, percentOfMax) * (Math.PI / 2))
+            .endAngle(-Math.PI / 2);
+            
+          nodeGroup.append('path')
+            .attr('d', arcValue() as string)
+            .attr('fill', '#388E3C'); // Green for export
+        }
+          
+        // Add min/max/export labels
+        nodeGroup.append('text')
+          .attr('x', -nodeRadius + 2)
+          .attr('y', 5)
+          .attr('text-anchor', 'start')
+          .attr('font-size', '9px')
+          .attr('fill', '#388E3C') // Green for export
+          .text(`-${maxGridPower}kVA`);
+          
+        nodeGroup.append('text')
+          .attr('x', nodeRadius - 2)
+          .attr('y', 5)
+          .attr('text-anchor', 'end')
+          .attr('font-size', '9px')
+          .attr('fill', '#42A5F5') // Blue for import
+          .text(`+${maxGridPower}kVA`);
+      }
+      
       // Create icon container at the top of circle
-      const iconY = -40; // Same as daily view
+      const iconY = -40;
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -346,7 +465,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
       }
     })
     
-  }, [data, lastData, flowAnimations, size, viewMode])
+  }, [data, lastData, flowAnimations, size, viewMode, maxInverterPower, maxGridPower])
 
   // Handle view mode toggle
   const handleViewModeChange = (mode: 'realtime' | 'daily') => {
