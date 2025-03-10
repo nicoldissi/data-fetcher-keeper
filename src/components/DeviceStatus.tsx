@@ -61,7 +61,7 @@ export function DeviceStatus({ data, lastUpdated, className, configId }: DeviceS
               <span className="text-lg font-medium">{data.voltage.toFixed(1)} V</span>
             </div>
             
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium">Linky</h4>
