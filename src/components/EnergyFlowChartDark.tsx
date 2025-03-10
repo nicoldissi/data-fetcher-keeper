@@ -113,7 +113,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         </feMerge>
       `)
     
-    // Define node positions with more spacing between them to match daily view
+    // Define node positions with same spacing as daily view
     const centers = {
       solar: {
         x: width * 0.5,
@@ -123,14 +123,14 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         color: '#66BB6A'
       },
       grid: {
-        x: width * 0.15, // Moved further left like in daily view
+        x: width * 0.15, // Position like in daily view
         y: height * 0.7,
         label: 'Réseau',
         value: `${Math.abs(data.power).toFixed(1)} W`,
         color: '#42A5F5'
       },
       home: {
-        x: width * 0.85, // Moved further right like in daily view
+        x: width * 0.85, // Position like in daily view
         y: height * 0.7,
         label: 'Maison',
         value: `${(data.power + data.pv_power).toFixed(1)} W`,
@@ -152,8 +152,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         .attr('stroke-width', 3)
         .style('filter', 'drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1))')
       
-      // Create icon container at the top of circle - moved 5px higher
-      const iconY = -40; // Moved higher to match daily view (was -35)
+      // Create icon container at the top of circle
+      const iconY = -40; // Same as daily view
       
       const foreignObject = nodeGroup.append("foreignObject")
         .attr("width", 28)
@@ -220,8 +220,8 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         source: "grid",
         target: "home",
         active: flowAnimations.gridToHome,
-        color: "#42A5F5", // Using blue consistent with daily view
-        curveOffset: -100, // Increased offset for wider spacing (was -80)
+        color: "#42A5F5", // Blue color consistent with daily view
+        curveOffset: -100, // Same curve offset as daily view
         power: data.power
       },
       {
@@ -244,7 +244,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
       }
     ]
     
-    // Create paths with curved lines like in D3EnergyFlow
+    // Create paths with curved lines
     arrowPaths.forEach(path => {
       if (path.active) {
         const sourceNode = centers[path.source as keyof typeof centers]

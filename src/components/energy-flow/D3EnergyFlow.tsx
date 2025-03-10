@@ -26,23 +26,17 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
 
   if (loading) {
     return (
-      <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
-        <CardContent className="p-6">
-          <div className="h-[500px] flex items-center justify-center">
-            <p className="text-gray-500">Chargement des données journalières...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className={cn("h-[500px] flex items-center justify-center", className)}>
+        <p className="text-gray-500">Chargement des données journalières...</p>
+      </div>
     );
   }
 
   return (
-    <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
-      <CardContent className="p-6">
-        <div className="flex justify-center">
-          <svg ref={svgRef} width="700" height="500" className="max-w-full"></svg>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={cn("", className)}>
+      <div className="flex justify-center">
+        <svg ref={svgRef} width="700" height="500" className="max-w-full"></svg>
+      </div>
+    </div>
   );
 }
