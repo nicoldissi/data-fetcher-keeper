@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,8 +66,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           };
           
           setChartData(prevData => {
+            if (!prevData || prevData.length === 0) {
+              return [chartPoint];
+            }
+            
             const existingIndex = prevData.findIndex(item => 
-              item.timestamp === chartPoint.timestamp
+              item && item.timestamp === chartPoint.timestamp
             );
             
             if (existingIndex >= 0) {
@@ -80,8 +85,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           });
           
           setFullDayData(prevData => {
+            if (!prevData || prevData.length === 0) {
+              return [chartPoint];
+            }
+            
             const existingIndex = prevData.findIndex(item => 
-              item.timestamp === chartPoint.timestamp
+              item && item.timestamp === chartPoint.timestamp
             );
             
             if (existingIndex >= 0) {
@@ -204,8 +213,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   }, [history, fullDayData]);
 
   const calculateYAxisDomain = useCallback((showConsumption: boolean, showProduction: boolean, showGrid: boolean): [number, number] => {
-    if (chartData.length === 0) {
-      return [-500, 3000];
+    if (!chartData || chartData.length === 0) {
+      return [-500, 3000] as [number, number];
     }
     
     const maxValue = Math.max(
@@ -226,8 +235,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
   }, [chartData]);
 
   const calculateVoltageYAxisDomain = useCallback((showVoltage: boolean): [number, number] => {
-    if (chartData.length === 0 || !showVoltage) {
-      return [220, 240];
+    if (!chartData || chartData.length === 0 || !showVoltage) {
+      return [220, 240] as [number, number];
     }
 
     const voltageValues = chartData
@@ -235,7 +244,7 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       .filter(v => v !== undefined) as number[];
     
     if (voltageValues.length === 0) {
-      return [220, 240];
+      return [220, 240] as [number, number];
     }
     
     const minVoltage = Math.min(...voltageValues);

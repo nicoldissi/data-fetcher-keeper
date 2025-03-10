@@ -271,7 +271,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
               />
               
               {/* Max export value marker */}
-              {maxExport && (
+              {maxExport && chartData[maxExport.index] && (
                 <ReferenceDot 
                   x={chartData[maxExport.index].time} 
                   y={maxExport.value} 
@@ -293,7 +293,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
               )}
               
               {/* Max import value marker */}
-              {maxImport && (
+              {maxImport && chartData[maxImport.index] && (
                 <ReferenceDot 
                   x={chartData[maxImport.index].time} 
                   y={maxImport.value} 
@@ -331,7 +331,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
               />
               
               {/* Max production marker */}
-              {maxProduction && (
+              {maxProduction && chartData[maxProduction.index] && (
                 <ReferenceDot 
                   x={chartData[maxProduction.index].time} 
                   y={maxProduction.value} 
@@ -369,7 +369,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
               />
               
               {/* Max consumption marker */}
-              {maxConsumption && (
+              {maxConsumption && chartData[maxConsumption.index] && (
                 <ReferenceDot 
                   x={chartData[maxConsumption.index].time} 
                   y={maxConsumption.value} 
