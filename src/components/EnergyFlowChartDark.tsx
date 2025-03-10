@@ -128,7 +128,6 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
     
     // Add filter definition for glow effect
     const defs = svg.append("defs")
-    defs.append("filter")
       .attr("id", "glow")
       .html(`
         <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
@@ -206,18 +205,30 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .attr('fill', '#66BB6A');
           
         // Add min/max labels with adjusted positions for the wider arc
+        // Calculate the exact positions on the arc
+        const startAngle = -2 * Math.PI / 3; // -120 degrees
+        const endAngle = 2 * Math.PI / 3;    // +120 degrees
+        
+        // Start point (0 value)
+        const startX = Math.cos(startAngle) * (nodeRadius + 3);
+        const startY = Math.sin(startAngle) * (nodeRadius + 3);
+        
+        // End point (max value)
+        const endX = Math.cos(endAngle) * (nodeRadius + 3);
+        const endY = Math.sin(endAngle) * (nodeRadius + 3);
+        
         nodeGroup.append('text')
-          .attr('x', -nodeRadius * 0.866) // cos(120°) * radius
-          .attr('y', 5)
-          .attr('text-anchor', 'start')
+          .attr('x', startX)
+          .attr('y', startY + 5) // Add slight vertical adjustment
+          .attr('text-anchor', startX < 0 ? 'end' : 'start')
           .attr('font-size', '9px')
           .attr('fill', '#666')
           .text('0');
           
         nodeGroup.append('text')
-          .attr('x', nodeRadius * 0.866) // cos(120°) * radius
-          .attr('y', 5)
-          .attr('text-anchor', 'end')
+          .attr('x', endX)
+          .attr('y', endY + 5) // Add slight vertical adjustment
+          .attr('text-anchor', endX < 0 ? 'end' : 'start')
           .attr('font-size', '9px')
           .attr('fill', '#666')
           .text(`${maxInverterPower}kVA`);
@@ -262,18 +273,30 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         }
           
         // Add export/import labels with adjusted positions
+        // Calculate the exact positions on the arc
+        const leftAngle = -2 * Math.PI / 3; // -120 degrees (export)
+        const rightAngle = 2 * Math.PI / 3; // +120 degrees (import)
+        
+        // Export point (left side)
+        const exportX = Math.cos(leftAngle) * (nodeRadius + 3);
+        const exportY = Math.sin(leftAngle) * (nodeRadius + 3);
+        
+        // Import point (right side)
+        const importX = Math.cos(rightAngle) * (nodeRadius + 3);
+        const importY = Math.sin(rightAngle) * (nodeRadius + 3);
+        
         nodeGroup.append('text')
-          .attr('x', -nodeRadius * 0.866)  // Left side at -120°
-          .attr('y', 5)
-          .attr('text-anchor', 'start')
+          .attr('x', exportX)
+          .attr('y', exportY + 5) // Add slight vertical adjustment
+          .attr('text-anchor', 'end')
           .attr('font-size', '9px')
           .attr('fill', '#1EAEDB')  // Blue for export
           .text(`-${maxGridPower}kVA`);
           
         nodeGroup.append('text')
-          .attr('x', nodeRadius * 0.866)  // Right side at +120°
-          .attr('y', 5)
-          .attr('text-anchor', 'end')
+          .attr('x', importX)
+          .attr('y', importY + 5) // Add slight vertical adjustment
+          .attr('text-anchor', 'start')
           .attr('font-size', '9px')
           .attr('fill', '#ea384c')  // Red for import
           .text(`+${maxGridPower}kVA`);
