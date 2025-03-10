@@ -13,7 +13,7 @@ interface ShellyConfigCardProps {
   index: number;
   savingConfig: string | null;
   deletingConfig: string | null;
-  onUpdateField: (index: number, field: keyof ShellyConfig, value: string | number) => void;
+  onUpdateField: (index: number, field: keyof ShellyConfig, value: string) => void;
   onUpdateConfig: (index: number) => void;
   onDeleteConfig: (id: string, index: number) => void;
 }
@@ -89,26 +89,6 @@ export function ShellyConfigCard({
               <SelectItem value="ShellyProEM">Shelly Pro EM</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`inverterPower-${index}`}>Puissance de l'onduleur (kVA)</Label>
-          <Input
-            id={`inverterPower-${index}`}
-            type="number"
-            placeholder="3.0"
-            value={config.inverterPowerKva || 3.0}
-            onChange={(e) => onUpdateField(index, 'inverterPowerKva', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`gridSubscription-${index}`}>Puissance de l'abonnement réseau (kVA)</Label>
-          <Input
-            id={`gridSubscription-${index}`}
-            type="number"
-            placeholder="6.0"
-            value={config.gridSubscriptionKva || 6.0}
-            onChange={(e) => onUpdateField(index, 'gridSubscriptionKva', parseFloat(e.target.value) || 0)}
-          />
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">

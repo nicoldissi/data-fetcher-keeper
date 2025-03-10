@@ -77,9 +77,7 @@ export type Database = {
           created_at: string
           device_type: string | null
           deviceid: string
-          grid_subscription_kva: number | null
           id: string
-          inverter_power_kva: number | null
           name: string | null
           serverurl: string
           updated_at: string
@@ -89,9 +87,7 @@ export type Database = {
           created_at?: string
           device_type?: string | null
           deviceid: string
-          grid_subscription_kva?: number | null
           id?: string
-          inverter_power_kva?: number | null
           name?: string | null
           serverurl?: string
           updated_at?: string
@@ -101,9 +97,7 @@ export type Database = {
           created_at?: string
           device_type?: string | null
           deviceid?: string
-          grid_subscription_kva?: number | null
           id?: string
-          inverter_power_kva?: number | null
           name?: string | null
           serverurl?: string
           updated_at?: string

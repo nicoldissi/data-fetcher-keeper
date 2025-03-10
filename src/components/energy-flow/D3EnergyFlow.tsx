@@ -1,5 +1,6 @@
 
 import { useRef, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { useD3EnergyFlowVisualization } from '@/hooks/useD3EnergyFlowVisualization';
@@ -32,8 +33,10 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
   }
 
   return (
-    <div className={cn("w-full flex justify-center", className)}>
-      <svg ref={svgRef} width="700" height="500" className="max-w-full"></svg>
+    <div className={cn("", className)}>
+      <div className="flex justify-center">
+        <svg ref={svgRef} width="700" height="500" className="max-w-full"></svg>
+      </div>
     </div>
   );
 }
