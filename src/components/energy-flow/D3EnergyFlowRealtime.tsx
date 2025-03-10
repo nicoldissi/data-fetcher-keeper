@@ -17,7 +17,7 @@ interface D3EnergyFlowRealtimeProps {
 }
 
 export function D3EnergyFlowRealtime({ 
-  data: initialData, 
+  data: currentData, 
   configId, 
   className, 
   onToggleView,
@@ -25,10 +25,8 @@ export function D3EnergyFlowRealtime({
 }: D3EnergyFlowRealtimeProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
-  const { dailyTotals, loading: dailyLoading } = useDailyEnergyTotals(configId || null);
-  const [realtimeData, setRealtimeData] = useState<ShellyEMData | null>(initialData);
-  const [loading, setLoading] = useState(!initialData);
-  
+  const { dailyTotals, loading } = useDailyEnergyTotals(configId || null);
+
   // Subscribe to real-time updates from Supabase
   useEffect(() => {
     if (!configId) return;
@@ -41,92 +39,23 @@ export function D3EnergyFlowRealtime({
         filter: `shelly_config_id=eq.${configId}`
       }, (payload) => {
         console.log('New energy data:', payload.new);
-        // Convert the new data to ShellyEMData format
-        const newData: ShellyEMData = {
-          timestamp: new Date(payload.new.timestamp).getTime(),
-          power: payload.new.consumption || 0,
-          reactive: payload.new.grid_reactive || 0,
-          pf: payload.new.grid_pf || 0,
-          pv_power: payload.new.production || 0,
-          pv_reactive: payload.new.pv_reactive || 0,
-          pv_pf: payload.new.pv_pf || 0,
-          total_energy: payload.new.grid_total || 0,
-          pv_energy: payload.new.production_total || 0,
-          grid_returned: payload.new.grid_total_returned || 0,
-          voltage: payload.new.voltage || 0,
-          current: 0,
-          temperature: 0,
-          is_valid: true,
-          channel: 0,
-          shelly_config_id: configId,
-          frequency: payload.new.frequency || 0
-        };
-        setRealtimeData(newData);
-        setLoading(false);
       })
       .subscribe();
-
-    // Fetch latest data on initial load
-    const fetchLatestData = async () => {
-      if (!initialData) {
-        try {
-          const { data, error } = await supabase
-            .from('energy_data')
-            .select('*')
-            .eq('shelly_config_id', configId)
-            .order('timestamp', { ascending: false })
-            .limit(1);
-
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            const latestData: ShellyEMData = {
-              timestamp: new Date(data[0].timestamp).getTime(),
-              power: data[0].consumption || 0,
-              reactive: data[0].grid_reactive || 0,
-              pf: data[0].grid_pf || 0,
-              pv_power: data[0].production || 0,
-              pv_reactive: data[0].pv_reactive || 0,
-              pv_pf: data[0].pv_pf || 0,
-              total_energy: data[0].grid_total || 0,
-              pv_energy: data[0].production_total || 0,
-              grid_returned: data[0].grid_total_returned || 0,
-              voltage: data[0].voltage || 0,
-              current: 0,
-              temperature: 0,
-              is_valid: true,
-              channel: 0,
-              shelly_config_id: configId,
-              frequency: data[0].frequency || 0
-            };
-            setRealtimeData(latestData);
-            setLoading(false);
-          }
-        } catch (error) {
-          console.error('Error fetching latest data:', error);
-        }
-      }
-    };
-
-    fetchLatestData();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [configId, initialData]);
+  }, [configId]);
   
   // Calculate realtime totals from current data
-  const realtimeTotals = realtimeData ? {
-    production: realtimeData.pv_power,
-    consumption: realtimeData.power + realtimeData.pv_power,
-    importFromGrid: realtimeData.power > 0 ? realtimeData.power : 0,
-    injection: realtimeData.power < 0 ? Math.abs(realtimeData.power) : 0,
+  const realtimeTotals = currentData ? {
+    production: currentData.pv_power,
+    consumption: currentData.power + currentData.pv_power,
+    importFromGrid: currentData.power > 0 ? currentData.power : 0,
+    injection: currentData.power < 0 ? Math.abs(currentData.power) : 0,
     batteryCharge: 0,
     batteryDischarge: 0,
-    selfConsumption: Math.min(realtimeData.pv_power, realtimeData.power + realtimeData.pv_power),
-    // Add inverter and grid subscription values from realtimeData if available
-    inverterPowerW: realtimeData.inverterPowerKva ? realtimeData.inverterPowerKva * 1000 : 3000,
-    gridSubscriptionW: realtimeData.gridSubscriptionKva ? realtimeData.gridSubscriptionKva * 1000 : 6000
+    selfConsumption: Math.min(currentData.pv_power, currentData.power + currentData.pv_power)
   } : {
     production: 0,
     consumption: 0,
@@ -134,28 +63,23 @@ export function D3EnergyFlowRealtime({
     injection: 0,
     batteryCharge: 0,
     batteryDischarge: 0,
-    selfConsumption: 0,
-    inverterPowerW: 3000,
-    gridSubscriptionW: 6000
+    selfConsumption: 0
   };
 
   // Use the D3 visualization hook with the appropriate data
   useD3EnergyFlowVisualization({
     svgRef,
-    dataSource: showDaily ? { type: 'daily', data: dailyTotals } : { type: 'realtime', data: realtimeTotals },
-    loading: showDaily ? dailyLoading : loading,
+    dailyTotals: showDaily ? dailyTotals : realtimeTotals,
+    loading: showDaily ? loading : !currentData,
     isClient,
-    setIsClient,
-    showWatts: !showDaily
+    setIsClient
   });
 
-  if ((!realtimeData && !showDaily) || (showDaily && dailyLoading)) {
+  if (!currentData && !showDaily) {
     return (
       <Card className={className}>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle>
-            {showDaily ? "Bilan Énergétique Journalier" : "Flux d'énergie en temps réel"}
-          </CardTitle>
+          <CardTitle>Flux d'énergie en temps réel</CardTitle>
           <div className="flex space-x-2">
             <Button 
               variant={!showDaily ? "default" : "outline"}
