@@ -43,11 +43,11 @@ export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
 
   return (
     <div className={cn("", className)}>
-      <div className="flex justify-center">
+      <div className="flex justify-center relative">
         <svg ref={svgRef} width="700" height="500" className="max-w-full"></svg>
         {loading && hasInitialData && (
           <div className="absolute inset-0 bg-white/10 flex items-center justify-center pointer-events-none">
-            <div className="animate-pulse opacity-0">Actualisation...</div>
+            <div className="animate-pulse opacity-30">Actualisation...</div>
           </div>
         )}
       </div>

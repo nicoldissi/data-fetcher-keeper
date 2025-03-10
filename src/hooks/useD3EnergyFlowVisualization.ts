@@ -28,10 +28,8 @@ export function useD3EnergyFlowVisualization({
   useEffect(() => {
     if (!isClient || !svgRef.current) return;
 
-    // Only clear SVG if loading is complete to prevent flickering during data updates
-    if (loading) {
-      return;
-    }
+    // Only update when data is available, don't clear during loading
+    if (!dailyTotals) return;
 
     // Cleanup function to remove all SVG elements and React components
     const cleanup = () => {
@@ -73,7 +71,7 @@ export function useD3EnergyFlowVisualization({
         source: "PV", 
         target: "MAISON", 
         kwh: pvToHome,
-        title: "Autoconsommation" // Added title as requested
+        title: "Autoconsommation" // Title for self-consumption flow
       });
     }
     
@@ -83,7 +81,7 @@ export function useD3EnergyFlowVisualization({
         source: "GRID", 
         target: "MAISON", 
         kwh: gridImportTotal,
-        title: "Réseau" // Added title as requested
+        title: "Réseau" // Title for grid import flow
       });
     }
     
@@ -93,7 +91,7 @@ export function useD3EnergyFlowVisualization({
         source: "PV", 
         target: "GRID", 
         kwh: gridExportTotal,
-        title: "Injection" // Added title as requested
+        title: "Injection" // Title for grid export flow
       });
     }
 
@@ -147,7 +145,5 @@ export function useD3EnergyFlowVisualization({
       .attr("font-weight", "bold")
       .attr("fill", "#555")
       .text("Bilan Énergétique Journalier");
-
-    // We don't return cleanup here to prevent the chart from disappearing during data updates
   }, [dailyTotals, isClient, svgRef]);
 }

@@ -13,7 +13,7 @@ interface FluxData {
   source: string;
   target: string;
   kwh: number;
-  title?: string; // Add title property
+  title?: string; // Title property for flow labels
 }
 
 interface DonutData {
@@ -127,19 +127,19 @@ export function createFluxPaths(
       const borderColor = getBorderColor(d);
       const textColor = getTextColor(d);
 
-      // Add flow title above the value label if exists
-      if (d.title) {
-        d3.select(this)
-          .append("text")
-          .attr("x", bezierX)
-          .attr("y", bezierY - 20) // Position above the value label
-          .attr("text-anchor", "middle")
-          .attr("dominant-baseline", "middle")
-          .attr("font-size", 10)
-          .attr("font-weight", "medium")
-          .attr("fill", textColor)
-          .text(d.title);
-      }
+      // Add title based on flow type
+      const title = d.title || getFlowTitle(d);
+      
+      d3.select(this)
+        .append("text")
+        .attr("x", bezierX)
+        .attr("y", bezierY - 20)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("font-size", 12)
+        .attr("font-weight", "medium")
+        .attr("fill", textColor)
+        .text(title);
 
       d3.select(this)
         .append("rect")
@@ -168,6 +168,18 @@ export function createFluxPaths(
     });
 
   return fluxPaths;
+}
+
+// Helper function to get the title based on flow type
+function getFlowTitle(d: FluxData) {
+  if (d.source === "PV" && d.target === "MAISON") {
+    return "Autoconsommation";
+  } else if (d.source === "PV" && d.target === "GRID") {
+    return "Injection";
+  } else if (d.source === "GRID" && d.target === "MAISON") {
+    return "Réseau";
+  }
+  return "";
 }
 
 export function createDonutCharts(
@@ -316,7 +328,7 @@ export function createDonutCharts(
         
         d3.select(this).append("path")
           .attr("class", "arc-export")
-          .attr("fill", "#42A5F5") // Changed to blue for injection as requested
+          .attr("fill", "#42A5F5") // Changed to blue for injection
           .transition()
           .duration(800)
           .attrTween("d", function() {

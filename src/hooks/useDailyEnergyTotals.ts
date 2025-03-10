@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay } from 'date-fns';
@@ -7,7 +8,7 @@ export interface DailyTotals {
   consumption: number;
   production: number;
   injection: number;
-  importFromGrid: number; // Nouvelle propriété pour l'énergie importée du réseau
+  importFromGrid: number; // Energy imported from grid
 }
 
 interface DailyDataPoint {
@@ -17,6 +18,7 @@ interface DailyDataPoint {
   grid_total: number;
   grid_total_returned: number;
   production_total: number;
+  device_type?: string; // Added to track device type for different processing
 }
 
 export function useDailyEnergyTotals(configId?: string) {
@@ -54,6 +56,21 @@ export function useDailyEnergyTotals(configId?: string) {
           return; // Skip the fetch operation
         }
 
+        // First get the device type to determine how to calculate totals
+        const { data: configData, error: configError } = await supabase
+          .from('shelly_configs')
+          .select('device_type')
+          .eq('id', configId)
+          .single();
+
+        if (configError) {
+          console.error('Error fetching device type:', configError.message);
+        }
+
+        const deviceType = configData?.device_type || 'ShellyEM';
+        console.log('Device type for calculation:', deviceType);
+
+        // Now fetch the energy data
         const { data, error: queryError } = await supabase
           .from('energy_data')
           .select('consumption, production, grid_total, grid_total_returned, production_total, timestamp')
@@ -73,7 +90,10 @@ export function useDailyEnergyTotals(configId?: string) {
                    !isNaN(reading.grid_total) &&
                    !isNaN(reading.grid_total_returned) &&
                    !isNaN(reading.production_total);
-          });
+          }).map(item => ({
+            ...item,
+            device_type: deviceType
+          }));
 
           setDailyData(validData);
 
@@ -81,12 +101,27 @@ export function useDailyEnergyTotals(configId?: string) {
             const firstReading = validData[0];
             const lastReading = validData[validData.length - 1];
 
-            const consumption = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
-            const injection = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
-            const production = Math.max(0, (lastReading.production_total - firstReading.production_total));
-            
-            const consumedFromProduction = Math.max(0, production - injection);
-            const importFromGrid = Math.max(0, consumption - consumedFromProduction);
+            // Adjust calculations based on device type
+            let consumption, injection, production, importFromGrid;
+
+            if (deviceType === 'ShellyProEM') {
+              // For Shelly Pro EM, we need special handling
+              consumption = Math.max(0, (lastReading.grid_total - firstReading.grid_total) + 
+                                       (lastReading.production_total - firstReading.production_total) -
+                                       (lastReading.grid_total_returned - firstReading.grid_total_returned));
+              
+              injection = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
+              production = Math.max(0, (lastReading.production_total - firstReading.production_total));
+              importFromGrid = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
+            } else {
+              // Standard Shelly EM calculation
+              consumption = Math.max(0, (lastReading.grid_total - firstReading.grid_total));
+              injection = Math.max(0, (lastReading.grid_total_returned - firstReading.grid_total_returned));
+              production = Math.max(0, (lastReading.production_total - firstReading.production_total));
+              
+              const consumedFromProduction = Math.max(0, production - injection);
+              importFromGrid = Math.max(0, consumption - consumedFromProduction);
+            }
 
             const totals = {
               consumption,
