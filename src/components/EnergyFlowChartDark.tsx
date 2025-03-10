@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react'
 import { ShellyEMData } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -184,12 +183,12 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         const pvPowerKw = currentData.pv_power / 1000;
         const percentOfMax = Math.min(1, pvPowerKw / maxInverterPower);
         
-        // Draw gauge background
+        // Draw gauge background with a 240° arc (-120° to +120°)
         const arcBg = d3.arc()
           .innerRadius(nodeRadius - 8)
           .outerRadius(nodeRadius)
-          .startAngle(-Math.PI / 2)
-          .endAngle(Math.PI / 2);
+          .startAngle(-2 * Math.PI / 3)  // -120 degrees
+          .endAngle(2 * Math.PI / 3);    // +120 degrees
           
         nodeGroup.append('path')
           .attr('d', arcBg() as string)
@@ -199,16 +198,16 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         const arcValue = d3.arc()
           .innerRadius(nodeRadius - 8)
           .outerRadius(nodeRadius)
-          .startAngle(-Math.PI / 2)
-          .endAngle(-Math.PI / 2 + percentOfMax * Math.PI);
+          .startAngle(-2 * Math.PI / 3)
+          .endAngle(-2 * Math.PI / 3 + percentOfMax * (4 * Math.PI / 3));
           
         nodeGroup.append('path')
           .attr('d', arcValue() as string)
           .attr('fill', '#66BB6A');
           
-        // Add min/max labels
+        // Add min/max labels with adjusted positions for the wider arc
         nodeGroup.append('text')
-          .attr('x', -nodeRadius + 5)
+          .attr('x', -nodeRadius * 0.866) // cos(120°) * radius
           .attr('y', 5)
           .attr('text-anchor', 'start')
           .attr('font-size', '9px')
@@ -216,7 +215,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .text('0');
           
         nodeGroup.append('text')
-          .attr('x', nodeRadius - 5)
+          .attr('x', nodeRadius * 0.866) // cos(120°) * radius
           .attr('y', 5)
           .attr('text-anchor', 'end')
           .attr('font-size', '9px')
@@ -224,61 +223,59 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           .text(`${maxInverterPower}kVA`);
           
       } else if (key === 'grid') {
-        // For grid, create a bidirectional gauge from -max to +max
-        // Convert Watts to kW
+        // For grid, create a bidirectional gauge
         const gridPowerKw = currentData.power / 1000;
-        // Power is positive when importing, negative when exporting
-        const percentOfMax = gridPowerKw / maxGridPower; // Will be negative for export
+        const percentOfMax = gridPowerKw / maxGridPower;
         
-        // Draw gauge background
+        // Draw gauge background with a 240° arc (-120° to +120°)
         const arcBg = d3.arc()
           .innerRadius(nodeRadius - 8)
           .outerRadius(nodeRadius)
-          .startAngle(-Math.PI)
-          .endAngle(0);
+          .startAngle(-2 * Math.PI / 3)  // -120 degrees
+          .endAngle(2 * Math.PI / 3);    // +120 degrees
           
         nodeGroup.append('path')
           .attr('d', arcBg() as string)
           .attr('fill', '#f0f0f0');
           
-        // Draw gauge value - different logic for import vs export
+        // Draw gauge value - different logic and colors for import vs export
         if (gridPowerKw >= 0) { // Importing
           const arcValue = d3.arc()
             .innerRadius(nodeRadius - 8)
             .outerRadius(nodeRadius)
-            .startAngle(-Math.PI / 2)
-            .endAngle(-Math.PI / 2 + Math.min(1, percentOfMax) * (Math.PI / 2));
+            .startAngle(0)  // Center position
+            .endAngle(Math.min(1, percentOfMax) * (2 * Math.PI / 3));  // Up to +120°
             
           nodeGroup.append('path')
             .attr('d', arcValue() as string)
-            .attr('fill', '#42A5F5');
+            .attr('fill', '#ea384c');  // Red for import
         } else { // Exporting
           const arcValue = d3.arc()
             .innerRadius(nodeRadius - 8)
             .outerRadius(nodeRadius)
-            .startAngle(-Math.PI / 2 + Math.max(-1, percentOfMax) * (Math.PI / 2))
-            .endAngle(-Math.PI / 2);
+            .startAngle(Math.max(-1, percentOfMax) * (-2 * Math.PI / 3))  // From -120°
+            .endAngle(0);  // to center
             
           nodeGroup.append('path')
             .attr('d', arcValue() as string)
-            .attr('fill', '#388E3C'); // Green for export
+            .attr('fill', '#1EAEDB');  // Blue for export
         }
           
-        // Add min/max/export labels
+        // Add export/import labels with adjusted positions
         nodeGroup.append('text')
-          .attr('x', -nodeRadius + 2)
+          .attr('x', -nodeRadius * 0.866)  // Left side at -120°
           .attr('y', 5)
           .attr('text-anchor', 'start')
           .attr('font-size', '9px')
-          .attr('fill', '#388E3C') // Green for export
+          .attr('fill', '#1EAEDB')  // Blue for export
           .text(`-${maxGridPower}kVA`);
           
         nodeGroup.append('text')
-          .attr('x', nodeRadius - 2)
+          .attr('x', nodeRadius * 0.866)  // Right side at +120°
           .attr('y', 5)
           .attr('text-anchor', 'end')
           .attr('font-size', '9px')
-          .attr('fill', '#42A5F5') // Blue for import
+          .attr('fill', '#ea384c')  // Red for import
           .text(`+${maxGridPower}kVA`);
       }
       
