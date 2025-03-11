@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import ReactDOM from 'react-dom';
 import React from 'react';
-import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
+import { HousePlug, Sun, Zap } from 'lucide-react';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -34,10 +34,12 @@ export function useD3RealtimeEnergyFlowVisualization({
       }
     };
 
+    // Convert kVA to Watts (multiply by 1000)
     const inverterMaxPower = config?.inverter_power_kva ? config.inverter_power_kva * 1000 : 3000;
     const gridMaxPower = config?.grid_subscription_kva ? config.grid_subscription_kva * 1000 : 6000;
 
-    console.log("Using config values:", {
+    console.log("Using config values for visualization:", {
+      deviceId: config?.deviceId,
       inverterMaxPower,
       gridMaxPower,
       configObject: config
@@ -669,3 +671,4 @@ function createDonutCharts(
     }
   });
 }
+

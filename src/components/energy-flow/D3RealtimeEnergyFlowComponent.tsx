@@ -2,7 +2,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { useD3RealtimeEnergyFlowVisualization } from '@/hooks/useD3RealtimeEnergyFlowVisualization';
-import { getShellyConfig } from '@/lib/api/config';
+import { getShellyConfig } from '@/lib/api';
 
 interface D3RealtimeEnergyFlowComponentProps {
   data: ShellyEMData | null;
@@ -19,13 +19,13 @@ export function D3RealtimeEnergyFlowComponent({ data, className, configId }: D3R
   useEffect(() => {
     if (configId) {
       getShellyConfig(configId).then(config => {
-        console.log("Fetched config:", config);
+        console.log("Fetched config for device:", configId, config);
         setConfig(config);
       });
     }
   }, [configId]);
 
-  // Initialize D3 visualization
+  // Initialize D3 visualization with the correct config values
   useD3RealtimeEnergyFlowVisualization({
     svgRef,
     data,
