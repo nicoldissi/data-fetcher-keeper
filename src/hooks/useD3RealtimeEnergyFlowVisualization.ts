@@ -3,6 +3,7 @@ import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
 import { createRealtimeFluxPaths, createRealtimeNodes } from '@/lib/d3RealtimeEnergyFlowUtils';
+import { createFluxPaths, createDonutCharts } from '@/lib/d3DailyEnergyFlowUtils';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -146,8 +147,7 @@ export function useD3RealtimeEnergyFlowVisualization({
 
     // Use the functions from d3DailyEnergyFlowUtils
     // but with our realtime data
-    const { createFluxPaths, createDonutCharts } = require('@/lib/d3DailyEnergyFlowUtils');
-
+    
     // Create flux paths between nodes
     createFluxPaths(svg, fluxData, centers, outerRadius);
 
