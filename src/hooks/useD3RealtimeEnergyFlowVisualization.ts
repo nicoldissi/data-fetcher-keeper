@@ -527,7 +527,7 @@ function createDonutCharts(
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
-        .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
+        .attr("font-family", "inherit") 
         .text(d.powerValue);
     } else if (d.id === "MAISON") {
       ReactDOM.render(
@@ -535,13 +535,15 @@ function createDonutCharts(
         iconDiv
       );
       
+      // Correction ici : utiliser la valeur de consommation réelle de la maison
+      // au lieu de la production PV
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
-        .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
+        .attr("font-family", "inherit")
         .text(`${d.homeConsumption.toFixed(0)} W`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
@@ -558,7 +560,7 @@ function createDonutCharts(
           .attr("fill", "#66BB6A")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
-          .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
+          .attr("font-family", "inherit")
           .text(`${exportValue}`);
       } else if (d.isImporting) {
         const importValue = d.powerValue;
@@ -569,7 +571,7 @@ function createDonutCharts(
           .attr("fill", "#0EA5E9")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
-          .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
+          .attr("font-family", "inherit")
           .text(`${importValue}`);
       } else {
         g.append("text")
@@ -578,7 +580,7 @@ function createDonutCharts(
           .attr("fill", textColor)
           .attr("font-size", "18px")
           .attr("font-weight", "500")
-          .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
+          .attr("font-family", "inherit")
           .text("0 W");
       }
     }
