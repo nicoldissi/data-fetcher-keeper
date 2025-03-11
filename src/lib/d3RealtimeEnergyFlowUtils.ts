@@ -87,7 +87,7 @@ export function createRealtimeFluxPaths(
     .attr("font-weight", "bold")
     .style("pointer-events", "none")
     .attr("filter", "url(#glow)")
-    .text(d => d.title || "") // Only display the title, not the power value
+    .text(d => d.title || "") // Seulement afficher le titre, pas la valeur de puissance
     .attr("transform", (d: FlowData) => {
       const s = centers[d.source];
       const t = centers[d.target];
