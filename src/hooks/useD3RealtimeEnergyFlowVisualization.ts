@@ -438,9 +438,10 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("y", 30)
+        .attr("x", 10)
         .attr("font-size", "10px")
         .attr("fill", textColor)
-        .text(`Max: ${d.maxPower} kW`);
+        .text(`${d.maxPower} kW`);
     } else if (d.id === "MAISON") {
       ReactDOM.render(
         React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
