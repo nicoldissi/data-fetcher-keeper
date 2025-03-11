@@ -40,6 +40,8 @@ interface DbShellyConfig {
   device_type?: string;
   inverter_power_kva?: number;
   grid_subscription_kva?: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 // Helper function to map database fields to frontend model
@@ -52,7 +54,9 @@ export const mapDbConfigToFrontend = (dbConfig: DbShellyConfig): ShellyConfig =>
     name: dbConfig.name,
     deviceType: (dbConfig.device_type as 'ShellyEM' | 'ShellyProEM') || 'ShellyEM',
     inverter_power_kva: dbConfig.inverter_power_kva,
-    grid_subscription_kva: dbConfig.grid_subscription_kva
+    grid_subscription_kva: dbConfig.grid_subscription_kva,
+    latitude: dbConfig.latitude,
+    longitude: dbConfig.longitude
   };
 };
 
@@ -66,7 +70,9 @@ export const mapFrontendToDbConfig = (config: ShellyConfig): DbShellyConfig => {
     name: config.name || 'Default Device',
     device_type: config.deviceType || 'ShellyEM',
     inverter_power_kva: config.inverter_power_kva,
-    grid_subscription_kva: config.grid_subscription_kva
+    grid_subscription_kva: config.grid_subscription_kva,
+    latitude: config.latitude,
+    longitude: config.longitude
   };
 };
 

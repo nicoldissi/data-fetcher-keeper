@@ -1,3 +1,4 @@
+
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
@@ -52,6 +53,8 @@ export interface ShellyConfig {
   deviceType?: 'ShellyEM' | 'ShellyProEM';
   inverter_power_kva?: number;
   grid_subscription_kva?: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface InitialData {
