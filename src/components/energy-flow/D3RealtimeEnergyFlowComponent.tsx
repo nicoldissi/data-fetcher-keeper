@@ -19,6 +19,7 @@ export function D3RealtimeEnergyFlowComponent({ data, className, configId }: D3R
   useEffect(() => {
     if (configId) {
       getShellyConfig(configId).then(config => {
+        console.log("Fetched config:", config);
         setConfig(config);
       });
     }

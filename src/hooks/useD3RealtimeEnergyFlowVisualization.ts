@@ -37,6 +37,12 @@ export function useD3RealtimeEnergyFlowVisualization({
     const inverterMaxPower = config?.inverter_power_kva ? config.inverter_power_kva * 1000 : 3000;
     const gridMaxPower = config?.grid_subscription_kva ? config.grid_subscription_kva * 1000 : 6000;
 
+    console.log("Using config values:", {
+      inverterMaxPower,
+      gridMaxPower,
+      configObject: config
+    });
+
     const pvPower = data.pv_power / 1000;
     const gridPower = Math.abs(data.power) / 1000;
     
