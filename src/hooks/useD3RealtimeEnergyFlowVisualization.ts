@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -518,6 +519,7 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
+        .attr("y", 10) // Ajouté 10px à la position Y
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
@@ -532,6 +534,7 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
+        .attr("y", 10) // Ajouté 10px à la position Y
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
@@ -549,6 +552,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
+          .attr("y", 10) // Ajouté 10px à la position Y
           .attr("fill", "#66BB6A")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
@@ -560,6 +564,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
+          .attr("y", 10) // Ajouté 10px à la position Y
           .attr("fill", "#0EA5E9")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
@@ -569,6 +574,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
+          .attr("y", 10) // Ajouté 10px à la position Y
           .attr("fill", textColor)
           .attr("font-size", "18px")
           .attr("font-weight", "500")
@@ -578,3 +584,4 @@ function createDonutCharts(
     }
   });
 }
+
