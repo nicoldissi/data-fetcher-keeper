@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Gauge, TrendingUp, TrendingDown } from 'lucide-react';
 import React from 'react';
@@ -86,7 +87,7 @@ export function createRealtimeFluxPaths(
     .attr("font-weight", "bold")
     .style("pointer-events", "none")
     .attr("filter", "url(#glow)")
-    .text(d => d.title || "")
+    .text(d => d.title || "") // Only display the title, not the power value
     .attr("transform", (d: FlowData) => {
       const s = centers[d.source];
       const t = centers[d.target];
@@ -110,7 +111,9 @@ export function createRealtimeFluxPaths(
       .transition()
       .duration(1500)
       .ease(d3.easeLinear)
-      .attrTween("stroke-dashoffset", () => d3.interpolate(0, -16) as any)
+      .attrTween("stroke-dashoffset", () => {
+        return d3.interpolate(0, -16);
+      })
       .on("end", animateFlux);
   }
   animateFlux();
