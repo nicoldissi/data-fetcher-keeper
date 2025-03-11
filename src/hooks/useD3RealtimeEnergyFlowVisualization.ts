@@ -358,6 +358,17 @@ function createDonutCharts(
     if (d.id === "PV") {
       color = "#66BB6A";
       textColor = "#4CAF50";
+      
+      const maxArc = d3.arc()
+        .innerRadius(outerRadius - thickness)
+        .outerRadius(outerRadius)
+        .startAngle(-120 * (Math.PI / 180))
+        .endAngle(120 * (Math.PI / 180));
+        
+      g.append("path")
+        .attr("d", maxArc as any)
+        .attr("fill", "#8E9196")
+        .attr("opacity", 0.2);
     } else if (d.id === "GRID") {
       color = "#42A5F5";
       textColor = "#2196F3";
@@ -368,8 +379,8 @@ function createDonutCharts(
     
     if (d.ratio > 0) {
       if (d.id === "PV") {
-        const startAngle = -120 * (Math.PI / 180); // Convert -120° to radians
-        const endAngle = startAngle + (d.ratio * 240 * (Math.PI / 180)); // Use 240° range
+        const startAngle = -120 * (Math.PI / 180);
+        const endAngle = startAngle + (d.ratio * 240 * (Math.PI / 180));
         
         const arc = d3.arc()
           .innerRadius(outerRadius - thickness)
