@@ -2,6 +2,9 @@
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
+import ReactDOM from 'react-dom';
+import React from 'react';
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -54,7 +57,7 @@ export function useD3RealtimeEnergyFlowVisualization({
     const donutsData = [
       { 
         id: "PV", 
-        label: "Photovoltaïque", 
+        label: "", 
         totalKwh: pvPower, 
         ratio: pvToHomeRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
@@ -62,7 +65,7 @@ export function useD3RealtimeEnergyFlowVisualization({
       },
       { 
         id: "MAISON", 
-        label: "Maison", 
+        label: "", 
         totalKwh: homeConsumption, 
         ratio: homeFromPvRatio,
         powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`
@@ -324,17 +327,17 @@ function createDonutCharts(
     
     // Create nodes with colored borders based on type
     let color;
-    let icon;
+    let textColor;
     
     if (d.id === "PV") {
       color = "#66BB6A"; // Green for solar
-      icon = "☀️";
+      textColor = "#4CAF50";
     } else if (d.id === "GRID") {
       color = "#42A5F5"; // Blue for grid
-      icon = "⚡";
+      textColor = "#2196F3";
     } else {
       color = "#F97316"; // Orange for home
-      icon = "🏠";
+      textColor = "#EA580C";
     }
     
     // Draw the colored arc for ratio visualization
@@ -350,26 +353,95 @@ function createDonutCharts(
         .attr("fill", color);
     }
     
-    // Add icon
-    g.append("text")
-      .attr("text-anchor", "middle")
-      .attr("y", -5)
-      .attr("font-size", "20px")
-      .text(icon);
+    // Add Lucide React icon
+    const iconY = -5;
     
-    // Add label
+    const foreignObject = g.append("foreignObject")
+      .attr("width", 28)
+      .attr("height", 28)
+      .attr("x", -14)
+      .attr("y", -14);
+    
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    
+    foreignObject.node()?.appendChild(container);
+    
+    if (d.id === "PV") {
+      ReactDOM.render(
+        React.createElement(Sun, { size: 24, color: textColor, strokeWidth: 2 }),
+        container
+      );
+    } else if (d.id === "MAISON") {
+      ReactDOM.render(
+        React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
+        container
+      );
+    } else if (d.id === "GRID") {
+      ReactDOM.render(
+        React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
+        container
+      );
+    }
+    
+    // Add power value (in W for real-time view)
     g.append("text")
       .attr("text-anchor", "middle")
       .attr("y", 20)
       .attr("font-size", "14px")
       .attr("font-weight", "bold")
-      .text(d.label);
-    
-    // Add power value (in W for real-time view)
-    g.append("text")
-      .attr("text-anchor", "middle")
-      .attr("y", 40)
-      .attr("font-size", "12px")
+      .attr("fill", textColor)
       .text(d.powerValue);
+      
+    // For GRID node, add the import/export indicators
+    if (d.id === "GRID" && d.importTotal !== undefined && d.exportTotal !== undefined) {
+      if (d.importTotal > 0) {
+        const importForeignObject = g.append("foreignObject")
+          .attr("width", 16)
+          .attr("height", 16)
+          .attr("x", -36)
+          .attr("y", -5);
+        
+        const importContainer = document.createElement('div');
+        importContainer.style.display = 'flex';
+        importContainer.style.justifyContent = 'center';
+        importContainer.style.alignItems = 'center';
+        importContainer.style.width = '100%';
+        importContainer.style.height = '100%';
+        
+        importForeignObject.node()?.appendChild(importContainer);
+        
+        ReactDOM.render(
+          React.createElement(ArrowRight, { size: 16, color: textColor, strokeWidth: 2 }),
+          importContainer
+        );
+      }
+      
+      if (d.exportTotal > 0) {
+        const exportForeignObject = g.append("foreignObject")
+          .attr("width", 16)
+          .attr("height", 16)
+          .attr("x", -36)
+          .attr("y", 15);
+        
+        const exportContainer = document.createElement('div');
+        exportContainer.style.display = 'flex';
+        exportContainer.style.justifyContent = 'center';
+        exportContainer.style.alignItems = 'center';
+        exportContainer.style.width = '100%';
+        exportContainer.style.height = '100%';
+        
+        exportForeignObject.node()?.appendChild(exportContainer);
+        
+        ReactDOM.render(
+          React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
+          exportContainer
+        );
+      }
+    }
   });
 }
