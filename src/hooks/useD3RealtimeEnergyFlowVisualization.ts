@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -90,8 +89,8 @@ export function useD3RealtimeEnergyFlowVisualization({
       { 
         id: "MAISON", 
         label: "", 
-        totalKwh: realHomeConsumption / 1000, 
-        ratio: homeRatio,
+        totalKwh: realHomeConsumption / 1000,
+        ratio: Math.min(1, realHomeConsumption / gridMaxPower),
         pvRatio: pvToHomeRatio,
         gridRatio: gridToHomeRatio,
         powerValue: `${realHomeConsumption.toFixed(0)} W`,
@@ -444,18 +443,19 @@ function createDonutCharts(
       } else if (d.id === "MAISON") {
         const startAngle = -120 * (Math.PI / 180);
         const totalAngle = 240 * (Math.PI / 180);
+        const maxAngle = d.ratio * totalAngle;
         
         console.log("MAISON node data:", {
           gridPower: d.gridPower,
           pvPower: d.pvPower,
           homeConsumption: d.homeConsumption,
-          pvRatio: d.pvRatio,
-          gridRatio: d.gridRatio
+          ratio: d.ratio,
+          maxAngle: maxAngle * (180/Math.PI)
         });
         
         if (d.gridPower > 0) {
           const gridRatio = d.gridRatio || 0;
-          const gridAngle = gridRatio * totalAngle;
+          const gridAngle = Math.min(gridRatio * totalAngle, maxAngle);
           const gridEndAngle = startAngle + gridAngle;
           
           console.log("Drawing grid segment:", {
@@ -481,7 +481,7 @@ function createDonutCharts(
           const gridRatio = d.gridRatio || 0;
           
           const pvStartAngle = startAngle + (gridRatio * totalAngle);
-          const pvEndAngle = pvStartAngle + (pvRatio * totalAngle);
+          const pvEndAngle = Math.min(pvStartAngle + (pvRatio * totalAngle), startAngle + maxAngle);
           
           console.log("Drawing PV segment:", {
             pvRatio,
@@ -679,3 +679,4 @@ function createDonutCharts(
     }
   });
 }
+
