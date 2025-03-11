@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
@@ -197,7 +196,8 @@ function createFluxPaths(
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
     });
 
-  // Create temporary text elements to measure their dimensions
+  const dataIndexMap = new Map(fluxData.map((d, i) => [d.title, i]));
+
   const tempText = svg.selectAll(".temp-text")
     .data(fluxData)
     .enter()
@@ -206,7 +206,6 @@ function createFluxPaths(
     .style("visibility", "hidden")
     .text(d => d.title);
 
-  // Calculate background rectangles with dynamic sizing
   const labelBackgrounds = svg.selectAll(".flux-label-bg")
     .data(fluxData)
     .enter()
@@ -238,25 +237,26 @@ function createFluxPaths(
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2 - 40;
       
-      // Get corresponding text element and compute its dimensions
-      const textNode = tempText.filter((td: any) => td.title === d.title).node();
-      // Add padding
+      const index = dataIndexMap.get(d.title);
+      const textNode = index !== undefined ? tempText.nodes()[index] : null;
+      
       const padding = { x: 10, y: 6 };
       const textWidth = textNode ? textNode.getBBox().width + (padding.x * 2) : 80;
       const textHeight = textNode ? textNode.getBBox().height + (padding.y * 2) : 22;
       
       return `translate(${mx - textWidth/2}, ${my - textHeight/2})`;
     })
-    .attr("width", function() {
-      const textNode = tempText.filter((td: any, i: number) => i === this.parentNode.__data__.index).node();
-      return textNode ? textNode.getBBox().width + 20 : 80; // Adding padding
+    .attr("width", function(d) {
+      const index = dataIndexMap.get(d.title);
+      const textNode = index !== undefined ? tempText.nodes()[index] : null;
+      return textNode ? textNode.getBBox().width + 20 : 80;
     })
-    .attr("height", function() {
-      const textNode = tempText.filter((td: any, i: number) => i === this.parentNode.__data__.index).node();
-      return textNode ? textNode.getBBox().height + 12 : 22; // Adding padding
+    .attr("height", function(d) {
+      const index = dataIndexMap.get(d.title);
+      const textNode = index !== undefined ? tempText.nodes()[index] : null;
+      return textNode ? textNode.getBBox().height + 12 : 22;
     });
 
-  // Remove temporary text elements
   tempText.remove();
 
   svg.selectAll(".flux-label")
@@ -265,7 +265,7 @@ function createFluxPaths(
     .append("text")
     .attr("class", "flux-label")
     .attr("text-anchor", "middle")
-    .attr("dominant-baseline", "central") // This centers text vertically
+    .attr("dominant-baseline", "central")
     .attr("fill", d => {
       if (d.source === "PV") return "#66BB6A";
       if (d.source === "GRID") return "#42A5F5";
@@ -460,3 +460,4 @@ function createDonutCharts(
     }
   });
 }
+
