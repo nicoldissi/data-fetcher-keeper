@@ -2,7 +2,7 @@
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
-import { createFluxPaths, createDonutCharts } from '@/lib/d3DailyEnergyFlowUtils';
+import { createRealtimeFluxPaths, createRealtimeNodes } from '@/lib/d3RealtimeEnergyFlowUtils';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -113,7 +113,7 @@ export function useD3RealtimeEnergyFlowVisualization({
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Set dimensions
+    // Set dimensions - match the daily view size
     const svgWidth = 700;
     const svgHeight = 500;
     svg.attr("width", svgWidth)
@@ -133,7 +133,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         </feMerge>
       `);
 
-    // Define center positions
+    // Define center positions - match the daily view layout
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
       GRID:   { x: svgWidth / 2 - 240,  y: 380 },
@@ -143,6 +143,10 @@ export function useD3RealtimeEnergyFlowVisualization({
     // Define donut dimensions
     const outerRadius = 60;
     const thickness = 12;
+
+    // Use the functions from d3DailyEnergyFlowUtils
+    // but with our realtime data
+    const { createFluxPaths, createDonutCharts } = require('@/lib/d3DailyEnergyFlowUtils');
 
     // Create flux paths between nodes
     createFluxPaths(svg, fluxData, centers, outerRadius);

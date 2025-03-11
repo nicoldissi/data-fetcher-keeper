@@ -18,28 +18,8 @@ interface EnergyFlowChartDarkProps {
 
 export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowChartDarkProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ width: 400, height: 400 })
   const [viewMode, setViewMode] = useState<'realtime' | 'daily'>('realtime')
   const [hasData, setHasData] = useState(false)
-  
-  useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const { offsetWidth } = containerRef.current
-        setSize({
-          width: offsetWidth,
-          height: Math.min(400, offsetWidth)
-        })
-      }
-    }
-    
-    updateSize()
-    window.addEventListener('resize', updateSize)
-    
-    return () => {
-      window.removeEventListener('resize', updateSize)
-    }
-  }, [])
   
   useEffect(() => {
     if (!data) return
@@ -87,16 +67,11 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex items-center justify-center p-6 min-h-[300px]">
+      <CardContent className="flex items-center justify-center p-4">
         {viewMode === 'realtime' ? (
           data ? (
-            <div 
-              ref={containerRef} 
-              className="relative w-full max-w-md aspect-square"
-            >
-              {/* Switch between the legacy and new component based on your preference */}
-              {false && <D3RealtimeEnergyFlow data={data} size={size} />}
-              <D3RealtimeEnergyFlowComponent data={data} className="w-full" />
+            <div className="w-full h-[500px]">
+              <D3RealtimeEnergyFlowComponent data={data} className="w-full h-full" />
             </div>
           ) : (
             <div className="text-center text-muted-foreground">
@@ -105,7 +80,9 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
             </div>
           )
         ) : (
-          <D3EnergyFlow configId={configId} />
+          <div className="w-full h-[500px]">
+            <D3EnergyFlow configId={configId} className="w-full h-full" />
+          </div>
         )}
       </CardContent>
     </Card>

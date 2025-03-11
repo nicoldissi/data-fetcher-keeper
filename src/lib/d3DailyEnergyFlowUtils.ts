@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 import React from 'react';
@@ -250,11 +249,11 @@ export function createDonutCharts(
         .attrTween("d", function() {
           const interpolate = d3.interpolate(0, d.ratio * 2 * Math.PI);
           return (t: number) => {
-            return d3.arc()
+            return (d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
               .startAngle(0)
-              .endAngle(interpolate(t))() as string;
+              .endAngle(interpolate(t))() as string);
           };
         });
 
@@ -267,11 +266,11 @@ export function createDonutCharts(
           const start = d.ratio * 2 * Math.PI;
           const interpolate = d3.interpolate(start, 2 * Math.PI);
           return (t: number) => {
-            return d3.arc()
+            return (d3.arc()
               .innerRadius(outerRadius - thickness)
               .outerRadius(outerRadius)
               .startAngle(start)
-              .endAngle(interpolate(t))() as string;
+              .endAngle(interpolate(t))() as string);
           };
         });
     } else if (d.id === "GRID") {
@@ -288,11 +287,11 @@ export function createDonutCharts(
             const importAngle = importRatio * 2 * Math.PI;
             const interpolate = d3.interpolate(0, importAngle);
             return (t: number) => {
-              return d3.arc()
+              return (d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(0)
-                .endAngle(interpolate(t))() as string;
+                .endAngle(interpolate(t))() as string);
             };
           });
         
@@ -306,11 +305,11 @@ export function createDonutCharts(
             const exportAngle = 2 * Math.PI;
             const interpolate = d3.interpolate(importAngle, exportAngle);
             return (t: number) => {
-              return d3.arc()
+              return (d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(importAngle)
-                .endAngle(interpolate(t))() as string;
+                .endAngle(interpolate(t))() as string);
             };
           });
       }
@@ -327,11 +326,11 @@ export function createDonutCharts(
             const selfConsumptionAngle = selfConsumptionRate * 2 * Math.PI;
             const interpolate = d3.interpolate(0, selfConsumptionAngle);
             return (t: number) => {
-              return d3.arc()
+              return (d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(0)
-                .endAngle(interpolate(t))() as string;
+                .endAngle(interpolate(t))() as string);
             };
           });
         
@@ -345,11 +344,11 @@ export function createDonutCharts(
             const totalAngle = 2 * Math.PI;
             const interpolate = d3.interpolate(selfConsumptionAngle, totalAngle);
             return (t: number) => {
-              return d3.arc()
+              return (d3.arc()
                 .innerRadius(outerRadius - thickness)
                 .outerRadius(outerRadius)
                 .startAngle(selfConsumptionAngle)
-                .endAngle(interpolate(t))() as string;
+                .endAngle(interpolate(t))() as string);
             };
           });
       }

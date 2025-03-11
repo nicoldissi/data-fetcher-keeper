@@ -31,7 +31,7 @@ export function D3RealtimeEnergyFlowComponent({ data, className }: D3RealtimeEne
   return (
     <div className={className}>
       <div className="flex justify-center relative">
-        <svg ref={svgRef} width="700" height="500" className="max-w-full"></svg>
+        <svg ref={svgRef} width="700" height="500" className="max-w-full h-auto"></svg>
       </div>
     </div>
   );
