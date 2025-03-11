@@ -1,9 +1,10 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import ReactDOM from 'react-dom';
 import React from 'react';
-import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Star } from 'lucide-react';
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -373,12 +374,10 @@ function createDonutCharts(
     
     let color;
     let textColor;
-    let maxValueColor;
     
     if (d.id === "PV") {
       color = "#66BB6A";
       textColor = "#4CAF50";
-      maxValueColor = "#8B5CF6"; // Purple for PV max value (changed from amber)
       
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
@@ -401,11 +400,9 @@ function createDonutCharts(
         .attr("opacity", 0.2);
 
       textColor = "#2196F3";
-      maxValueColor = "#F59E0B"; // Amber for Grid max value (changed from purple)
     } else {
       color = "#F97316";
       textColor = "#EA580C";
-      maxValueColor = "#0EA5E9"; // Blue for House max value (changed from pink)
       
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
@@ -485,7 +482,7 @@ function createDonutCharts(
           
           g.append("path")
             .attr("d", exportArc as any)
-            .attr("fill", "#66BB6A"); // Changed to green for export
+            .attr("fill", "#66BB6A");
         }
         
         if (d.importRatio > 0) {
@@ -500,49 +497,10 @@ function createDonutCharts(
             
           g.append("path")
             .attr("d", importArc as any)
-            .attr("fill", "#0EA5E9"); // Changed to blue for import
+            .attr("fill", "#0EA5E9");
         }
       }
     }
-
-    const maxValueG = g.append("g")
-      .attr("class", "max-value-indicator")
-      .attr("transform", d.id === "PV" ? `translate(0, -${outerRadius + 30})` : 
-                        (d.id === "GRID" ? `translate(-${outerRadius + 30}, 0)` : 
-                                          `translate(${outerRadius + 30}, 0)`));
-    
-    const maxValueForeignObject = maxValueG.append("foreignObject")
-      .attr("width", 16)
-      .attr("height", 16)
-      .attr("x", -8)
-      .attr("y", -8);
-    
-    const maxValueContainer = document.createElement('div');
-    maxValueContainer.style.display = 'flex';
-    maxValueContainer.style.justifyContent = 'center';
-    maxValueContainer.style.alignItems = 'center';
-    maxValueContainer.style.width = '100%';
-    maxValueContainer.style.height = '100%';
-    
-    maxValueForeignObject.node()?.appendChild(maxValueContainer);
-    
-    ReactDOM.render(
-      React.createElement(Star, { size: 16, color: maxValueColor, fill: maxValueColor, strokeWidth: 1 }),
-      maxValueContainer
-    );
-    
-    const textAnchor = d.id === "PV" ? "middle" : (d.id === "GRID" ? "end" : "start");
-    const textX = d.id === "PV" ? 0 : (d.id === "GRID" ? -15 : 15);
-    const textY = d.id === "PV" ? 15 : 0;
-    
-    maxValueG.append("text")
-      .attr("x", textX)
-      .attr("y", textY)
-      .attr("text-anchor", textAnchor)
-      .attr("font-size", "10px")
-      .attr("font-weight", "500")
-      .attr("fill", maxValueColor)
-      .text(d.maxPowerLabel);
 
     const iconDiv = document.createElement('div');
     iconDiv.className = 'icon-container';
@@ -569,6 +527,7 @@ function createDonutCharts(
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
+        .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
         .text(d.powerValue);
     } else if (d.id === "MAISON") {
       ReactDOM.render(
@@ -582,6 +541,7 @@ function createDonutCharts(
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
+        .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
         .text(`${d.homeConsumption.toFixed(0)} W`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
@@ -598,6 +558,7 @@ function createDonutCharts(
           .attr("fill", "#66BB6A")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
+          .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
           .text(`${exportValue}`);
       } else if (d.isImporting) {
         const importValue = d.powerValue;
@@ -608,6 +569,7 @@ function createDonutCharts(
           .attr("fill", "#0EA5E9")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
+          .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
           .text(`${importValue}`);
       } else {
         g.append("text")
@@ -616,6 +578,7 @@ function createDonutCharts(
           .attr("fill", textColor)
           .attr("font-size", "18px")
           .attr("font-weight", "500")
+          .attr("font-family", "inherit") // Utiliser la police par défaut de l'application
           .text("0 W");
       }
     }
