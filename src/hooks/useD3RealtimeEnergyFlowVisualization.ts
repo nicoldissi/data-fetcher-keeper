@@ -534,8 +534,8 @@ function createDonutCharts(
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", textColor)
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
+        .attr("font-size", "18px") // Increased from 14px
+        .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
         .text(d.powerValue);
     } else if (d.id === "MAISON") {
       ReactDOM.render(
@@ -548,8 +548,8 @@ function createDonutCharts(
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", textColor)
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
+        .attr("font-size", "18px") // Increased from 14px
+        .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
         .text(`${d.homeConsumption.toFixed(0)} W`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
@@ -564,8 +564,8 @@ function createDonutCharts(
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", "#66BB6A") // Changed to green for export
-          .attr("font-size", "14px")
-          .attr("font-weight", "bold")
+          .attr("font-size", "18px") // Increased from 14px
+          .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
           .text(`${exportValue}`);
       } else if (d.isImporting) {
         const importValue = d.powerValue;
@@ -574,16 +574,16 @@ function createDonutCharts(
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", "#0EA5E9") // Changed to blue for import
-          .attr("font-size", "14px")
-          .attr("font-weight", "bold")
+          .attr("font-size", "18px") // Increased from 14px
+          .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
           .text(`${importValue}`);
       } else {
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", textColor)
-          .attr("font-size", "14px")
-          .attr("font-weight", "bold")
+          .attr("font-size", "18px") // Increased from 14px
+          .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
           .text("0 W");
       }
     }
