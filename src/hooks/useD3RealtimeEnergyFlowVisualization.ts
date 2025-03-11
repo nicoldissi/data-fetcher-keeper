@@ -77,7 +77,9 @@ export function useD3RealtimeEnergyFlowVisualization({
         pvRatio: pvToHomeRatio,
         gridRatio: gridToHomeRatio,
         powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`,
-        maxPower: gridMaxPower / 1000
+        maxPower: gridMaxPower / 1000,
+        pvPower: pvToHome * 1000, // Absolute value in watts
+        gridPower: gridToHome * 1000 // Absolute value in watts
       },
       { 
         id: "GRID", 
@@ -398,6 +400,7 @@ function createDonutCharts(
       color = "#F97316";
       textColor = "#EA580C";
       
+      // Use the gridMaxPower from config for max angle (+120°)
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
         .outerRadius(outerRadius)
@@ -428,15 +431,23 @@ function createDonutCharts(
         const startAngle = -120 * (Math.PI / 180);
         const totalAngle = 240 * (Math.PI / 180);
         
-        // Changed the order: grid first, then PV
-        if (d.gridRatio > 0) {
-          const gridStartAngle = startAngle;
-          const gridEndAngle = gridStartAngle + (d.gridRatio * totalAngle);
+        // Using absolute values instead of proportional
+        // Maximum power is gridMaxPower which should be up to +120°
+        
+        // Calculate max power the gauge can display (corresponds to +120°)
+        const maxDisplayPower = d.maxPower * 1000; // Convert kW to W
+
+        // Grid Power (using absolute values)
+        if (d.gridPower > 0) {
+          // Calculate grid angle based on absolute power
+          const gridPowerRatio = Math.min(1, d.gridPower / maxDisplayPower);
+          const gridAngle = gridPowerRatio * totalAngle;
+          const gridEndAngle = startAngle + gridAngle;
           
           const gridArc = d3.arc()
             .innerRadius(outerRadius - thickness)
             .outerRadius(outerRadius)
-            .startAngle(gridStartAngle)
+            .startAngle(startAngle)
             .endAngle(gridEndAngle);
             
           g.append("path")
@@ -444,9 +455,15 @@ function createDonutCharts(
             .attr("fill", "#42A5F5");
         }
         
-        if (d.pvRatio > 0) {
-          const pvStartAngle = startAngle + (d.gridRatio * totalAngle);
-          const pvEndAngle = pvStartAngle + (d.pvRatio * totalAngle);
+        // PV Power (using absolute values)
+        if (d.pvPower > 0) {
+          // Calculate PV start angle (after grid if present)
+          const gridPowerRatio = Math.min(1, d.gridPower / maxDisplayPower);
+          const pvStartAngle = startAngle + (gridPowerRatio * totalAngle);
+          
+          // Calculate PV end angle based on absolute power
+          const pvPowerRatio = Math.min(1, d.pvPower / maxDisplayPower);
+          const pvEndAngle = pvStartAngle + (pvPowerRatio * totalAngle);
           
           const pvArc = d3.arc()
             .innerRadius(outerRadius - thickness)
