@@ -79,7 +79,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`,
         maxPower: gridMaxPower / 1000,
         pvPower: pvToHome * 1000, // Absolute value in watts
-        gridPower: gridToHome * 1000 // Absolute value in watts
+        gridPower: gridToHome * 1000, // Absolute value in watts
+        homeConsumption: homeConsumption * 1000 // Home consumption in watts
       },
       { 
         id: "GRID", 
@@ -375,6 +376,7 @@ function createDonutCharts(
       color = "#66BB6A";
       textColor = "#4CAF50";
       
+      // Use the gridMaxPower from config for max angle (+120°)
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
         .outerRadius(outerRadius)
@@ -541,13 +543,14 @@ function createDonutCharts(
         iconDiv
       );
       
+      // Changed to display home consumption
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", textColor)
         .attr("font-size", "14px")
         .attr("font-weight", "bold")
-        .text(d.powerValue);
+        .text(`${d.homeConsumption.toFixed(0)} W`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
         React.createElement(Zap, { size: iconSize, color: textColor }),
