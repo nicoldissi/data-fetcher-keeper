@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -484,5 +485,85 @@ function createDonutCharts(
           g.append("path")
             .attr("d", importArc as any)
             .attr("fill", "#ea384c");
+        }
+      }
+    }
 
-
+    // Icon display
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'icon-container';
+    
+    const iconSize = 24;
+    
+    const foreignObject = g.append("foreignObject")
+      .attr("width", iconSize)
+      .attr("height", iconSize)
+      .attr("x", -iconSize / 2)
+      .attr("y", -iconSize * 1.5);
+    
+    foreignObject.node()?.appendChild(iconDiv);
+    
+    if (d.id === "PV") {
+      ReactDOM.render(
+        React.createElement(Sun, { size: iconSize, color: textColor }),
+        iconDiv
+      );
+      
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("fill", textColor)
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .text(d.powerValue);
+    } else if (d.id === "MAISON") {
+      ReactDOM.render(
+        React.createElement(HousePlug, { size: iconSize, color: textColor }),
+        iconDiv
+      );
+      
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("fill", textColor)
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .text(d.powerValue);
+    } else if (d.id === "GRID") {
+      ReactDOM.render(
+        React.createElement(Zap, { size: iconSize, color: textColor }),
+        iconDiv
+      );
+      
+      if (d.isExporting) {
+        const exportValue = d.powerValue;
+        
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("fill", "#0EA5E9")
+          .attr("font-size", "14px")
+          .attr("font-weight", "bold")
+          .text(`${exportValue}`);
+      } else if (d.isImporting) {
+        const importValue = d.powerValue;
+        
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("fill", "#ea384c")
+          .attr("font-size", "14px")
+          .attr("font-weight", "bold")
+          .text(`${importValue}`);
+      } else {
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("fill", textColor)
+          .attr("font-size", "14px")
+          .attr("font-weight", "bold")
+          .text("0 W");
+      }
+    }
+  });
+}
