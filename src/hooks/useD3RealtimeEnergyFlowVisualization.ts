@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
@@ -196,8 +197,17 @@ function createFluxPaths(
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
     });
 
-  // Remplacer les anciens labels de flux par de nouveaux labels avec une meilleure présentation
-  svg.selectAll(".flux-label-bg")
+  // Create temporary text elements to measure their dimensions
+  const tempText = svg.selectAll(".temp-text")
+    .data(fluxData)
+    .enter()
+    .append("text")
+    .attr("class", "temp-text")
+    .style("visibility", "hidden")
+    .text(d => d.title);
+
+  // Calculate background rectangles with dynamic sizing
+  const labelBackgrounds = svg.selectAll(".flux-label-bg")
     .data(fluxData)
     .enter()
     .append("rect")
@@ -206,7 +216,11 @@ function createFluxPaths(
     .attr("ry", 8)
     .attr("fill", "white")
     .attr("opacity", 0.8)
-    .attr("stroke", "#e2e8f0")
+    .attr("stroke", d => {
+      if (d.source === "PV") return "#66BB6A";
+      if (d.source === "GRID") return "#42A5F5";
+      return "#888";
+    })
     .attr("stroke-width", 1)
     .attr("transform", (d: any) => {
       const s = centers[d.source];
@@ -223,10 +237,27 @@ function createFluxPaths(
       const y2 = s.y + dy * ratioEnd;
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2 - 40;
-      return `translate(${mx - 40}, ${my - 15})`;
+      
+      // Get corresponding text element and compute its dimensions
+      const textNode = tempText.filter((td: any) => td.title === d.title).node();
+      // Add padding
+      const padding = { x: 10, y: 6 };
+      const textWidth = textNode ? textNode.getBBox().width + (padding.x * 2) : 80;
+      const textHeight = textNode ? textNode.getBBox().height + (padding.y * 2) : 22;
+      
+      return `translate(${mx - textWidth/2}, ${my - textHeight/2})`;
     })
-    .attr("width", 80)
-    .attr("height", 22);
+    .attr("width", function() {
+      const textNode = tempText.filter((td: any, i: number) => i === this.parentNode.__data__.index).node();
+      return textNode ? textNode.getBBox().width + 20 : 80; // Adding padding
+    })
+    .attr("height", function() {
+      const textNode = tempText.filter((td: any, i: number) => i === this.parentNode.__data__.index).node();
+      return textNode ? textNode.getBBox().height + 12 : 22; // Adding padding
+    });
+
+  // Remove temporary text elements
+  tempText.remove();
 
   svg.selectAll(".flux-label")
     .data(fluxData)
@@ -234,7 +265,7 @@ function createFluxPaths(
     .append("text")
     .attr("class", "flux-label")
     .attr("text-anchor", "middle")
-    .attr("dy", "-5px")
+    .attr("dominant-baseline", "central") // This centers text vertically
     .attr("fill", d => {
       if (d.source === "PV") return "#66BB6A";
       if (d.source === "GRID") return "#42A5F5";
