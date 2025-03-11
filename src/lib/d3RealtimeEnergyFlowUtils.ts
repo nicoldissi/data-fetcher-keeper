@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Gauge, TrendingUp, TrendingDown } from 'lucide-react';
 import React from 'react';
@@ -13,6 +12,7 @@ interface FlowData {
   source: string;
   target: string;
   power: number;
+  title?: string;
 }
 
 interface NodeData {
@@ -72,6 +72,37 @@ export function createRealtimeFluxPaths(
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2 - 40;
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
+    });
+
+  svg.selectAll(".flux-label")
+    .data(fluxData)
+    .enter()
+    .append("text")
+    .attr("class", "flux-label")
+    .attr("text-anchor", "middle")
+    .attr("dy", "-5px")
+    .attr("fill", d => getFluxColor(d))
+    .attr("font-size", "12px")
+    .attr("font-weight", "bold")
+    .style("pointer-events", "none")
+    .attr("filter", "url(#glow)")
+    .text(d => d.title || "")
+    .attr("transform", (d: FlowData) => {
+      const s = centers[d.source];
+      const t = centers[d.target];
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const offset = nodeRadius + 5;
+      const ratioStart = offset / dist;
+      const x1 = s.x + dx * ratioStart;
+      const y1 = s.y + dy * ratioStart;
+      const ratioEnd = (dist - offset) / dist;
+      const x2 = s.x + dx * ratioEnd;
+      const y2 = s.y + dy * ratioEnd;
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 40;
+      return `translate(${mx}, ${my})`;
     });
 
   function animateFlux() {
@@ -169,7 +200,7 @@ export function createRealtimeNodes(
     .attr("font-size", "14px")
     .text(d => d.label);
 
-  // Add node values
+  // Add power values as node values (active power in W)
   nodeGroups.append("text")
     .attr("text-anchor", "middle")
     .attr("dy", "45px")

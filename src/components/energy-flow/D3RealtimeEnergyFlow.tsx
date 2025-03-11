@@ -73,12 +73,12 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
     // Calculate PV production percentage
     const pvProductionPercentage = Math.min(100, (data.pv_power / maxPVCapacity) * 100);
     
-    // Prepare data for nodes
+    // Prepare data for nodes with active power values in W
     const nodesData = [
       {
         id: "PV",
         label: "PV",
-        value: `${data.pv_power.toFixed(1)} W`,
+        value: `${Math.round(data.pv_power)} W`,
         color: '#66BB6A',
         gaugeValue: pvProductionPercentage,
         maxCapacity: maxPVCapacity
@@ -86,7 +86,7 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       {
         id: "GRID",
         label: "Réseau",
-        value: `${Math.abs(data.power).toFixed(1)} W`,
+        value: `${Math.round(Math.abs(data.power))} W`,
         color: '#42A5F5',
         direction: data.power >= 0 ? 'import' : 'export' as 'import' | 'export',
         power: data.power
@@ -94,7 +94,7 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       {
         id: "HOME",
         label: "Maison",
-        value: `${(data.pv_power + Math.max(0, data.power)).toFixed(1)} W`,
+        value: `${Math.round(data.pv_power + Math.max(0, data.power))} W`,
         color: '#F97316'
       }
     ];
@@ -102,7 +102,7 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
     // Create nodes (circles with labels)
     createRealtimeNodes(svg, nodesData, centers, nodeRadius);
     
-    // Prepare data for energy flows
+    // Prepare data for energy flows (only with titles, no values)
     const flowData = [];
     
     // Add active flows based on current energy state
@@ -110,7 +110,8 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       flowData.push({
         source: "GRID",
         target: "HOME",
-        power: data.power
+        power: data.power,
+        title: "Réseau"
       });
     }
     
@@ -120,7 +121,8 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       flowData.push({
         source: "PV",
         target: "HOME",
-        power: pvToHome
+        power: pvToHome,
+        title: "Autoconsommation"
       });
     }
     
@@ -130,11 +132,12 @@ export function D3RealtimeEnergyFlow({ data, size }: D3RealtimeEnergyFlowProps) 
       flowData.push({
         source: "PV",
         target: "GRID",
-        power: excessPower
+        power: excessPower,
+        title: "Injection"
       });
     }
     
-    // Create the flow paths between nodes without labels
+    // Create the flow paths between nodes with only titles (no values)
     createRealtimeFluxPaths(svg, flowData, centers, nodeRadius);
   };
   

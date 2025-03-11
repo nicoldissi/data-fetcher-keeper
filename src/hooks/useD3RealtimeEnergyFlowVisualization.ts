@@ -59,13 +59,15 @@ export function useD3RealtimeEnergyFlowVisualization({
         label: "Photovoltaïque", 
         totalKwh: pvPower, 
         ratio: pvToHomeRatio, 
-        selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0 
+        selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
+        powerValue: `${data.pv_power} W`
       },
       { 
         id: "MAISON", 
         label: "Maison", 
         totalKwh: homeConsumption, 
-        ratio: homeFromPvRatio 
+        ratio: homeFromPvRatio,
+        powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`
       },
       { 
         id: "GRID", 
@@ -73,7 +75,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         totalKwh: gridPower, 
         ratio: 1, 
         importTotal: isGridImporting ? gridPower : 0, 
-        exportTotal: isGridExporting ? gridPower : 0 
+        exportTotal: isGridExporting ? gridPower : 0,
+        powerValue: `${Math.abs(data.power).toFixed(0)} W`
       }
     ];
 
