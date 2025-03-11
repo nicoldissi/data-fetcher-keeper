@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -40,21 +39,22 @@ export function useD3RealtimeEnergyFlowVisualization({
 
     const pvPower = data.pv_power / 1000;
     const gridPower = Math.abs(data.power) / 1000;
-    const homeConsumption = (data.pv_power + Math.max(0, data.power)) / 1000;
+    
+    const realHomeConsumption = data.pv_power + Math.max(0, data.power) - Math.max(0, -data.power);
 
     const pvRatio = Math.min(1, data.pv_power / inverterMaxPower);
-    const homeRatio = Math.min(1, (data.pv_power + Math.max(0, data.power)) / gridMaxPower);
+    const homeRatio = Math.min(1, realHomeConsumption / gridMaxPower);
 
     const isPVProducing = data.pv_power > 6;
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
 
-    const pvToHome = isPVProducing ? Math.min(pvPower, homeConsumption) : 0;
+    const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption / 1000) : 0;
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) / 1000 : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
 
-    const pvToHomeRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
-    const gridToHomeRatio = homeConsumption > 0 ? gridToHome / homeConsumption : 0;
+    const pvToHomeRatio = realHomeConsumption > 0 ? pvToHome / (realHomeConsumption / 1000) : 0;
+    const gridToHomeRatio = realHomeConsumption > 0 ? gridToHome / (realHomeConsumption / 1000) : 0;
 
     const gridExportRatio = isGridExporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
     const gridImportRatio = isGridImporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
@@ -67,22 +67,18 @@ export function useD3RealtimeEnergyFlowVisualization({
         ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
         powerValue: `${data.pv_power.toFixed(0)} W`,
-        maxPower: inverterMaxPower / 1000,
-        maxPowerLabel: `${(inverterMaxPower / 1000).toFixed(1)} kVA`
       },
       { 
         id: "MAISON", 
         label: "", 
-        totalKwh: homeConsumption, 
+        totalKwh: realHomeConsumption / 1000, 
         ratio: homeRatio,
         pvRatio: pvToHomeRatio,
         gridRatio: gridToHomeRatio,
-        powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`,
-        maxPower: gridMaxPower / 1000,
-        pvPower: pvToHome * 1000, // Absolute value in watts
-        gridPower: gridToHome * 1000, // Absolute value in watts
-        homeConsumption: homeConsumption * 1000, // Home consumption in watts
-        maxPowerLabel: `${(gridMaxPower / 1000).toFixed(1)} kVA`
+        powerValue: `${realHomeConsumption.toFixed(0)} W`,
+        pvPower: pvToHome * 1000,
+        gridPower: gridToHome * 1000,
+        homeConsumption: realHomeConsumption
       },
       { 
         id: "GRID", 
@@ -96,8 +92,6 @@ export function useD3RealtimeEnergyFlowVisualization({
         importTotal: isGridImporting ? gridPower : 0, 
         exportTotal: isGridExporting ? gridPower : 0,
         powerValue: `${Math.abs(data.power).toFixed(0)} W`,
-        maxPower: gridMaxPower / 1000,
-        maxPowerLabel: `${(gridMaxPower / 1000).toFixed(1)} kVA`
       }
     ];
 
@@ -535,8 +529,6 @@ function createDonutCharts(
         iconDiv
       );
       
-      // Correction ici : utiliser la valeur de consommation réelle de la maison
-      // au lieu de la production PV
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
