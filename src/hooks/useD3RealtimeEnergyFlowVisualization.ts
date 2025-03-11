@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -47,6 +48,8 @@ export function useD3RealtimeEnergyFlowVisualization({
       gridMaxPower,
       inverterKVA,
       gridKVA,
+      raw_inverter_kva: config?.inverter_power_kva,
+      raw_grid_kva: config?.grid_subscription_kva,
       configObject: config
     });
 

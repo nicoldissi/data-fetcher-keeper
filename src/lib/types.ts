@@ -44,22 +44,14 @@ export interface ShellyEMResponse {
 }
 
 export interface ShellyConfig {
-  deviceId?: string;
-  apiKey?: string;
-  serverUrl?: string;
-  name?: string;
   id?: string;
-  user_id?: string;
+  serverUrl: string;
+  deviceId: string;
+  apiKey: string;
+  name?: string;
   deviceType?: 'ShellyEM' | 'ShellyProEM';
   inverter_power_kva?: number;
   grid_subscription_kva?: number;
-  latitude?: number | null;
-  longitude?: number | null;
-  
-  deviceid?: string;
-  apikey?: string;
-  serverurl?: string;
-  device_type?: string;
 }
 
 export interface InitialData {
