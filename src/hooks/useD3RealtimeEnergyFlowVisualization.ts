@@ -367,15 +367,30 @@ function createDonutCharts(
     }
     
     if (d.ratio > 0) {
-      const arc = d3.arc()
-        .innerRadius(outerRadius - thickness)
-        .outerRadius(outerRadius)
-        .startAngle(0)
-        .endAngle(d.ratio * 2 * Math.PI);
-      
-      g.append("path")
-        .attr("d", arc as any)
-        .attr("fill", color);
+      if (d.id === "PV") {
+        const startAngle = -120 * (Math.PI / 180); // Convert -120° to radians
+        const endAngle = startAngle + (d.ratio * 240 * (Math.PI / 180)); // Use 240° range
+        
+        const arc = d3.arc()
+          .innerRadius(outerRadius - thickness)
+          .outerRadius(outerRadius)
+          .startAngle(startAngle)
+          .endAngle(endAngle);
+        
+        g.append("path")
+          .attr("d", arc as any)
+          .attr("fill", color);
+      } else {
+        const arc = d3.arc()
+          .innerRadius(outerRadius - thickness)
+          .outerRadius(outerRadius)
+          .startAngle(0)
+          .endAngle(d.ratio * 2 * Math.PI);
+        
+        g.append("path")
+          .attr("d", arc as any)
+          .attr("fill", color);
+      }
     }
     
     const iconY = -40;
