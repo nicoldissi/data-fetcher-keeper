@@ -35,13 +35,18 @@ export function useD3RealtimeEnergyFlowVisualization({
     };
 
     // Convert kVA to Watts (multiply by 1000)
-    const inverterMaxPower = config?.inverter_power_kva ? config.inverter_power_kva * 1000 : 3000;
-    const gridMaxPower = config?.grid_subscription_kva ? config.grid_subscription_kva * 1000 : 6000;
+    const inverterKVA = config?.inverter_power_kva !== undefined ? config.inverter_power_kva : 3.0;
+    const gridKVA = config?.grid_subscription_kva !== undefined ? config.grid_subscription_kva : 6.0;
+    
+    const inverterMaxPower = inverterKVA * 1000;
+    const gridMaxPower = gridKVA * 1000;
 
     console.log("Using config values for visualization:", {
       deviceId: config?.deviceId,
       inverterMaxPower,
       gridMaxPower,
+      inverterKVA,
+      gridKVA,
       configObject: config
     });
 
@@ -75,7 +80,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
         powerValue: `${data.pv_power.toFixed(0)} W`,
-        maxValue: `${(inverterMaxPower / 1000).toFixed(1)} kW`,
+        maxValue: `${inverterKVA.toFixed(1)} kW`,
         color: "#66BB6A",
         textColor: "#4CAF50"
       },
@@ -87,7 +92,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         pvRatio: pvToHomeRatio,
         gridRatio: gridToHomeRatio,
         powerValue: `${realHomeConsumption.toFixed(0)} W`,
-        maxValue: `${(gridMaxPower / 1000).toFixed(1)} kW`,
+        maxValue: `${gridKVA.toFixed(1)} kW`,
         pvPower: pvToHome,
         gridPower: gridToHome,
         homeConsumption: realHomeConsumption,
@@ -106,7 +111,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         importTotal: isGridImporting ? gridPower / 1000 : 0, 
         exportTotal: isGridExporting ? gridPower / 1000 : 0,
         powerValue: `${Math.abs(data.power).toFixed(0)} W`,
-        maxValue: `${(gridMaxPower / 1000).toFixed(1)} kW`,
+        maxValue: `${gridKVA.toFixed(1)} kW`,
         color: "#42A5F5",
         textColor: "#2196F3"
       }
@@ -671,4 +676,3 @@ function createDonutCharts(
     }
   });
 }
-

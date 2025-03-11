@@ -18,9 +18,16 @@ export function D3RealtimeEnergyFlowComponent({ data, className, configId }: D3R
   // Fetch Shelly config when configId changes
   useEffect(() => {
     if (configId) {
-      getShellyConfig(configId).then(config => {
-        console.log("Fetched config for device:", configId, config);
-        setConfig(config);
+      console.log("Fetching config for configId:", configId);
+      getShellyConfig(configId).then(fetchedConfig => {
+        console.log("Fetched config for device:", configId, fetchedConfig);
+        console.log("Config max values:", {
+          inverter_power_kva: fetchedConfig.inverter_power_kva,
+          grid_subscription_kva: fetchedConfig.grid_subscription_kva
+        });
+        setConfig(fetchedConfig);
+      }).catch(error => {
+        console.error("Error fetching config:", error);
       });
     }
   }, [configId]);
