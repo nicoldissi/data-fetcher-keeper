@@ -1,4 +1,3 @@
-
 import { ShellyConfig } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -130,22 +129,29 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
 
     // If ID provided, get specific config
     if (id) {
+      console.log("Fetching config with ID:", id);
       // Get specific config by ID
       const { data, error } = await supabase
         .from('shelly_configs')
         .select('*')
         .eq('id', id)
-        .single(); // Use single() to get only one record
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching shelly config:", error);
+        throw error;
+      }
 
       if (!data) {
-        // If no config found, return default
+        console.log("No config found for ID:", id);
         return DEFAULT_CONFIG;
       }
 
+      console.log("Raw config from database:", data);
       // Map database fields to frontend expected format
-      return mapDbConfigToFrontend(data);
+      const mappedConfig = mapDbConfigToFrontend(data);
+      console.log("Mapped config:", mappedConfig);
+      return mappedConfig;
     } else {
       // First, get the first shelly_config_id that the user has access to
       const { data: shareData, error: shareError } = await supabase
