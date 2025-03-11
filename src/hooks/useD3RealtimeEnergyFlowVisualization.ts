@@ -2,8 +2,6 @@
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
-import { createRealtimeFluxPaths, createRealtimeNodes } from '@/lib/d3RealtimeEnergyFlowUtils';
-import { createFluxPaths, createDonutCharts } from '@/lib/d3DailyEnergyFlowUtils';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -27,7 +25,7 @@ export function useD3RealtimeEnergyFlowVisualization({
   useEffect(() => {
     if (!isClient || !svgRef.current || !data) return;
 
-    // Cleanup function to remove all SVG elements and React components
+    // Cleanup function to remove all SVG elements
     const cleanup = () => {
       if (svgRef.current) {
         const svg = d3.select(svgRef.current);
@@ -60,7 +58,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         totalKwh: pvPower, 
         ratio: pvToHomeRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
-        powerValue: `${data.pv_power} W`
+        powerValue: `${data.pv_power.toFixed(0)} W`
       },
       { 
         id: "MAISON", 
@@ -117,7 +115,7 @@ export function useD3RealtimeEnergyFlowVisualization({
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Set dimensions - match the daily view size
+    // Set dimensions
     const svgWidth = 700;
     const svgHeight = 500;
     svg.attr("width", svgWidth)
@@ -137,7 +135,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         </feMerge>
       `);
 
-    // Define center positions - match the daily view layout
+    // Define center positions
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
       GRID:   { x: svgWidth / 2 - 240,  y: 380 },
@@ -148,10 +146,7 @@ export function useD3RealtimeEnergyFlowVisualization({
     const outerRadius = 60;
     const thickness = 12;
 
-    // Use the functions from d3DailyEnergyFlowUtils
-    // but with our realtime data
-    
-    // Create flux paths between nodes
+    // Create flux paths
     createFluxPaths(svg, fluxData, centers, outerRadius);
 
     // Create donut charts for real-time view (false for realtime - shows watts instead of kWh)
@@ -170,4 +165,211 @@ export function useD3RealtimeEnergyFlowVisualization({
     // Return cleanup function
     return cleanup;
   }, [data, isClient, svgRef]);
+}
+
+// Helper functions for creating visual elements
+
+function createFluxPaths(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  fluxData: any[],
+  centers: Record<string, { x: number; y: number }>,
+  nodeRadius: number
+) {
+  // Scale stroke width based on energy flow
+  const powerValues = fluxData.map(f => f.kwh);
+  const maxPower = Math.max(...powerValues, 0.1);
+  
+  const strokeScale = d3.scaleLinear()
+    .domain([0, maxPower])
+    .range([2, 10]);
+
+  // Create paths
+  const fluxPaths = svg.selectAll(".flux")
+    .data(fluxData)
+    .enter()
+    .append("path")
+    .attr("class", "flux")
+    .attr("fill", "none")
+    .attr("stroke", d => {
+      if (d.source === "PV") return "#66BB6A";
+      if (d.source === "GRID") return "#42A5F5";
+      return "#888";
+    })
+    .attr("stroke-width", d => strokeScale(d.kwh))
+    .attr("stroke-linecap", "round")
+    .attr("stroke-dasharray", "8 8")
+    .attr("filter", "url(#glow)")
+    .attr("d", (d: any) => {
+      const s = centers[d.source];
+      const t = centers[d.target];
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const offset = nodeRadius + 5;
+      const ratioStart = offset / dist;
+      const x1 = s.x + dx * ratioStart;
+      const y1 = s.y + dy * ratioStart;
+      const ratioEnd = (dist - offset) / dist;
+      const x2 = s.x + dx * ratioEnd;
+      const y2 = s.y + dy * ratioEnd;
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 40;
+      return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
+    });
+
+  // Add title labels to the flux paths (without values)
+  svg.selectAll(".flux-label")
+    .data(fluxData)
+    .enter()
+    .append("text")
+    .attr("class", "flux-label")
+    .attr("text-anchor", "middle")
+    .attr("dy", "-5px")
+    .attr("fill", d => {
+      if (d.source === "PV") return "#66BB6A";
+      if (d.source === "GRID") return "#42A5F5";
+      return "#888";
+    })
+    .attr("font-size", "12px")
+    .attr("font-weight", "bold")
+    .style("pointer-events", "none")
+    .attr("filter", "url(#glow)")
+    .text(d => d.title) // Only show title, no values
+    .attr("transform", (d: any) => {
+      const s = centers[d.source];
+      const t = centers[d.target];
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const offset = nodeRadius + 5;
+      const ratioStart = offset / dist;
+      const x1 = s.x + dx * ratioStart;
+      const y1 = s.y + dy * ratioStart;
+      const ratioEnd = (dist - offset) / dist;
+      const x2 = s.x + dx * ratioEnd;
+      const y2 = s.y + dy * ratioEnd;
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 40;
+      return `translate(${mx}, ${my})`;
+    });
+
+  // Animate the dashed lines
+  fluxPaths
+    .transition()
+    .duration(1500)
+    .ease(d3.easeLinear)
+    .attrTween("stroke-dashoffset", function() {
+      return function(t: number) {
+        return `${0 - 16 * t}`;
+      };
+    })
+    .on("end", function() {
+      // Restart animation
+      d3.select(this)
+        .transition()
+        .duration(1500)
+        .ease(d3.easeLinear)
+        .attrTween("stroke-dashoffset", function() {
+          return function(t: number) {
+            return `${0 - 16 * t}`;
+          };
+        })
+        .on("end", function() {
+          d3.select(this).call(function(selection) {
+            if (!selection.empty()) {
+              animateFlux(selection);
+            }
+          });
+        });
+    });
+
+  function animateFlux(selection: d3.Selection<d3.BaseType, unknown, null, undefined>) {
+    selection
+      .transition()
+      .duration(1500)
+      .ease(d3.easeLinear)
+      .attrTween("stroke-dashoffset", function() {
+        return function(t: number) {
+          return `${0 - 16 * t}`;
+        };
+      })
+      .on("end", function() {
+        d3.select(this).call(animateFlux);
+      });
+  }
+
+  return fluxPaths;
+}
+
+function createDonutCharts(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  donutsData: any[],
+  centers: Record<string, { x: number; y: number }>,
+  outerRadius: number,
+  thickness: number,
+  isDaily: boolean
+) {
+  // Process each donut chart
+  donutsData.forEach(d => {
+    const center = centers[d.id];
+    const g = svg.append("g")
+      .attr("transform", `translate(${center.x}, ${center.y})`);
+    
+    // Create background circle
+    g.append("circle")
+      .attr("r", outerRadius - thickness / 2)
+      .attr("fill", "white")
+      .attr("stroke", "#e2e8f0")
+      .attr("stroke-width", thickness);
+    
+    // Create nodes with colored borders based on type
+    let color;
+    let icon;
+    
+    if (d.id === "PV") {
+      color = "#66BB6A"; // Green for solar
+      icon = "☀️";
+    } else if (d.id === "GRID") {
+      color = "#42A5F5"; // Blue for grid
+      icon = "⚡";
+    } else {
+      color = "#F97316"; // Orange for home
+      icon = "🏠";
+    }
+    
+    // Draw the colored arc for ratio visualization
+    if (d.ratio > 0) {
+      const arc = d3.arc()
+        .innerRadius(outerRadius - thickness)
+        .outerRadius(outerRadius)
+        .startAngle(0)
+        .endAngle(d.ratio * 2 * Math.PI);
+      
+      g.append("path")
+        .attr("d", arc as any)
+        .attr("fill", color);
+    }
+    
+    // Add icon
+    g.append("text")
+      .attr("text-anchor", "middle")
+      .attr("y", -5)
+      .attr("font-size", "20px")
+      .text(icon);
+    
+    // Add label
+    g.append("text")
+      .attr("text-anchor", "middle")
+      .attr("y", 20)
+      .attr("font-size", "14px")
+      .attr("font-weight", "bold")
+      .text(d.label);
+    
+    // Add power value (in W for real-time view)
+    g.append("text")
+      .attr("text-anchor", "middle")
+      .attr("y", 40)
+      .attr("font-size", "12px")
+      .text(d.powerValue);
+  });
 }

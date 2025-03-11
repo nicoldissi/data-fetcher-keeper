@@ -1,5 +1,5 @@
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { useD3RealtimeEnergyFlowVisualization } from '@/hooks/useD3RealtimeEnergyFlowVisualization';
 
