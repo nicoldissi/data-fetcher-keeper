@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
@@ -19,16 +18,13 @@ export function useD3RealtimeEnergyFlowVisualization({
   isClient,
   setIsClient
 }: UseD3RealtimeEnergyFlowVisualizationProps) {
-  // Set isClient to true on client side
   useEffect(() => {
     setIsClient(true);
   }, [setIsClient]);
 
-  // Main D3 visualization effect
   useEffect(() => {
     if (!isClient || !svgRef.current || !data) return;
 
-    // Cleanup function to remove all SVG elements
     const cleanup = () => {
       if (svgRef.current) {
         const svg = d3.select(svgRef.current);
@@ -36,21 +32,18 @@ export function useD3RealtimeEnergyFlowVisualization({
       }
     };
 
-    const pvPower = data.pv_power / 1000; // Convert to kW
-    const gridPower = Math.abs(data.power) / 1000; // Convert to kW
-    const homeConsumption = (data.pv_power + Math.max(0, data.power)) / 1000; // Convert to kW
-    
-    // Determine flow directions based on current power values
+    const pvPower = data.pv_power / 1000;
+    const gridPower = Math.abs(data.power) / 1000;
+    const homeConsumption = (data.pv_power + Math.max(0, data.power)) / 1000;
+
     const isPVProducing = data.pv_power > 6;
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
-    
-    // Calculate how much of the PV production goes to home vs. grid
+
     const pvToHome = isPVProducing ? Math.min(pvPower, pvPower + (isGridExporting ? gridPower : 0)) : 0;
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(Math.max(0, pvPower - homeConsumption)) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
-    
-    // Calculate ratios for visuals
+
     const pvToHomeRatio = pvPower > 0 ? pvToHome / pvPower : 0;
     const homeFromPvRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
 
@@ -81,10 +74,8 @@ export function useD3RealtimeEnergyFlowVisualization({
       }
     ];
 
-    // Initialize energy flows
     const fluxData = [];
-    
-    // Add PV->home flow if there's production and consumption
+
     if (pvToHome > 0) {
       fluxData.push({ 
         source: "PV", 
@@ -93,8 +84,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         title: "Autoconsommation"
       });
     }
-    
-    // Add grid->home flow when importing from grid
+
     if (gridToHome > 0) {
       fluxData.push({ 
         source: "GRID", 
@@ -103,8 +93,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         title: "Réseau"
       });
     }
-    
-    // Add PV->grid flow when exporting to grid
+
     if (pvToGrid > 0) {
       fluxData.push({ 
         source: "PV", 
@@ -114,11 +103,9 @@ export function useD3RealtimeEnergyFlowVisualization({
       });
     }
 
-    // Clean up existing SVG
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Set dimensions
     const svgWidth = 700;
     const svgHeight = 500;
     svg.attr("width", svgWidth)
@@ -126,7 +113,6 @@ export function useD3RealtimeEnergyFlowVisualization({
        .attr("viewBox", `0 0 ${svgWidth} ${svgHeight}`)
        .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Create definitions for effects
     const defs = svg.append("defs");
     defs.append("filter")
       .attr("id", "glow")
@@ -138,24 +124,19 @@ export function useD3RealtimeEnergyFlowVisualization({
         </feMerge>
       `);
 
-    // Define center positions
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
       GRID:   { x: svgWidth / 2 - 240,  y: 380 },
       MAISON: { x: svgWidth / 2 + 240,  y: 380 }
     };
 
-    // Define donut dimensions
     const outerRadius = 60;
     const thickness = 12;
 
-    // Create flux paths
     createFluxPaths(svg, fluxData, centers, outerRadius);
 
-    // Create donut charts for real-time view
     createDonutCharts(svg, donutsData, centers, outerRadius, thickness);
 
-    // Add title
     svg.append("text")
       .attr("x", svgWidth / 2)
       .attr("y", 40)
@@ -165,12 +146,9 @@ export function useD3RealtimeEnergyFlowVisualization({
       .attr("fill", "#555")
       .text("Flux Énergétique en Temps Réel");
 
-    // Return cleanup function
     return cleanup;
   }, [data, isClient, svgRef]);
 }
-
-// Helper functions for creating visual elements
 
 function createFluxPaths(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
@@ -178,7 +156,6 @@ function createFluxPaths(
   centers: Record<string, { x: number; y: number }>,
   nodeRadius: number
 ) {
-  // Scale stroke width based on energy flow
   const powerValues = fluxData.map(f => f.kwh);
   const maxPower = Math.max(...powerValues, 0.1);
   
@@ -186,7 +163,6 @@ function createFluxPaths(
     .domain([0, maxPower])
     .range([2, 10]);
 
-  // Create paths
   const fluxPaths = svg.selectAll(".flux")
     .data(fluxData)
     .enter()
@@ -220,7 +196,6 @@ function createFluxPaths(
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
     });
 
-  // Add title labels to the flux paths
   svg.selectAll(".flux-label")
     .data(fluxData)
     .enter()
@@ -237,7 +212,7 @@ function createFluxPaths(
     .attr("font-weight", "bold")
     .style("pointer-events", "none")
     .attr("filter", "url(#glow)")
-    .text(d => d.title) // Only show title, no values
+    .text(d => d.title)
     .attr("transform", (d: any) => {
       const s = centers[d.source];
       const t = centers[d.target];
@@ -256,7 +231,6 @@ function createFluxPaths(
       return `translate(${mx}, ${my})`;
     });
 
-  // Animate the dashed lines
   fluxPaths
     .transition()
     .duration(1500)
@@ -267,23 +241,11 @@ function createFluxPaths(
       };
     })
     .on("end", function() {
-      // Restart animation
-      d3.select(this)
-        .transition()
-        .duration(1500)
-        .ease(d3.easeLinear)
-        .attrTween("stroke-dashoffset", function() {
-          return function(t: number) {
-            return `${0 - 16 * t}`;
-          };
-        })
-        .on("end", function() {
-          d3.select(this).call(function(selection) {
-            if (!selection.empty()) {
-              animateFlux(selection);
-            }
-          });
-        });
+      d3.select(this).call(function(selection) {
+        if (!selection.empty()) {
+          animateFlux(selection);
+        }
+      });
     });
 
   function animateFlux(selection: d3.Selection<d3.BaseType, unknown, null, undefined>) {
@@ -311,35 +273,31 @@ function createDonutCharts(
   outerRadius: number,
   thickness: number
 ) {
-  // Process each donut chart
   donutsData.forEach(d => {
     const center = centers[d.id];
     const g = svg.append("g")
       .attr("transform", `translate(${center.x}, ${center.y})`);
     
-    // Create background circle
     g.append("circle")
       .attr("r", outerRadius - thickness / 2)
       .attr("fill", "white")
       .attr("stroke", "#e2e8f0")
       .attr("stroke-width", thickness);
     
-    // Create nodes with colored borders based on type
     let color;
     let textColor;
     
     if (d.id === "PV") {
-      color = "#66BB6A"; // Green for solar
+      color = "#66BB6A";
       textColor = "#4CAF50";
     } else if (d.id === "GRID") {
-      color = "#42A5F5"; // Blue for grid
+      color = "#42A5F5";
       textColor = "#2196F3";
     } else {
-      color = "#F97316"; // Orange for home
+      color = "#F97316";
       textColor = "#EA580C";
     }
     
-    // Draw the colored arc for ratio visualization
     if (d.ratio > 0) {
       const arc = d3.arc()
         .innerRadius(outerRadius - thickness)
@@ -352,8 +310,7 @@ function createDonutCharts(
         .attr("fill", color);
     }
     
-    // Add Lucide React icon - moved up by 20px
-    const iconY = -25; // Changed from -5 to -25 (moved up by 20px)
+    const iconY = -40;
     
     const foreignObject = g.append("foreignObject")
       .attr("width", 28)
@@ -387,7 +344,6 @@ function createDonutCharts(
       );
     }
     
-    // Add power value (in W for real-time view)
     g.append("text")
       .attr("text-anchor", "middle")
       .attr("y", 20)
@@ -396,7 +352,6 @@ function createDonutCharts(
       .attr("fill", textColor)
       .text(d.powerValue);
       
-    // For GRID node, add the import/export indicators
     if (d.id === "GRID" && d.importTotal !== undefined && d.exportTotal !== undefined) {
       if (d.importTotal > 0) {
         const importForeignObject = g.append("foreignObject")
