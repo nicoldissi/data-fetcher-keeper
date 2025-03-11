@@ -378,9 +378,8 @@ function createDonutCharts(
     if (d.id === "PV") {
       color = "#66BB6A";
       textColor = "#4CAF50";
-      maxValueColor = "#F59E0B"; // Amber color for max value
+      maxValueColor = "#8B5CF6"; // Purple for PV max value (changed from amber)
       
-      // Use the gridMaxPower from config for max angle (+120°)
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
         .outerRadius(outerRadius)
@@ -402,13 +401,12 @@ function createDonutCharts(
         .attr("opacity", 0.2);
 
       textColor = "#2196F3";
-      maxValueColor = "#8B5CF6"; // Purple color for max value
+      maxValueColor = "#F59E0B"; // Amber for Grid max value (changed from purple)
     } else {
       color = "#F97316";
       textColor = "#EA580C";
-      maxValueColor = "#D946EF"; // Pink color for max value
+      maxValueColor = "#0EA5E9"; // Blue for House max value (changed from pink)
       
-      // Use the gridMaxPower from config for max angle (+120°)
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
         .outerRadius(outerRadius)
@@ -439,15 +437,9 @@ function createDonutCharts(
         const startAngle = -120 * (Math.PI / 180);
         const totalAngle = 240 * (Math.PI / 180);
         
-        // Using absolute values instead of proportional
-        // Maximum power is gridMaxPower which should be up to +120°
-        
-        // Calculate max power the gauge can display (corresponds to +120°)
         const maxDisplayPower = d.maxPower * 1000; // Convert kW to W
-
-        // Grid Power (using absolute values)
+        
         if (d.gridPower > 0) {
-          // Calculate grid angle based on absolute power
           const gridPowerRatio = Math.min(1, d.gridPower / maxDisplayPower);
           const gridAngle = gridPowerRatio * totalAngle;
           const gridEndAngle = startAngle + gridAngle;
@@ -463,13 +455,10 @@ function createDonutCharts(
             .attr("fill", "#42A5F5");
         }
         
-        // PV Power (using absolute values)
         if (d.pvPower > 0) {
-          // Calculate PV start angle (after grid if present)
           const gridPowerRatio = Math.min(1, d.gridPower / maxDisplayPower);
           const pvStartAngle = startAngle + (gridPowerRatio * totalAngle);
           
-          // Calculate PV end angle based on absolute power
           const pvPowerRatio = Math.min(1, d.pvPower / maxDisplayPower);
           const pvEndAngle = pvStartAngle + (pvPowerRatio * totalAngle);
           
@@ -516,12 +505,12 @@ function createDonutCharts(
       }
     }
 
-    // Add elegant max value indicator
     const maxValueG = g.append("g")
       .attr("class", "max-value-indicator")
-      .attr("transform", `translate(${outerRadius + 20}, -${outerRadius + 10})`);
+      .attr("transform", d.id === "PV" ? `translate(0, -${outerRadius + 30})` : 
+                        (d.id === "GRID" ? `translate(-${outerRadius + 30}, 0)` : 
+                                          `translate(${outerRadius + 30}, 0)`));
     
-    // Create a small star icon with the max value
     const maxValueForeignObject = maxValueG.append("foreignObject")
       .attr("width", 16)
       .attr("height", 16)
@@ -542,17 +531,19 @@ function createDonutCharts(
       maxValueContainer
     );
     
-    // Add the max value text
+    const textAnchor = d.id === "PV" ? "middle" : (d.id === "GRID" ? "end" : "start");
+    const textX = d.id === "PV" ? 0 : (d.id === "GRID" ? -15 : 15);
+    const textY = d.id === "PV" ? 15 : 0;
+    
     maxValueG.append("text")
-      .attr("x", 10)
-      .attr("y", 5)
-      .attr("text-anchor", "start")
+      .attr("x", textX)
+      .attr("y", textY)
+      .attr("text-anchor", textAnchor)
       .attr("font-size", "10px")
       .attr("font-weight", "500")
       .attr("fill", maxValueColor)
       .text(d.maxPowerLabel);
 
-    // Icon display
     const iconDiv = document.createElement('div');
     iconDiv.className = 'icon-container';
     
@@ -576,8 +567,8 @@ function createDonutCharts(
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", textColor)
-        .attr("font-size", "18px") // Increased from 14px
-        .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
+        .attr("font-size", "18px")
+        .attr("font-weight", "500")
         .text(d.powerValue);
     } else if (d.id === "MAISON") {
       ReactDOM.render(
@@ -585,13 +576,12 @@ function createDonutCharts(
         iconDiv
       );
       
-      // Changed to display home consumption
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", textColor)
-        .attr("font-size", "18px") // Increased from 14px
-        .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
+        .attr("font-size", "18px")
+        .attr("font-weight", "500")
         .text(`${d.homeConsumption.toFixed(0)} W`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
@@ -605,9 +595,9 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("fill", "#66BB6A") // Changed to green for export
-          .attr("font-size", "18px") // Increased from 14px
-          .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
+          .attr("fill", "#66BB6A")
+          .attr("font-size", "18px")
+          .attr("font-weight", "500")
           .text(`${exportValue}`);
       } else if (d.isImporting) {
         const importValue = d.powerValue;
@@ -615,17 +605,17 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("fill", "#0EA5E9") // Changed to blue for import
-          .attr("font-size", "18px") // Increased from 14px
-          .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
+          .attr("fill", "#0EA5E9")
+          .attr("font-size", "18px")
+          .attr("font-weight", "500")
           .text(`${importValue}`);
       } else {
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
           .attr("fill", textColor)
-          .attr("font-size", "18px") // Increased from 14px
-          .attr("font-weight", "500") // Reduced from bold (700) to medium (500)
+          .attr("font-size", "18px")
+          .attr("font-weight", "500")
           .text("0 W");
       }
     }
