@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -49,14 +48,13 @@ export function useD3RealtimeEnergyFlowVisualization({
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
 
-    const pvToHome = isPVProducing ? Math.min(pvPower, pvPower + (isGridExporting ? gridPower : 0)) : 0;
-    const pvToGrid = isPVProducing && isGridExporting ? Math.abs(Math.max(0, pvPower - homeConsumption)) : 0;
+    const pvToHome = isPVProducing ? Math.min(pvPower, homeConsumption) : 0;
+    const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) / 1000 : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
 
     const pvToHomeRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
     const gridToHomeRatio = homeConsumption > 0 ? gridToHome / homeConsumption : 0;
 
-    // Calculate grid export and import ratios relative to max grid power
     const gridExportRatio = isGridExporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
     const gridImportRatio = isGridImporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
 
@@ -385,8 +383,6 @@ function createDonutCharts(
         .attr("fill", "#8E9196")
         .attr("opacity", 0.2);
     } else if (d.id === "GRID") {
-      // For Grid node we're using a different approach with 0° at the top
-      // We'll define a background for the full circle
       g.append("path")
         .attr("d", d3.arc()
           .innerRadius(outerRadius - thickness)
@@ -396,7 +392,6 @@ function createDonutCharts(
         .attr("fill", "#8E9196")
         .attr("opacity", 0.2);
 
-      // No specific color for grid anymore as we'll use red/blue based on flow direction
       textColor = "#2196F3";
     } else {
       color = "#F97316";
@@ -461,8 +456,6 @@ function createDonutCharts(
             .attr("fill", "#42A5F5");
         }
       } else if (d.id === "GRID") {
-        // For Grid, we use different approach
-        // Export (negative power value) goes counterclockwise from 0° to -120°
         if (d.exportRatio > 0) {
           const startAngle = 0;
           const endAngle = startAngle - (d.exportRatio * 120 * (Math.PI / 180));
@@ -475,10 +468,9 @@ function createDonutCharts(
           
           g.append("path")
             .attr("d", exportArc as any)
-            .attr("fill", "#0EA5E9"); // Ocean blue for injection/export
+            .attr("fill", "#0EA5E9");
         }
         
-        // Import (positive power value) goes clockwise from 0° to 120°
         if (d.importRatio > 0) {
           const startAngle = 0;
           const endAngle = startAngle + (d.importRatio * 120 * (Math.PI / 180));
@@ -488,136 +480,9 @@ function createDonutCharts(
             .outerRadius(outerRadius)
             .startAngle(startAngle)
             .endAngle(endAngle);
-          
+            
           g.append("path")
             .attr("d", importArc as any)
-            .attr("fill", "#ea384c"); // Red for import
-        }
-      }
-    }
-    
-    const iconY = -40;
-    
-    const foreignObject = g.append("foreignObject")
-      .attr("width", 28)
-      .attr("height", 28)
-      .attr("x", -14)
-      .attr("y", iconY);
-    
-    const container = document.createElement('div');
-    container.style.display = 'flex';
-    container.style.justifyContent = 'center';
-    container.style.alignItems = 'center';
-    container.style.width = '100%';
-    container.style.height = '100%';
-    
-    foreignObject.node()?.appendChild(container);
-    
-    if (d.id === "PV") {
-      ReactDOM.render(
-        React.createElement(Sun, { size: 24, color: textColor, strokeWidth: 2 }),
-        container
-      );
-      
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", 10)
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .attr("fill", textColor)
-        .text(d.powerValue);
-      
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", 30)
-        .attr("x", 10)
-        .attr("font-size", "10px")
-        .attr("fill", textColor)
-        .text(`${d.maxPower} kW`);
-    } else if (d.id === "MAISON") {
-      ReactDOM.render(
-        React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
-        container
-      );
-      
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", 10)
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .attr("fill", textColor)
-        .text(d.powerValue);
-    } else if (d.id === "GRID") {
-      // Use different colors for importing/exporting
-      const zapColor = d.isExporting ? "#0EA5E9" : (d.isImporting ? "#ea384c" : textColor);
-      
-      ReactDOM.render(
-        React.createElement(Zap, { size: 24, color: zapColor, strokeWidth: 2 }),
-        container
-      );
-      
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", 20)
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .attr("fill", zapColor)
-        .text(d.powerValue);
-      
-      if (d.importTotal !== undefined && d.exportTotal !== undefined) {
-        if (d.importTotal > 0) {
-          const importForeignObject = g.append("foreignObject")
-            .attr("width", 16)
-            .attr("height", 16)
-            .attr("x", -36)
-            .attr("y", -5);
-          
-          const importContainer = document.createElement('div');
-          importContainer.style.display = 'flex';
-          importContainer.style.justifyContent = 'center';
-          importContainer.style.alignItems = 'center';
-          importContainer.style.width = '100%';
-          importContainer.style.height = '100%';
-          
-          importForeignObject.node()?.appendChild(importContainer);
-          
-          ReactDOM.render(
-            React.createElement(ArrowRight, { size: 16, color: "#ea384c", strokeWidth: 2 }),
-            importContainer
-          );
-        }
-        
-        if (d.exportTotal > 0) {
-          const exportForeignObject = g.append("foreignObject")
-            .attr("width", 16)
-            .attr("height", 16)
-            .attr("x", -36)
-            .attr("y", 15);
-          
-          const exportContainer = document.createElement('div');
-          exportContainer.style.display = 'flex';
-          exportContainer.style.justifyContent = 'center';
-          exportContainer.style.alignItems = 'center';
-          exportContainer.style.width = '100%';
-          exportContainer.style.height = '100%';
-          
-          exportForeignObject.node()?.appendChild(exportContainer);
-          
-          ReactDOM.render(
-            React.createElement(ArrowLeft, { size: 16, color: "#0EA5E9", strokeWidth: 2 }),
-            exportContainer
-          );
-        }
-      }
-      
-      // Display max grid power
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", 30)
-        .attr("x", 10)
-        .attr("font-size", "10px")
-        .attr("fill", zapColor)
-        .text(`${d.maxPower} kW`);
-    }
-  });
-}
+            .attr("fill", "#ea384c");
+
+
