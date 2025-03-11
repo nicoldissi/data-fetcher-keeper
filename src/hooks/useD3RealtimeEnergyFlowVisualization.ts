@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
@@ -207,6 +206,8 @@ function createFluxPaths(
     .attr("ry", 8)
     .attr("fill", "white")
     .attr("opacity", 0.8)
+    .attr("stroke", "#e2e8f0")
+    .attr("stroke-width", 1)
     .attr("transform", (d: any) => {
       const s = centers[d.source];
       const t = centers[d.target];
