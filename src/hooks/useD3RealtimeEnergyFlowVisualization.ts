@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -68,6 +67,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
         powerValue: `${data.pv_power.toFixed(0)} W`,
+        maxValue: `${inverterMaxPower.toFixed(0)} W`,
       },
       { 
         id: "MAISON", 
@@ -77,6 +77,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         pvRatio: pvToHomeRatio,
         gridRatio: gridToHomeRatio,
         powerValue: `${realHomeConsumption.toFixed(0)} W`,
+        maxValue: `${gridMaxPower.toFixed(0)} W`,
         pvPower: pvToHome * 1000,
         gridPower: gridToHome * 1000,
         homeConsumption: realHomeConsumption
@@ -93,6 +94,7 @@ export function useD3RealtimeEnergyFlowVisualization({
         importTotal: isGridImporting ? gridPower : 0, 
         exportTotal: isGridExporting ? gridPower : 0,
         powerValue: `${Math.abs(data.power).toFixed(0)} W`,
+        maxValue: `${gridMaxPower.toFixed(0)} W`,
       }
     ];
 
@@ -519,12 +521,23 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("y", 10) // Ajouté 10px à la position Y
+        .attr("y", 20)
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
         .attr("font-family", "inherit") 
         .text(d.powerValue);
+
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("y", 45)
+        .attr("fill", "#8E9196")
+        .attr("font-size", "12px")
+        .attr("font-weight", "400")
+        .attr("font-family", "inherit") 
+        .text(`Max: ${d.maxValue}`);
+        
     } else if (d.id === "MAISON") {
       ReactDOM.render(
         React.createElement(HousePlug, { size: iconSize, color: textColor }),
@@ -534,12 +547,23 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("y", 10) // Ajouté 10px à la position Y
+        .attr("y", 20)
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
         .attr("font-family", "inherit")
         .text(`${d.homeConsumption.toFixed(0)} W`);
+        
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("y", 45)
+        .attr("fill", "#8E9196")
+        .attr("font-size", "12px")
+        .attr("font-weight", "400")
+        .attr("font-family", "inherit") 
+        .text(`Max: ${d.maxValue}`);
+        
     } else if (d.id === "GRID") {
       ReactDOM.render(
         React.createElement(Zap, { size: iconSize, color: textColor }),
@@ -552,36 +576,67 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 10) // Ajouté 10px à la position Y
+          .attr("y", 20)
           .attr("fill", "#66BB6A")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
           .attr("font-family", "inherit")
           .text(`${exportValue}`);
+          
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("y", 45)
+          .attr("fill", "#8E9196")
+          .attr("font-size", "12px")
+          .attr("font-weight", "400")
+          .attr("font-family", "inherit") 
+          .text(`Max: ${d.maxValue}`);
+          
       } else if (d.isImporting) {
         const importValue = d.powerValue;
         
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 10) // Ajouté 10px à la position Y
+          .attr("y", 20)
           .attr("fill", "#0EA5E9")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
           .attr("font-family", "inherit")
           .text(`${importValue}`);
+          
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("y", 45)
+          .attr("fill", "#8E9196")
+          .attr("font-size", "12px")
+          .attr("font-weight", "400")
+          .attr("font-family", "inherit") 
+          .text(`Max: ${d.maxValue}`);
+          
       } else {
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 10) // Ajouté 10px à la position Y
+          .attr("y", 20)
           .attr("fill", textColor)
           .attr("font-size", "18px")
           .attr("font-weight", "500")
           .attr("font-family", "inherit")
           .text("0 W");
+          
+        g.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("y", 45)
+          .attr("fill", "#8E9196")
+          .attr("font-size", "12px")
+          .attr("font-weight", "400")
+          .attr("font-family", "inherit") 
+          .text(`Max: ${d.maxValue}`);
       }
     }
   });
 }
-
