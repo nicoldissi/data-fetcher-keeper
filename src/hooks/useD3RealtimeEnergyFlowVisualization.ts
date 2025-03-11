@@ -43,10 +43,10 @@ export function useD3RealtimeEnergyFlowVisualization({
       configObject: config
     });
 
-    const pvPower = data.pv_power / 1000;
-    const gridPower = Math.abs(data.power) / 1000;
+    const pvPower = data.pv_power;
+    const gridPower = Math.abs(data.power);
     
-    const realHomeConsumption = data.pv_power + Math.max(0, data.power) - Math.max(0, -data.power);
+    const realHomeConsumption = data.pv_power + Math.max(0, data.power);
 
     const pvRatio = Math.min(1, data.pv_power / inverterMaxPower);
     const homeRatio = Math.min(1, realHomeConsumption / gridMaxPower);
@@ -55,12 +55,12 @@ export function useD3RealtimeEnergyFlowVisualization({
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
 
-    const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption / 1000) : 0;
-    const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) / 1000 : 0;
+    const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption) : 0;
+    const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
 
-    const pvToHomeRatio = realHomeConsumption > 0 ? pvToHome / (realHomeConsumption / 1000) : 0;
-    const gridToHomeRatio = realHomeConsumption > 0 ? gridToHome / (realHomeConsumption / 1000) : 0;
+    const pvToHomeRatio = realHomeConsumption > 0 ? pvToHome / realHomeConsumption : 0;
+    const gridToHomeRatio = realHomeConsumption > 0 ? gridToHome / realHomeConsumption : 0;
 
     const gridExportRatio = isGridExporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
     const gridImportRatio = isGridImporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
@@ -69,7 +69,7 @@ export function useD3RealtimeEnergyFlowVisualization({
       { 
         id: "PV", 
         label: "", 
-        totalKwh: pvPower, 
+        totalKwh: pvPower / 1000, 
         ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
         powerValue: `${data.pv_power.toFixed(0)} W`,
@@ -86,8 +86,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         gridRatio: gridToHomeRatio,
         powerValue: `${realHomeConsumption.toFixed(0)} W`,
         maxValue: `${(gridMaxPower / 1000).toFixed(1)} kW`,
-        pvPower: pvToHome * 1000,
-        gridPower: gridToHome * 1000,
+        pvPower: pvToHome,
+        gridPower: gridToHome,
         homeConsumption: realHomeConsumption,
         color: "#F97316",
         textColor: "#EA580C"
@@ -95,14 +95,14 @@ export function useD3RealtimeEnergyFlowVisualization({
       { 
         id: "GRID", 
         label: "", 
-        totalKwh: gridPower, 
+        totalKwh: gridPower / 1000, 
         ratio: 1,
         importRatio: gridImportRatio,
         exportRatio: gridExportRatio,
         isExporting: isGridExporting,
         isImporting: isGridImporting,
-        importTotal: isGridImporting ? gridPower : 0, 
-        exportTotal: isGridExporting ? gridPower : 0,
+        importTotal: isGridImporting ? gridPower / 1000 : 0, 
+        exportTotal: isGridExporting ? gridPower / 1000 : 0,
         powerValue: `${Math.abs(data.power).toFixed(0)} W`,
         maxValue: `${(gridMaxPower / 1000).toFixed(1)} kW`,
         color: "#42A5F5",
@@ -116,7 +116,7 @@ export function useD3RealtimeEnergyFlowVisualization({
       fluxData.push({ 
         source: "PV", 
         target: "MAISON", 
-        kwh: pvToHome,
+        kwh: pvToHome / 1000,
         title: "Autoconsommation"
       });
     }
@@ -125,7 +125,7 @@ export function useD3RealtimeEnergyFlowVisualization({
       fluxData.push({ 
         source: "GRID", 
         target: "MAISON", 
-        kwh: gridToHome,
+        kwh: gridToHome / 1000,
         title: "Réseau"
       });
     }
@@ -134,7 +134,7 @@ export function useD3RealtimeEnergyFlowVisualization({
       fluxData.push({ 
         source: "PV", 
         target: "GRID", 
-        kwh: pvToGrid,
+        kwh: pvToGrid / 1000,
         title: "Injection"
       });
     }
@@ -435,12 +435,25 @@ function createDonutCharts(
         const startAngle = -120 * (Math.PI / 180);
         const totalAngle = 240 * (Math.PI / 180);
         
-        const maxDisplayPower = d.maxPower * 1000; // Convert kW to W
+        console.log("MAISON node data:", {
+          gridPower: d.gridPower,
+          pvPower: d.pvPower,
+          homeConsumption: d.homeConsumption,
+          pvRatio: d.pvRatio,
+          gridRatio: d.gridRatio
+        });
         
         if (d.gridPower > 0) {
-          const gridPowerRatio = Math.min(1, d.gridPower / maxDisplayPower);
-          const gridAngle = gridPowerRatio * totalAngle;
+          const gridRatio = d.gridRatio || 0;
+          const gridAngle = gridRatio * totalAngle;
           const gridEndAngle = startAngle + gridAngle;
+          
+          console.log("Drawing grid segment:", {
+            gridRatio,
+            gridAngle: gridAngle * (180/Math.PI),
+            startAngle: startAngle * (180/Math.PI),
+            endAngle: gridEndAngle * (180/Math.PI)
+          });
           
           const gridArc = d3.arc()
             .innerRadius(outerRadius - thickness)
@@ -454,11 +467,18 @@ function createDonutCharts(
         }
         
         if (d.pvPower > 0) {
-          const gridPowerRatio = Math.min(1, d.gridPower / maxDisplayPower);
-          const pvStartAngle = startAngle + (gridPowerRatio * totalAngle);
+          const pvRatio = d.pvRatio || 0;
+          const gridRatio = d.gridRatio || 0;
           
-          const pvPowerRatio = Math.min(1, d.pvPower / maxDisplayPower);
-          const pvEndAngle = pvStartAngle + (pvPowerRatio * totalAngle);
+          const pvStartAngle = startAngle + (gridRatio * totalAngle);
+          const pvEndAngle = pvStartAngle + (pvRatio * totalAngle);
+          
+          console.log("Drawing PV segment:", {
+            pvRatio,
+            pvAngle: (pvRatio * totalAngle) * (180/Math.PI),
+            startAngle: pvStartAngle * (180/Math.PI),
+            endAngle: pvEndAngle * (180/Math.PI)
+          });
           
           const pvArc = d3.arc()
             .innerRadius(outerRadius - thickness)
