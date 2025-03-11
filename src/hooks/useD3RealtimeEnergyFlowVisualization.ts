@@ -428,22 +428,9 @@ function createDonutCharts(
         const startAngle = -120 * (Math.PI / 180);
         const totalAngle = 240 * (Math.PI / 180);
         
-        if (d.pvRatio > 0) {
-          const pvEndAngle = startAngle + (d.pvRatio * totalAngle);
-          
-          const pvArc = d3.arc()
-            .innerRadius(outerRadius - thickness)
-            .outerRadius(outerRadius)
-            .startAngle(startAngle)
-            .endAngle(pvEndAngle);
-            
-          g.append("path")
-            .attr("d", pvArc as any)
-            .attr("fill", "#66BB6A");
-        }
-        
+        // Changed the order: grid first, then PV
         if (d.gridRatio > 0) {
-          const gridStartAngle = startAngle + (d.pvRatio * totalAngle);
+          const gridStartAngle = startAngle;
           const gridEndAngle = gridStartAngle + (d.gridRatio * totalAngle);
           
           const gridArc = d3.arc()
@@ -455,6 +442,21 @@ function createDonutCharts(
           g.append("path")
             .attr("d", gridArc as any)
             .attr("fill", "#42A5F5");
+        }
+        
+        if (d.pvRatio > 0) {
+          const pvStartAngle = startAngle + (d.gridRatio * totalAngle);
+          const pvEndAngle = pvStartAngle + (d.pvRatio * totalAngle);
+          
+          const pvArc = d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(pvStartAngle)
+            .endAngle(pvEndAngle);
+            
+          g.append("path")
+            .attr("d", pvArc as any)
+            .attr("fill", "#66BB6A");
         }
       } else if (d.id === "GRID") {
         if (d.exportRatio > 0) {
@@ -469,7 +471,7 @@ function createDonutCharts(
           
           g.append("path")
             .attr("d", exportArc as any)
-            .attr("fill", "#0EA5E9");
+            .attr("fill", "#66BB6A"); // Changed to green for export
         }
         
         if (d.importRatio > 0) {
@@ -484,7 +486,7 @@ function createDonutCharts(
             
           g.append("path")
             .attr("d", importArc as any)
-            .attr("fill", "#ea384c");
+            .attr("fill", "#0EA5E9"); // Changed to blue for import
         }
       }
     }
@@ -541,7 +543,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("fill", "#0EA5E9")
+          .attr("fill", "#66BB6A") // Changed to green for export
           .attr("font-size", "14px")
           .attr("font-weight", "bold")
           .text(`${exportValue}`);
@@ -551,7 +553,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("fill", "#ea384c")
+          .attr("fill", "#0EA5E9") // Changed to blue for import
           .attr("font-size", "14px")
           .attr("font-weight", "bold")
           .text(`${importValue}`);
