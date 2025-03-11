@@ -1,10 +1,9 @@
-
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import ReactDOM from 'react-dom';
 import React from 'react';
-import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
+import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft, Star } from 'lucide-react';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -67,7 +66,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
         powerValue: `${data.pv_power.toFixed(0)} W`,
-        maxPower: inverterMaxPower / 1000
+        maxPower: inverterMaxPower / 1000,
+        maxPowerLabel: `${(inverterMaxPower / 1000).toFixed(1)} kVA`
       },
       { 
         id: "MAISON", 
@@ -80,7 +80,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         maxPower: gridMaxPower / 1000,
         pvPower: pvToHome * 1000, // Absolute value in watts
         gridPower: gridToHome * 1000, // Absolute value in watts
-        homeConsumption: homeConsumption * 1000 // Home consumption in watts
+        homeConsumption: homeConsumption * 1000, // Home consumption in watts
+        maxPowerLabel: `${(gridMaxPower / 1000).toFixed(1)} kVA`
       },
       { 
         id: "GRID", 
@@ -94,7 +95,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         importTotal: isGridImporting ? gridPower : 0, 
         exportTotal: isGridExporting ? gridPower : 0,
         powerValue: `${Math.abs(data.power).toFixed(0)} W`,
-        maxPower: gridMaxPower / 1000
+        maxPower: gridMaxPower / 1000,
+        maxPowerLabel: `${(gridMaxPower / 1000).toFixed(1)} kVA`
       }
     ];
 
@@ -371,10 +373,12 @@ function createDonutCharts(
     
     let color;
     let textColor;
+    let maxValueColor;
     
     if (d.id === "PV") {
       color = "#66BB6A";
       textColor = "#4CAF50";
+      maxValueColor = "#F59E0B"; // Amber color for max value
       
       // Use the gridMaxPower from config for max angle (+120°)
       const maxArc = d3.arc()
@@ -398,9 +402,11 @@ function createDonutCharts(
         .attr("opacity", 0.2);
 
       textColor = "#2196F3";
+      maxValueColor = "#8B5CF6"; // Purple color for max value
     } else {
       color = "#F97316";
       textColor = "#EA580C";
+      maxValueColor = "#D946EF"; // Pink color for max value
       
       // Use the gridMaxPower from config for max angle (+120°)
       const maxArc = d3.arc()
@@ -509,6 +515,42 @@ function createDonutCharts(
         }
       }
     }
+
+    // Add elegant max value indicator
+    const maxValueG = g.append("g")
+      .attr("class", "max-value-indicator")
+      .attr("transform", `translate(${outerRadius + 20}, -${outerRadius + 10})`);
+    
+    // Create a small star icon with the max value
+    const maxValueForeignObject = maxValueG.append("foreignObject")
+      .attr("width", 16)
+      .attr("height", 16)
+      .attr("x", -8)
+      .attr("y", -8);
+    
+    const maxValueContainer = document.createElement('div');
+    maxValueContainer.style.display = 'flex';
+    maxValueContainer.style.justifyContent = 'center';
+    maxValueContainer.style.alignItems = 'center';
+    maxValueContainer.style.width = '100%';
+    maxValueContainer.style.height = '100%';
+    
+    maxValueForeignObject.node()?.appendChild(maxValueContainer);
+    
+    ReactDOM.render(
+      React.createElement(Star, { size: 16, color: maxValueColor, fill: maxValueColor, strokeWidth: 1 }),
+      maxValueContainer
+    );
+    
+    // Add the max value text
+    maxValueG.append("text")
+      .attr("x", 10)
+      .attr("y", 5)
+      .attr("text-anchor", "start")
+      .attr("font-size", "10px")
+      .attr("font-weight", "500")
+      .attr("fill", maxValueColor)
+      .text(d.maxPowerLabel);
 
     // Icon display
     const iconDiv = document.createElement('div');
