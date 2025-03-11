@@ -152,8 +152,8 @@ export function useD3RealtimeEnergyFlowVisualization({
     // Create flux paths
     createFluxPaths(svg, fluxData, centers, outerRadius);
 
-    // Create donut charts for real-time view (false for realtime - shows watts instead of kWh)
-    createDonutCharts(svg, donutsData, centers, outerRadius, thickness, false);
+    // Create donut charts for real-time view
+    createDonutCharts(svg, donutsData, centers, outerRadius, thickness);
 
     // Add title
     svg.append("text")
@@ -220,7 +220,7 @@ function createFluxPaths(
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
     });
 
-  // Add title labels to the flux paths (without values)
+  // Add title labels to the flux paths
   svg.selectAll(".flux-label")
     .data(fluxData)
     .enter()
@@ -309,8 +309,7 @@ function createDonutCharts(
   donutsData: any[],
   centers: Record<string, { x: number; y: number }>,
   outerRadius: number,
-  thickness: number,
-  isDaily: boolean
+  thickness: number
 ) {
   // Process each donut chart
   donutsData.forEach(d => {
@@ -353,14 +352,14 @@ function createDonutCharts(
         .attr("fill", color);
     }
     
-    // Add Lucide React icon
-    const iconY = -5;
+    // Add Lucide React icon - moved up by 20px
+    const iconY = -25; // Changed from -5 to -25 (moved up by 20px)
     
     const foreignObject = g.append("foreignObject")
       .attr("width", 28)
       .attr("height", 28)
       .attr("x", -14)
-      .attr("y", -14);
+      .attr("y", iconY);
     
     const container = document.createElement('div');
     container.style.display = 'flex';
