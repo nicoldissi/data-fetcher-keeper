@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
@@ -196,6 +197,36 @@ function createFluxPaths(
       return `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
     });
 
+  // Remplacer les anciens labels de flux par de nouveaux labels avec une meilleure présentation
+  svg.selectAll(".flux-label-bg")
+    .data(fluxData)
+    .enter()
+    .append("rect")
+    .attr("class", "flux-label-bg")
+    .attr("rx", 8)
+    .attr("ry", 8)
+    .attr("fill", "white")
+    .attr("opacity", 0.8)
+    .attr("transform", (d: any) => {
+      const s = centers[d.source];
+      const t = centers[d.target];
+      const dx = t.x - s.x;
+      const dy = t.y - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const offset = nodeRadius + 5;
+      const ratioStart = offset / dist;
+      const x1 = s.x + dx * ratioStart;
+      const y1 = s.y + dy * ratioStart;
+      const ratioEnd = (dist - offset) / dist;
+      const x2 = s.x + dx * ratioEnd;
+      const y2 = s.y + dy * ratioEnd;
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 40;
+      return `translate(${mx - 40}, ${my - 15})`;
+    })
+    .attr("width", 80)
+    .attr("height", 22);
+
   svg.selectAll(".flux-label")
     .data(fluxData)
     .enter()
@@ -209,9 +240,7 @@ function createFluxPaths(
       return "#888";
     })
     .attr("font-size", "12px")
-    .attr("font-weight", "bold")
     .style("pointer-events", "none")
-    .attr("filter", "url(#glow)")
     .text(d => d.title)
     .attr("transform", (d: any) => {
       const s = centers[d.source];
