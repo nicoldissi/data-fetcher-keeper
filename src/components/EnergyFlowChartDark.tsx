@@ -71,7 +71,7 @@ export function EnergyFlowChartDark({ data, className, configId }: EnergyFlowCha
         {viewMode === 'realtime' ? (
           data ? (
             <div className="w-full h-[500px]">
-              <D3RealtimeEnergyFlowComponent data={data} className="w-full h-full" />
+              <D3RealtimeEnergyFlowComponent data={data} className="w-full h-full" configId={configId} />
             </div>
           ) : (
             <div className="text-center text-muted-foreground">

@@ -1,6 +1,6 @@
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
-import { ShellyEMData } from '@/lib/types';
+import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import ReactDOM from 'react-dom';
 import React from 'react';
 import { HousePlug, Sun, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -10,13 +10,15 @@ interface UseD3RealtimeEnergyFlowVisualizationProps {
   data: ShellyEMData | null;
   isClient: boolean;
   setIsClient: Dispatch<SetStateAction<boolean>>;
+  config?: ShellyConfig | null;
 }
 
 export function useD3RealtimeEnergyFlowVisualization({
   svgRef,
   data,
   isClient,
-  setIsClient
+  setIsClient,
+  config
 }: UseD3RealtimeEnergyFlowVisualizationProps) {
   useEffect(() => {
     setIsClient(true);
@@ -32,9 +34,15 @@ export function useD3RealtimeEnergyFlowVisualization({
       }
     };
 
+    const inverterMaxPower = config?.inverter_power_kva ? config.inverter_power_kva * 1000 : 3000;
+    const gridMaxPower = config?.grid_subscription_kva ? config.grid_subscription_kva * 1000 : 6000;
+
     const pvPower = data.pv_power / 1000;
     const gridPower = Math.abs(data.power) / 1000;
     const homeConsumption = (data.pv_power + Math.max(0, data.power)) / 1000;
+
+    const pvRatio = Math.min(1, data.pv_power / inverterMaxPower);
+    const homeRatio = Math.min(1, (data.pv_power + Math.max(0, data.power)) / gridMaxPower);
 
     const isPVProducing = data.pv_power > 6;
     const isGridImporting = data.power > 0;
@@ -44,24 +52,23 @@ export function useD3RealtimeEnergyFlowVisualization({
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(Math.max(0, pvPower - homeConsumption)) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
 
-    const pvToHomeRatio = pvPower > 0 ? pvToHome / pvPower : 0;
-    const homeFromPvRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
-
     const donutsData = [
       { 
         id: "PV", 
         label: "", 
         totalKwh: pvPower, 
-        ratio: pvToHomeRatio, 
+        ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
-        powerValue: `${data.pv_power.toFixed(0)} W`
+        powerValue: `${data.pv_power.toFixed(0)} W`,
+        maxPower: inverterMaxPower / 1000
       },
       { 
         id: "MAISON", 
         label: "", 
         totalKwh: homeConsumption, 
-        ratio: homeFromPvRatio,
-        powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`
+        ratio: homeRatio,
+        powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`,
+        maxPower: gridMaxPower / 1000
       },
       { 
         id: "GRID", 
@@ -147,7 +154,7 @@ export function useD3RealtimeEnergyFlowVisualization({
       .text("Flux Énergétique en Temps Réel");
 
     return cleanup;
-  }, [data, isClient, svgRef]);
+  }, [data, isClient, svgRef, config]);
 }
 
 function createFluxPaths(
@@ -393,71 +400,100 @@ function createDonutCharts(
         React.createElement(Sun, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
+      
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 10)
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .attr("fill", textColor)
+        .text(d.powerValue);
+      
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 30)
+        .attr("font-size", "10px")
+        .attr("fill", textColor)
+        .text(`Max: ${d.maxPower} kW`);
     } else if (d.id === "MAISON") {
       ReactDOM.render(
         React.createElement(HousePlug, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
+      
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 10)
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .attr("fill", textColor)
+        .text(d.powerValue);
+      
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 30)
+        .attr("font-size", "10px")
+        .attr("fill", textColor)
+        .text(`Max: ${d.maxPower} kW`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
         React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
         container
       );
-    }
-    
-    g.append("text")
-      .attr("text-anchor", "middle")
-      .attr("y", 20)
-      .attr("font-size", "14px")
-      .attr("font-weight", "bold")
-      .attr("fill", textColor)
-      .text(d.powerValue);
       
-    if (d.id === "GRID" && d.importTotal !== undefined && d.exportTotal !== undefined) {
-      if (d.importTotal > 0) {
-        const importForeignObject = g.append("foreignObject")
-          .attr("width", 16)
-          .attr("height", 16)
-          .attr("x", -36)
-          .attr("y", -5);
-        
-        const importContainer = document.createElement('div');
-        importContainer.style.display = 'flex';
-        importContainer.style.justifyContent = 'center';
-        importContainer.style.alignItems = 'center';
-        importContainer.style.width = '100%';
-        importContainer.style.height = '100%';
-        
-        importForeignObject.node()?.appendChild(importContainer);
-        
-        ReactDOM.render(
-          React.createElement(ArrowRight, { size: 16, color: textColor, strokeWidth: 2 }),
-          importContainer
-        );
-      }
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 20)
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .attr("fill", textColor)
+        .text(d.powerValue);
       
-      if (d.exportTotal > 0) {
-        const exportForeignObject = g.append("foreignObject")
-          .attr("width", 16)
-          .attr("height", 16)
-          .attr("x", -36)
-          .attr("y", 15);
+      if (d.importTotal !== undefined && d.exportTotal !== undefined) {
+        if (d.importTotal > 0) {
+          const importForeignObject = g.append("foreignObject")
+            .attr("width", 16)
+            .attr("height", 16)
+            .attr("x", -36)
+            .attr("y", -5);
+          
+          const importContainer = document.createElement('div');
+          importContainer.style.display = 'flex';
+          importContainer.style.justifyContent = 'center';
+          importContainer.style.alignItems = 'center';
+          importContainer.style.width = '100%';
+          importContainer.style.height = '100%';
+          
+          importForeignObject.node()?.appendChild(importContainer);
+          
+          ReactDOM.render(
+            React.createElement(ArrowRight, { size: 16, color: textColor, strokeWidth: 2 }),
+            importContainer
+          );
+        }
         
-        const exportContainer = document.createElement('div');
-        exportContainer.style.display = 'flex';
-        exportContainer.style.justifyContent = 'center';
-        exportContainer.style.alignItems = 'center';
-        exportContainer.style.width = '100%';
-        exportContainer.style.height = '100%';
-        
-        exportForeignObject.node()?.appendChild(exportContainer);
-        
-        ReactDOM.render(
-          React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
-          exportContainer
-        );
+        if (d.exportTotal > 0) {
+          const exportForeignObject = g.append("foreignObject")
+            .attr("width", 16)
+            .attr("height", 16)
+            .attr("x", -36)
+            .attr("y", 15);
+          
+          const exportContainer = document.createElement('div');
+          exportContainer.style.display = 'flex';
+          exportContainer.style.justifyContent = 'center';
+          exportContainer.style.alignItems = 'center';
+          exportContainer.style.width = '100%';
+          exportContainer.style.height = '100%';
+          
+          exportForeignObject.node()?.appendChild(exportContainer);
+          
+          ReactDOM.render(
+            React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
+            exportContainer
+          );
+        }
       }
     }
   });
 }
-
