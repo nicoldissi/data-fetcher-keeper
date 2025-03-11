@@ -111,8 +111,11 @@ export function createRealtimeFluxPaths(
       .transition()
       .duration(1500)
       .ease(d3.easeLinear)
-      .attrTween("stroke-dashoffset", () => {
-        return d3.interpolate(0, -16);
+      .attrTween("stroke-dashoffset", function() {
+        return function(t: number) {
+          // Convert the number to a string as required by the attribute
+          return `${0 - 16 * t}`;
+        };
       })
       .on("end", animateFlux);
   }
