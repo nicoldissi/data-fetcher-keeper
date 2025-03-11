@@ -1,3 +1,4 @@
+
 import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -55,6 +56,10 @@ export function useD3RealtimeEnergyFlowVisualization({
     const pvToHomeRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
     const gridToHomeRatio = homeConsumption > 0 ? gridToHome / homeConsumption : 0;
 
+    // Calculate grid export and import ratios relative to max grid power
+    const gridExportRatio = isGridExporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
+    const gridImportRatio = isGridImporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
+
     const donutsData = [
       { 
         id: "PV", 
@@ -79,10 +84,15 @@ export function useD3RealtimeEnergyFlowVisualization({
         id: "GRID", 
         label: "", 
         totalKwh: gridPower, 
-        ratio: 1, 
+        ratio: 1,
+        importRatio: gridImportRatio,
+        exportRatio: gridExportRatio,
+        isExporting: isGridExporting,
+        isImporting: isGridImporting,
         importTotal: isGridImporting ? gridPower : 0, 
         exportTotal: isGridExporting ? gridPower : 0,
-        powerValue: `${Math.abs(data.power).toFixed(0)} W`
+        powerValue: `${Math.abs(data.power).toFixed(0)} W`,
+        maxPower: gridMaxPower / 1000
       }
     ];
 
@@ -375,7 +385,18 @@ function createDonutCharts(
         .attr("fill", "#8E9196")
         .attr("opacity", 0.2);
     } else if (d.id === "GRID") {
-      color = "#42A5F5";
+      // For Grid node we're using a different approach with 0° at the top
+      // We'll define a background for the full circle
+      g.append("path")
+        .attr("d", d3.arc()
+          .innerRadius(outerRadius - thickness)
+          .outerRadius(outerRadius)
+          .startAngle(-Math.PI)
+          .endAngle(Math.PI) as any)
+        .attr("fill", "#8E9196")
+        .attr("opacity", 0.2);
+
+      // No specific color for grid anymore as we'll use red/blue based on flow direction
       textColor = "#2196F3";
     } else {
       color = "#F97316";
@@ -439,16 +460,39 @@ function createDonutCharts(
             .attr("d", gridArc as any)
             .attr("fill", "#42A5F5");
         }
-      } else {
-        const arc = d3.arc()
-          .innerRadius(outerRadius - thickness)
-          .outerRadius(outerRadius)
-          .startAngle(0)
-          .endAngle(d.ratio * 2 * Math.PI);
+      } else if (d.id === "GRID") {
+        // For Grid, we use different approach
+        // Export (negative power value) goes counterclockwise from 0° to -120°
+        if (d.exportRatio > 0) {
+          const startAngle = 0;
+          const endAngle = startAngle - (d.exportRatio * 120 * (Math.PI / 180));
+          
+          const exportArc = d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(endAngle)
+            .endAngle(startAngle);
+          
+          g.append("path")
+            .attr("d", exportArc as any)
+            .attr("fill", "#0EA5E9"); // Ocean blue for injection/export
+        }
         
-        g.append("path")
-          .attr("d", arc as any)
-          .attr("fill", color);
+        // Import (positive power value) goes clockwise from 0° to 120°
+        if (d.importRatio > 0) {
+          const startAngle = 0;
+          const endAngle = startAngle + (d.importRatio * 120 * (Math.PI / 180));
+          
+          const importArc = d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(startAngle)
+            .endAngle(endAngle);
+          
+          g.append("path")
+            .attr("d", importArc as any)
+            .attr("fill", "#ea384c"); // Red for import
+        }
       }
     }
     
@@ -504,8 +548,11 @@ function createDonutCharts(
         .attr("fill", textColor)
         .text(d.powerValue);
     } else if (d.id === "GRID") {
+      // Use different colors for importing/exporting
+      const zapColor = d.isExporting ? "#0EA5E9" : (d.isImporting ? "#ea384c" : textColor);
+      
       ReactDOM.render(
-        React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
+        React.createElement(Zap, { size: 24, color: zapColor, strokeWidth: 2 }),
         container
       );
       
@@ -514,7 +561,7 @@ function createDonutCharts(
         .attr("y", 20)
         .attr("font-size", "14px")
         .attr("font-weight", "bold")
-        .attr("fill", textColor)
+        .attr("fill", zapColor)
         .text(d.powerValue);
       
       if (d.importTotal !== undefined && d.exportTotal !== undefined) {
@@ -535,7 +582,7 @@ function createDonutCharts(
           importForeignObject.node()?.appendChild(importContainer);
           
           ReactDOM.render(
-            React.createElement(ArrowRight, { size: 16, color: textColor, strokeWidth: 2 }),
+            React.createElement(ArrowRight, { size: 16, color: "#ea384c", strokeWidth: 2 }),
             importContainer
           );
         }
@@ -557,11 +604,20 @@ function createDonutCharts(
           exportForeignObject.node()?.appendChild(exportContainer);
           
           ReactDOM.render(
-            React.createElement(ArrowLeft, { size: 16, color: "#388E3C", strokeWidth: 2 }),
+            React.createElement(ArrowLeft, { size: 16, color: "#0EA5E9", strokeWidth: 2 }),
             exportContainer
           );
         }
       }
+      
+      // Display max grid power
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 30)
+        .attr("x", 10)
+        .attr("font-size", "10px")
+        .attr("fill", zapColor)
+        .text(`${d.maxPower} kW`);
     }
   });
 }
