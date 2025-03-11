@@ -3,6 +3,7 @@ import { useEffect, RefObject, Dispatch, SetStateAction } from 'react';
 import * as d3 from 'd3';
 import { ShellyEMData } from '@/lib/types';
 import { createRealtimeFluxPaths, createRealtimeNodes } from '@/lib/d3RealtimeEnergyFlowUtils';
+import { createFluxPaths, createDonutCharts } from '@/lib/d3DailyEnergyFlowUtils';
 
 interface UseD3RealtimeEnergyFlowVisualizationProps {
   svgRef: RefObject<SVGSVGElement>;
@@ -34,11 +35,89 @@ export function useD3RealtimeEnergyFlowVisualization({
       }
     };
 
+    const pvPower = data.pv_power / 1000; // Convert to kW
+    const gridPower = Math.abs(data.power) / 1000; // Convert to kW
+    const homeConsumption = (data.pv_power + Math.max(0, data.power)) / 1000; // Convert to kW
+    
+    // Determine flow directions based on current power values
+    const isPVProducing = data.pv_power > 6;
+    const isGridImporting = data.power > 0;
+    const isGridExporting = data.power < 0;
+    
+    // Calculate how much of the PV production goes to home vs. grid
+    const pvToHome = isPVProducing ? Math.min(pvPower, pvPower + (isGridExporting ? gridPower : 0)) : 0;
+    const pvToGrid = isPVProducing && isGridExporting ? Math.abs(Math.max(0, pvPower - homeConsumption)) : 0;
+    const gridToHome = isGridImporting ? gridPower : 0;
+    
+    // Calculate ratios for visuals
+    const pvToHomeRatio = pvPower > 0 ? pvToHome / pvPower : 0;
+    const homeFromPvRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
+
+    const donutsData = [
+      { 
+        id: "PV", 
+        label: "Photovoltaïque", 
+        totalKwh: pvPower, 
+        ratio: pvToHomeRatio, 
+        selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
+        powerValue: `${data.pv_power} W`
+      },
+      { 
+        id: "MAISON", 
+        label: "Maison", 
+        totalKwh: homeConsumption, 
+        ratio: homeFromPvRatio,
+        powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`
+      },
+      { 
+        id: "GRID", 
+        label: "", 
+        totalKwh: gridPower, 
+        ratio: 1, 
+        importTotal: isGridImporting ? gridPower : 0, 
+        exportTotal: isGridExporting ? gridPower : 0,
+        powerValue: `${Math.abs(data.power).toFixed(0)} W`
+      }
+    ];
+
+    // Initialize energy flows
+    const fluxData = [];
+    
+    // Add PV->home flow if there's production and consumption
+    if (pvToHome > 0) {
+      fluxData.push({ 
+        source: "PV", 
+        target: "MAISON", 
+        kwh: pvToHome,
+        title: "Autoconsommation"
+      });
+    }
+    
+    // Add grid->home flow when importing from grid
+    if (gridToHome > 0) {
+      fluxData.push({ 
+        source: "GRID", 
+        target: "MAISON", 
+        kwh: gridToHome,
+        title: "Réseau"
+      });
+    }
+    
+    // Add PV->grid flow when exporting to grid
+    if (pvToGrid > 0) {
+      fluxData.push({ 
+        source: "PV", 
+        target: "GRID", 
+        kwh: pvToGrid,
+        title: "Injection"
+      });
+    }
+
     // Clean up existing SVG
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Set dimensions
+    // Set dimensions - match the daily view size
     const svgWidth = 700;
     const svgHeight = 500;
     svg.attr("width", svgWidth)
@@ -58,98 +137,25 @@ export function useD3RealtimeEnergyFlowVisualization({
         </feMerge>
       `);
 
-    // Define center positions
+    // Define center positions - match the daily view layout
     const centers = {
       PV:     { x: svgWidth / 2,        y: 120 },
       GRID:   { x: svgWidth / 2 - 240,  y: 380 },
-      HOME:   { x: svgWidth / 2 + 240,  y: 380 }
+      MAISON: { x: svgWidth / 2 + 240,  y: 380 }
     };
 
-    // Define node radius
-    const nodeRadius = 60;
+    // Define donut dimensions
+    const outerRadius = 60;
+    const thickness = 12;
 
-    // Determine flow directions based on current power values
-    const isPVProducing = data.pv_power > 6;
-    const isGridImporting = data.power > 0;
-    const isGridExporting = data.power < 0;
+    // Use the functions from d3DailyEnergyFlowUtils
+    // but with our realtime data
     
-    // Get maximum PV capacity from inverter (in W)
-    // Default to 6000 W (6 kW) if not specified
-    const maxPVCapacity = data.shelly_config_id && window.__INITIAL_DATA__?.configs?.[data.shelly_config_id]?.inverter_power_kva 
-      ? window.__INITIAL_DATA__.configs[data.shelly_config_id].inverter_power_kva * 1000 
-      : 6000;
-    
-    // Calculate PV production percentage
-    const pvProductionPercentage = Math.min(100, (data.pv_power / maxPVCapacity) * 100);
-    
-    // Prepare data for nodes with active power values in W
-    const nodesData = [
-      {
-        id: "PV",
-        label: "PV",
-        value: `${Math.round(data.pv_power)} W`,
-        color: '#66BB6A',
-        gaugeValue: pvProductionPercentage,
-        maxCapacity: maxPVCapacity
-      },
-      {
-        id: "GRID",
-        label: "Réseau",
-        value: `${Math.round(Math.abs(data.power))} W`,
-        color: '#42A5F5',
-        direction: data.power >= 0 ? 'import' : 'export' as 'import' | 'export',
-        power: data.power
-      },
-      {
-        id: "HOME",
-        label: "Maison",
-        value: `${Math.round(data.pv_power + Math.max(0, data.power))} W`,
-        color: '#F97316'
-      }
-    ];
-    
-    // Create nodes (circles with labels)
-    createRealtimeNodes(svg, nodesData, centers, nodeRadius);
-    
-    // Prepare flow data with only titles (no values)
-    const flowData = [];
-    
-    // Add flow: Grid -> Home (when importing)
-    if (isGridImporting) {
-      flowData.push({
-        source: "GRID",
-        target: "HOME",
-        power: data.power,
-        title: "Réseau"
-      });
-    }
-    
-    // Add flow: PV -> Home (when producing)
-    if (isPVProducing) {
-      // Calculate how much of the PV production actually goes to home
-      const pvToHome = Math.min(data.pv_power, data.pv_power + Math.min(0, data.power));
-      flowData.push({
-        source: "PV",
-        target: "HOME",
-        power: pvToHome,
-        title: "Autoconsommation"
-      });
-    }
-    
-    // Add flow: PV -> Grid (when exporting excess)
-    if (isPVProducing && isGridExporting) {
-      // Calculate excess PV power going to grid
-      const excessPower = -data.power;
-      flowData.push({
-        source: "PV",
-        target: "GRID",
-        power: excessPower,
-        title: "Injection"
-      });
-    }
-    
-    // Create the flow paths between nodes with only titles
-    createRealtimeFluxPaths(svg, flowData, centers, nodeRadius);
+    // Create flux paths between nodes
+    createFluxPaths(svg, fluxData, centers, outerRadius);
+
+    // Create donut charts for real-time view (false for realtime - shows watts instead of kWh)
+    createDonutCharts(svg, donutsData, centers, outerRadius, thickness, false);
 
     // Add title
     svg.append("text")
