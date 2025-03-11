@@ -67,7 +67,9 @@ export function useD3RealtimeEnergyFlowVisualization({
         ratio: pvRatio, 
         selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
         powerValue: `${data.pv_power.toFixed(0)} W`,
-        maxValue: `${inverterMaxPower.toFixed(0)} W`,
+        maxValue: `${(inverterMaxPower / 1000).toFixed(1)} kW`,
+        color: "#66BB6A",
+        textColor: "#4CAF50"
       },
       { 
         id: "MAISON", 
@@ -77,10 +79,12 @@ export function useD3RealtimeEnergyFlowVisualization({
         pvRatio: pvToHomeRatio,
         gridRatio: gridToHomeRatio,
         powerValue: `${realHomeConsumption.toFixed(0)} W`,
-        maxValue: `${gridMaxPower.toFixed(0)} W`,
+        maxValue: `${(gridMaxPower / 1000).toFixed(1)} kW`,
         pvPower: pvToHome * 1000,
         gridPower: gridToHome * 1000,
-        homeConsumption: realHomeConsumption
+        homeConsumption: realHomeConsumption,
+        color: "#F97316",
+        textColor: "#EA580C"
       },
       { 
         id: "GRID", 
@@ -94,7 +98,9 @@ export function useD3RealtimeEnergyFlowVisualization({
         importTotal: isGridImporting ? gridPower : 0, 
         exportTotal: isGridExporting ? gridPower : 0,
         powerValue: `${Math.abs(data.power).toFixed(0)} W`,
-        maxValue: `${gridMaxPower.toFixed(0)} W`,
+        maxValue: `${(gridMaxPower / 1000).toFixed(1)} kW`,
+        color: "#42A5F5",
+        textColor: "#2196F3"
       }
     ];
 
@@ -369,13 +375,10 @@ function createDonutCharts(
       .attr("stroke", "#e2e8f0")
       .attr("stroke-width", thickness);
     
-    let color;
-    let textColor;
+    let color = d.color;
+    let textColor = d.textColor;
     
     if (d.id === "PV") {
-      color = "#66BB6A";
-      textColor = "#4CAF50";
-      
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
         .outerRadius(outerRadius)
@@ -395,12 +398,7 @@ function createDonutCharts(
           .endAngle(Math.PI) as any)
         .attr("fill", "#8E9196")
         .attr("opacity", 0.2);
-
-      textColor = "#2196F3";
     } else {
-      color = "#F97316";
-      textColor = "#EA580C";
-      
       const maxArc = d3.arc()
         .innerRadius(outerRadius - thickness)
         .outerRadius(outerRadius)
@@ -521,7 +519,7 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("y", 20)
+        .attr("y", 10)
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
@@ -531,12 +529,12 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("y", 45)
-        .attr("fill", "#8E9196")
+        .attr("y", 35)
+        .attr("fill", textColor)
         .attr("font-size", "12px")
         .attr("font-weight", "400")
         .attr("font-family", "inherit") 
-        .text(`Max: ${d.maxValue}`);
+        .text(d.maxValue);
         
     } else if (d.id === "MAISON") {
       ReactDOM.render(
@@ -547,7 +545,7 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("y", 20)
+        .attr("y", 10)
         .attr("fill", textColor)
         .attr("font-size", "18px")
         .attr("font-weight", "500")
@@ -557,12 +555,12 @@ function createDonutCharts(
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("y", 45)
-        .attr("fill", "#8E9196")
+        .attr("y", 35)
+        .attr("fill", textColor)
         .attr("font-size", "12px")
         .attr("font-weight", "400")
         .attr("font-family", "inherit") 
-        .text(`Max: ${d.maxValue}`);
+        .text(d.maxValue);
         
     } else if (d.id === "GRID") {
       ReactDOM.render(
@@ -576,7 +574,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 20)
+          .attr("y", 10)
           .attr("fill", "#66BB6A")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
@@ -586,12 +584,12 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 45)
-          .attr("fill", "#8E9196")
+          .attr("y", 35)
+          .attr("fill", "#66BB6A")
           .attr("font-size", "12px")
           .attr("font-weight", "400")
           .attr("font-family", "inherit") 
-          .text(`Max: ${d.maxValue}`);
+          .text(d.maxValue);
           
       } else if (d.isImporting) {
         const importValue = d.powerValue;
@@ -599,7 +597,7 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 20)
+          .attr("y", 10)
           .attr("fill", "#0EA5E9")
           .attr("font-size", "18px")
           .attr("font-weight", "500")
@@ -609,18 +607,18 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 45)
-          .attr("fill", "#8E9196")
+          .attr("y", 35)
+          .attr("fill", "#0EA5E9")
           .attr("font-size", "12px")
           .attr("font-weight", "400")
           .attr("font-family", "inherit") 
-          .text(`Max: ${d.maxValue}`);
+          .text(d.maxValue);
           
       } else {
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 20)
+          .attr("y", 10)
           .attr("fill", textColor)
           .attr("font-size", "18px")
           .attr("font-weight", "500")
@@ -630,12 +628,12 @@ function createDonutCharts(
         g.append("text")
           .attr("text-anchor", "middle")
           .attr("dy", "0.35em")
-          .attr("y", 45)
-          .attr("fill", "#8E9196")
+          .attr("y", 35)
+          .attr("fill", textColor)
           .attr("font-size", "12px")
           .attr("font-weight", "400")
           .attr("font-family", "inherit") 
-          .text(`Max: ${d.maxValue}`);
+          .text(d.maxValue);
       }
     }
   });
