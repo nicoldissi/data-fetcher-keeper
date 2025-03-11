@@ -52,6 +52,9 @@ export function useD3RealtimeEnergyFlowVisualization({
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(Math.max(0, pvPower - homeConsumption)) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
 
+    const pvToHomeRatio = homeConsumption > 0 ? pvToHome / homeConsumption : 0;
+    const gridToHomeRatio = homeConsumption > 0 ? gridToHome / homeConsumption : 0;
+
     const donutsData = [
       { 
         id: "PV", 
@@ -67,6 +70,8 @@ export function useD3RealtimeEnergyFlowVisualization({
         label: "", 
         totalKwh: homeConsumption, 
         ratio: homeRatio,
+        pvRatio: pvToHomeRatio,
+        gridRatio: gridToHomeRatio,
         powerValue: `${(data.pv_power + Math.max(0, data.power)).toFixed(0)} W`,
         maxPower: gridMaxPower / 1000
       },
@@ -375,6 +380,17 @@ function createDonutCharts(
     } else {
       color = "#F97316";
       textColor = "#EA580C";
+      
+      const maxArc = d3.arc()
+        .innerRadius(outerRadius - thickness)
+        .outerRadius(outerRadius)
+        .startAngle(-120 * (Math.PI / 180))
+        .endAngle(120 * (Math.PI / 180));
+        
+      g.append("path")
+        .attr("d", maxArc as any)
+        .attr("fill", "#8E9196")
+        .attr("opacity", 0.2);
     }
     
     if (d.ratio > 0) {
@@ -391,6 +407,38 @@ function createDonutCharts(
         g.append("path")
           .attr("d", arc as any)
           .attr("fill", color);
+      } else if (d.id === "MAISON") {
+        const startAngle = -120 * (Math.PI / 180);
+        const totalAngle = 240 * (Math.PI / 180);
+        
+        if (d.pvRatio > 0) {
+          const pvEndAngle = startAngle + (d.pvRatio * totalAngle);
+          
+          const pvArc = d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(startAngle)
+            .endAngle(pvEndAngle);
+            
+          g.append("path")
+            .attr("d", pvArc as any)
+            .attr("fill", "#66BB6A");
+        }
+        
+        if (d.gridRatio > 0) {
+          const gridStartAngle = startAngle + (d.pvRatio * totalAngle);
+          const gridEndAngle = gridStartAngle + (d.gridRatio * totalAngle);
+          
+          const gridArc = d3.arc()
+            .innerRadius(outerRadius - thickness)
+            .outerRadius(outerRadius)
+            .startAngle(gridStartAngle)
+            .endAngle(gridEndAngle);
+            
+          g.append("path")
+            .attr("d", gridArc as any)
+            .attr("fill", "#42A5F5");
+        }
       } else {
         const arc = d3.arc()
           .innerRadius(outerRadius - thickness)
@@ -455,13 +503,6 @@ function createDonutCharts(
         .attr("font-weight", "bold")
         .attr("fill", textColor)
         .text(d.powerValue);
-      
-      g.append("text")
-        .attr("text-anchor", "middle")
-        .attr("y", 30)
-        .attr("font-size", "10px")
-        .attr("fill", textColor)
-        .text(`Max: ${d.maxPower} kW`);
     } else if (d.id === "GRID") {
       ReactDOM.render(
         React.createElement(Zap, { size: 24, color: textColor, strokeWidth: 2 }),
