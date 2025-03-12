@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -139,7 +140,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       
       // Position tooltip to the right of the cursor if possible
       const tooltipX = x + 20; // 20px to the right of cursor
-      const tooltipY = Math.min(y - 20, height - 200); // Above cursor, but not too high
+      const tooltipY = Math.min(y - 20, dimensions.height - 200); // Fix: Using dimensions.height instead of undefined height
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
@@ -147,7 +148,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       setCursorPosition({ x: x - margin.left, y: innerHeight });
       setTooltipOpen(true);
     }, 50),
-    [chartData, timeScale, margin, dimensions]
+    [chartData, timeScale, margin, dimensions, innerHeight]
   );
 
   const hideTooltip = useCallback(() => {
