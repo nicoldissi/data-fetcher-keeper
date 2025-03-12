@@ -28,7 +28,7 @@ export function useClearSkyData(configId: string | null) {
         // Create a more granular interpolation for smoother curve
         const interpolatedData: ClearSkyDataPoint[] = [];
         
-        // Create points every minute for smoother curve
+        // Create points every minute for smoother curve (previously used larger intervals)
         const intervalMinutes = 1;
         
         for (let i = 0; i < data.length - 1; i++) {
@@ -52,9 +52,11 @@ export function useClearSkyData(configId: string | null) {
               // Calculate exact point in time for this step
               const stepTime = new Date(currentTime.getTime() + (step * intervalMinutes * 60 * 1000));
               
-              // Calculate interpolated power value (linear interpolation)
-              const stepProgress = step / steps;
-              const stepPower = current.power + (powerDiff * stepProgress);
+              // Calculate interpolated power value (using cubic interpolation for smoother curve)
+              const t = step / steps;
+              // Cubic interpolation formula: smoother transition between points
+              const stepPower = current.power * (1 - t) * (1 - t) * (1 + 2 * t) + 
+                               next.power * t * t * (3 - 2 * t);
               
               interpolatedData.push({
                 timestamp: stepTime.toISOString(),

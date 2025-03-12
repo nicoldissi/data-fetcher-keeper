@@ -141,7 +141,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       
       // Improved tooltip positioning - positioned above and to the left of cursor
       const tooltipX = x - 20; // 20px to the left of cursor
-      const tooltipY = y - 120; // Above the cursor
+      const tooltipY = y - 20; // 20px above the cursor
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
@@ -158,6 +158,37 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
   // Filter data for voltage and clear sky production
   const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
   const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
+
+  // Prepare grid data - create a proper connected series with zeroes at transition points
+  const prepareGridData = useCallback(() => {
+    if (!chartData.length) return [];
+
+    const result = [];
+    let lastWasPositive = null;
+
+    for (let i = 0; i < chartData.length; i++) {
+      const currentPoint = chartData[i];
+      const currentIsPositive = currentPoint.grid >= 0;
+      
+      // At transition points, add a zero-value point to create proper connection
+      if (lastWasPositive !== null && lastWasPositive !== currentIsPositive) {
+        // Add a zero point with the same timestamp to create a clean transition
+        const transitionPoint = {
+          ...currentPoint,
+          grid: 0
+        };
+        result.push(transitionPoint);
+      }
+      
+      result.push(currentPoint);
+      lastWasPositive = currentIsPositive;
+    }
+    
+    return result;
+  }, [chartData]);
+
+  // Get the prepared grid data 
+  const gridData = useMemo(() => prepareGridData(), [prepareGridData]);
 
   // Create the toggle controls for the chart with icons
   const renderChartControls = useCallback(() => {
@@ -360,10 +391,10 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Grid area chart - positive values */}
-              {showGrid && chartData.length > 0 && (
+              {/* Grid area chart - positive values with proper transition points */}
+              {showGrid && gridData.length > 0 && (
                 <AreaClosed
-                  data={chartData.filter(d => getGrid(d) >= 0)}
+                  data={gridData.filter(d => getGrid(d) >= 0)}
                   x={d => timeScale(getX(d))}
                   y={d => powerScale(Math.max(0, getGrid(d)))}
                   y0={() => powerScale(0)}
@@ -373,10 +404,10 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Grid area chart - negative values */}
-              {showGrid && chartData.length > 0 && (
+              {/* Grid area chart - negative values with proper transition points */}
+              {showGrid && gridData.length > 0 && (
                 <AreaClosed
-                  data={chartData.filter(d => getGrid(d) < 0)}
+                  data={gridData.filter(d => getGrid(d) <= 0)}
                   x={d => timeScale(getX(d))}
                   y={d => powerScale(0)}
                   y0={d => powerScale(getGrid(d))}
@@ -406,7 +437,8 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   y={d => powerScale(getClearSkyProduction(d))}
                   stroke="#D4E157"
                   strokeWidth={3}
-                  curve={curveCardinal.tension(0.7)}
+                  // Using a smoother curve with higher tension for the clear sky line
+                  curve={curveCardinal.tension(0.8)}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
