@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -157,6 +158,24 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
   // Filter data for voltage and clear sky production - removing any filtering of clear sky data
   const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
   const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined);
+
+  // Log clear sky data that will be used for rendering
+  useEffect(() => {
+    console.log(`VisxEnergyChart - validClearSkyData points: ${validClearSkyData.length}`);
+    console.log('First 5 clear sky points that will be rendered:');
+    validClearSkyData.slice(0, 5).forEach((point, index) => {
+      console.log(`Render point ${index}: timestamp=${new Date(point.timestamp).toISOString()}, clearSkyProduction=${point.clearSkyProduction}`);
+    });
+    
+    // Also log timestamp format to check for any timestamp matching issues
+    if (validClearSkyData.length > 0 && chartData.length > 0) {
+      console.log('Timestamp comparison example:');
+      const clearSkyPoint = validClearSkyData[0];
+      const chartPoint = chartData[0];
+      console.log(`clearSky timestamp: ${new Date(clearSkyPoint.timestamp).toISOString()}`);
+      console.log(`chart timestamp: ${new Date(chartPoint.timestamp).toISOString()}`);
+    }
+  }, [validClearSkyData, chartData]);
 
   // Prepare grid data - create a proper connected series with zeroes at transition points
   const prepareGridData = useCallback(() => {
@@ -428,9 +447,16 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Clear Sky Production line - improved visibility of all points */}
+              {/* Clear Sky Production - use individual circles instead of LinePath for better debugging */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <>
+                  {/* Log when rendering clear sky points */}
+                  {(() => {
+                    console.log(`Rendering ${validClearSkyData.length} clear sky points on chart`);
+                    return null;
+                  })()}
+                  
+                  {/* Draw the line for all points */}
                   <LinePath
                     data={validClearSkyData}
                     x={d => timeScale(getX(d))}
@@ -441,17 +467,26 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                     strokeLinejoin="round"
                     curve={curveBasis}
                   />
-                  {validClearSkyData.map((d, i) => (
-                    <Circle
-                      key={`cs-point-${i}`}
-                      cx={timeScale(getX(d))}
-                      cy={powerScale(getClearSkyProduction(d))}
-                      r={2}
-                      fill="#D4E157"
-                      stroke="#fff"
-                      strokeWidth={1}
-                    />
-                  ))}
+                  
+                  {/* Render each point individually with debugging info */}
+                  {validClearSkyData.map((d, i) => {
+                    // Log the first few points during rendering for debugging
+                    if (i < 5) {
+                      console.log(`Rendering point ${i}: x=${timeScale(getX(d))}, y=${powerScale(getClearSkyProduction(d))}, power=${getClearSkyProduction(d)}`);
+                    }
+                    
+                    return (
+                      <Circle
+                        key={`cs-point-${i}`}
+                        cx={timeScale(getX(d))}
+                        cy={powerScale(getClearSkyProduction(d))}
+                        r={4} // Make circles larger for better visibility during debugging
+                        fill="#D4E157"
+                        stroke="#fff"
+                        strokeWidth={1}
+                      />
+                    );
+                  })}
                 </>
               )}
               

@@ -18,6 +18,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     if (clearSkyData.length > 0 && fullDayData.length > 0) {
       console.log('Applying clear sky data to chart. Clear sky points:', clearSkyData.length);
       
+      // Log each clear sky data point for debugging
+      console.log('Clear sky data points:');
+      clearSkyData.forEach((point, index) => {
+        console.log(`Point ${index}: timestamp=${new Date(point.timestamp).toISOString()}, power=${point.power}`);
+      });
+      
       const updatedData = fullDayData.map(point => {
         const pointDate = new Date(point.timestamp);
         
@@ -27,14 +33,21 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           return csDate.getTime() === pointDate.getTime();
         });
         
+        if (matchingPoint) {
+          console.log(`Match found for ${pointDate.toISOString()}: clearSkyProduction=${matchingPoint.power}`);
+        }
+        
         return {
           ...point,
           clearSkyProduction: matchingPoint?.power
         };
       });
       
+      // Count how many points have clearSkyProduction values
+      const pointsWithClearSky = updatedData.filter(d => d.clearSkyProduction !== undefined).length;
+      console.log(`Updated chart data: ${updatedData.length} total points, ${pointsWithClearSky} with clear sky values`);
+      
       setChartData(updatedData);
-      console.log('Updated chart data with clear sky production values');
     }
   }, [clearSkyData, fullDayData]);
 
@@ -62,6 +75,10 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           return csDate.getTime() === localDate.getTime();
         });
         
+        if (matchingPoint) {
+          console.log(`Initial data: Match found for ${localDate.toISOString()}: clearSkyProduction=${matchingPoint.power}`);
+        }
+        
         return {
           time: formattedTime,
           timestamp: localDate.getTime(),
@@ -73,6 +90,10 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         };
       });
 
+      // Count how many points have clearSkyProduction values
+      const pointsWithClearSky = transformedData.filter(d => d.clearSkyProduction !== undefined).length;
+      console.log(`Initial chart data: ${transformedData.length} total points, ${pointsWithClearSky} with clear sky values`);
+      
       setChartData(transformedData);
     }
   }, [history, fullDayData.length, clearSkyData]);
