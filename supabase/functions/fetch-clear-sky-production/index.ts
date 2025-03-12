@@ -104,7 +104,7 @@ serve(async (req) => {
         datetime: {
           start: startDate,
           end: endDate,
-          freq: "1h"
+          freq: "20min" // Changed from "1h" to "20min"
         },
         roof_sections: roofSections,
         module_parameters: {
@@ -173,3 +173,4 @@ serve(async (req) => {
     });
   }
 });
+
