@@ -8,7 +8,7 @@ import { useEnergyChartData } from '@/hooks/useEnergyChartData';
 
 // ViSX imports
 import { Group } from '@visx/group';
-import { LinePath, AreaClosed, Bar, Circle } from '@visx/shape';
+import { LinePath, AreaClosed, Bar } from '@visx/shape';
 import { scaleTime, scaleLinear } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
@@ -155,9 +155,10 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     setTooltipOpen(false);
   }, []);
 
-  // Filter data for voltage and clear sky production - removing any filtering of clear sky data
+  // Filter data for voltage and clear sky production
+  // Removed the production value === 0 for the clear sky data
   const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
-  const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined);
+  const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
 
   // Log clear sky data that will be used for rendering
   useEffect(() => {
@@ -447,16 +448,12 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Clear Sky Production - use individual circles instead of LinePath for better debugging */}
+              {/* Clear Sky Production Line - no individual circles */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <>
-                  {/* Log when rendering clear sky points */}
-                  {(() => {
-                    console.log(`Rendering ${validClearSkyData.length} clear sky points on chart`);
-                    return null;
-                  })()}
+                  {/* Removed debugging log */}
                   
-                  {/* Draw the line for all points */}
+                  {/* Only draw the line without individual points */}
                   <LinePath
                     data={validClearSkyData}
                     x={d => timeScale(getX(d))}
@@ -467,26 +464,6 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                     strokeLinejoin="round"
                     curve={curveBasis}
                   />
-                  
-                  {/* Render each point individually with debugging info */}
-                  {validClearSkyData.map((d, i) => {
-                    // Log the first few points during rendering for debugging
-                    if (i < 5) {
-                      console.log(`Rendering point ${i}: x=${timeScale(getX(d))}, y=${powerScale(getClearSkyProduction(d))}, power=${getClearSkyProduction(d)}`);
-                    }
-                    
-                    return (
-                      <Circle
-                        key={`cs-point-${i}`}
-                        cx={timeScale(getX(d))}
-                        cy={powerScale(getClearSkyProduction(d))}
-                        r={4} // Make circles larger for better visibility during debugging
-                        fill="#D4E157"
-                        stroke="#fff"
-                        strokeWidth={1}
-                      />
-                    );
-                  })}
                 </>
               )}
               
@@ -516,7 +493,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
           >
             <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{tooltipData.time}</div>
             <div className="space-y-1">
-              {showConsumption && (
+              {showConsumption && tooltipData.consumption > 0 && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-[#F97415]"></div>
@@ -525,7 +502,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.consumption} W</span>
                 </div>
               )}
-              {showProduction && (
+              {showProduction && tooltipData.production > 0 && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-[#00FF59]"></div>
@@ -534,7 +511,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.production} W</span>
                 </div>
               )}
-              {showGrid && (
+              {showGrid && tooltipData.grid !== 0 && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-[#42A5F5]"></div>
@@ -543,7 +520,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.grid} W</span>
                 </div>
               )}
-              {showVoltage && tooltipData.voltage && (
+              {showVoltage && tooltipData.voltage && tooltipData.voltage > 0 && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-[#9b87f5]"></div>
@@ -552,7 +529,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.voltage} V</span>
                 </div>
               )}
-              {showClearSky && tooltipData.clearSkyProduction !== undefined && (
+              {showClearSky && tooltipData.clearSkyProduction !== undefined && tooltipData.clearSkyProduction > 0 && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-[#D4E157]"></div>
@@ -568,3 +545,4 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     </EnergyChartWrapper>
   );
 }
+
