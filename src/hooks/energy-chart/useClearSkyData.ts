@@ -23,7 +23,7 @@ export function useClearSkyData(configId: string | null) {
       if (error) {
         console.error('Error fetching clear sky data:', error);
       } else if (data && data.length > 0) {
-        console.log('Fetched clear sky data:', data);
+        console.log('Fetched clear sky data from database:', data.length, 'points');
         
         // Process the data for the chart - using the raw data points directly
         const processedData = data.map(point => ({
@@ -31,7 +31,13 @@ export function useClearSkyData(configId: string | null) {
           power: point.power
         }));
         
-        console.log('Using original clear sky data points:', processedData.length);
+        console.log('Total clear sky data points to use:', processedData.length);
+        
+        // Log the first few points to verify their format
+        processedData.slice(0, 5).forEach((point, idx) => {
+          console.log(`Clear sky point ${idx}: timestamp=${point.timestamp}, power=${point.power}`);
+        });
+        
         setClearSkyData(processedData);
       }
     };
