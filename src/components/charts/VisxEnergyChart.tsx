@@ -139,11 +139,9 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       
       const dataPoint = chartData[closestIndex];
       
-      // Calculate tooltip position
-      // Ajustement simple: positionnez la tooltip directement sur les coordonnées du curseur
-      // avec un léger décalage pour éviter qu'elle ne recouvre le point de données
-      const tooltipX = x;
-      const tooltipY = y;
+      // Improved tooltip positioning - positioned above and to the left of cursor
+      const tooltipX = x - 20; // 20px to the left of cursor
+      const tooltipY = y - 120; // Above the cursor
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
@@ -428,14 +426,14 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
           </svg>
         )}
         
-        {/* Improved Custom Tooltip with better positioning */}
+        {/* Improved tooltip positioning and rounded production idéale value */}
         {tooltipOpen && tooltipData && (
           <div 
             className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3 pointer-events-none"
             style={{
-              transform: `translate(${tooltipLeft + 10}px, ${tooltipTop - 120}px)`,
-              maxWidth: '220px',
-              transition: 'transform 0.1s ease-out'
+              left: tooltipLeft,
+              top: tooltipTop - 20, // Position 20px above where the cursor is
+              maxWidth: '220px'
             }}
           >
             <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{tooltipData.time}</div>
@@ -482,11 +480,10 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                     <div className="w-3 h-3 rounded-full bg-[#D4E157]"></div>
                     <span className="text-sm text-gray-700 dark:text-gray-300">Production idéale:</span>
                   </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.clearSkyProduction} W</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{Math.round(tooltipData.clearSkyProduction)} W</span>
                 </div>
               )}
             </div>
-            {/* Removed the tooltip arrow as it's no longer needed with the new positioning */}
           </div>
         )}
       </div>
