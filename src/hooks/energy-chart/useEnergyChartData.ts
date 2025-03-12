@@ -60,8 +60,13 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         if (!existingTimestamps.has(formattedTimestamp)) {
           console.log(`Adding missing clear sky point for ${new Date(clearSkyPoint.timestamp).toISOString()}`);
           
-          const date = new Date(clearSkyPoint.timestamp);
-          const formattedTime = formatLocalDate(date, {
+          // Convert the timestamp to a number if it's a string
+          const timestampNumber = typeof clearSkyPoint.timestamp === 'string' 
+            ? new Date(clearSkyPoint.timestamp).getTime() 
+            : clearSkyPoint.timestamp;
+          
+          const date = new Date(timestampNumber);
+          const formattedTime = formatLocalDate(timestampNumber, {
             hour: '2-digit', 
             minute: '2-digit',
             day: undefined, 
@@ -111,7 +116,6 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
           hour12: false
         });
         
-        const localDate = new Date(item.timestamp);
         // Use the timestamp directly for formatting
         const formattedPointTimestamp = formatTimestampForMatching(item.timestamp);
         
@@ -123,12 +127,12 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const clearSkyValue = clearSkyMap.get(formattedPointTimestamp);
         
         if (clearSkyValue !== undefined) {
-          console.log(`Initial data: Match found for ${localDate.toISOString()}: clearSkyProduction=${clearSkyValue}`);
+          console.log(`Initial data: Match found for ${new Date(item.timestamp).toISOString()}: clearSkyProduction=${clearSkyValue}`);
         }
         
         return {
           time: formattedTime,
-          timestamp: localDate.getTime(),
+          timestamp: new Date(item.timestamp).getTime(),
           consumption,
           production,
           grid,
@@ -145,8 +149,13 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         const formattedTimestamp = formatTimestampForMatching(clearSkyPoint.timestamp);
         
         if (!existingTimestamps.has(formattedTimestamp)) {
-          const date = new Date(clearSkyPoint.timestamp);
-          const formattedTime = formatLocalDate(date, {
+          // Convert the timestamp to a number if it's a string
+          const timestampNumber = typeof clearSkyPoint.timestamp === 'string'
+            ? new Date(clearSkyPoint.timestamp).getTime()
+            : clearSkyPoint.timestamp;
+            
+          const date = new Date(timestampNumber);
+          const formattedTime = formatLocalDate(timestampNumber, {
             hour: '2-digit', 
             minute: '2-digit',
             day: undefined, 
