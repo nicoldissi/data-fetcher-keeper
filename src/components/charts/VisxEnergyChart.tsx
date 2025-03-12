@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -139,15 +140,19 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       
       // Position tooltip to the right of the cursor if possible
       const tooltipX = x + 20; // 20px to the right of cursor
-      const tooltipY = Math.min(y - 20, dimensions.height - 200); // Fix: Using dimensions.height instead of undefined height
+      const tooltipY = Math.min(y - 20, dimensions.height - 200);
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
       setTooltipTop(tooltipY);
-      setCursorPosition({ x: x - margin.left, y: innerHeight });
+      // Fix: Set the cursor position with the correct coordinates
+      setCursorPosition({ 
+        x: x, // Use the raw x position for the cursor line
+        y: dimensions.height // Use full height for the vertical line
+      });
       setTooltipOpen(true);
     }, 50),
-    [chartData, timeScale, margin, dimensions, innerHeight]
+    [chartData, timeScale, margin, dimensions]
   );
 
   const hideTooltip = useCallback(() => {
@@ -156,7 +161,6 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
   }, []);
 
   // Filter data for voltage and clear sky production
-  // Removed the production value === 0 for the clear sky data
   const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
   const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
 
@@ -478,13 +482,13 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
               />
             </Group>
 
-            {/* Add vertical cursor line */}
+            {/* Add vertical cursor line - Fix: Adjust positioning to match actual cursor */}
             {cursorPosition && (
               <line
                 x1={cursorPosition.x}
-                y1={0}
+                y1={margin.top}
                 x2={cursorPosition.x}
-                y2={cursorPosition.y}
+                y2={cursorPosition.y - margin.bottom}
                 stroke="#666"
                 strokeWidth={1}
                 strokeDasharray="4,4"
@@ -558,4 +562,3 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     </EnergyChartWrapper>
   );
 }
-

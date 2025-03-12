@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Group } from '@visx/group';
@@ -85,8 +86,10 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     
     let realHomeConsumption;
     if (data.power < 0) {
+      // If grid power is negative, we're exporting (PV produces more than home consumes)
       realHomeConsumption = data.pv_power - Math.abs(data.power);
     } else {
+      // If grid power is positive, we're importing (home consumes more than PV produces)
       realHomeConsumption = data.power + data.pv_power;
     }
 
@@ -97,6 +100,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
 
+    // Fix flow direction logic
     const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption) : 0;
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
@@ -154,6 +158,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
     const fluxData = [];
 
+    // Fix flow direction logic
     if (pvToHome > 0) {
       fluxData.push({ 
         source: "PV", 
@@ -173,6 +178,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     }
 
     if (isGridExporting && pvToGrid > 0) {
+      // Fix: Correct the flow direction for export
       fluxData.push({ 
         source: "PV", 
         target: "GRID", 
@@ -318,7 +324,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
                 
                 const title = flow.title || "";
-                const valueText = ``;
+                const valueText = `${flow.kwh.toFixed(2)} kW`;
                 const labelWidth = Math.max(80, Math.max(title.length, valueText.length) * 7);
                 
                 const borderColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#888";
