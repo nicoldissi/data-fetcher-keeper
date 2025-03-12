@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -11,10 +12,14 @@ import { LinePath, AreaClosed, Bar } from '@visx/shape';
 import { scaleTime, scaleLinear } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
-import { Tooltip, useTooltip, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
 import { curveMonotoneX, curveCardinal } from '@visx/curve';
+import { 
+  Tooltip, 
+  TooltipWithBounds, 
+  defaultStyles as defaultTooltipStyles 
+} from '@visx/tooltip';
 
 interface VisxEnergyChartProps {
   history: ShellyEMData[];
@@ -23,9 +28,6 @@ interface VisxEnergyChartProps {
 
 // Define margin for the chart
 const margin = { top: 20, right: 30, bottom: 50, left: 50 };
-
-// We'll use custom tooltip styling with Tailwind classes instead of these styles
-// This comment is kept for reference
 
 export default function VisxEnergyChart({ history, configId }: VisxEnergyChartProps) {
   // Toggle visibility of lines
@@ -52,9 +54,6 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
   const [tooltipLeft, setTooltipLeft] = useState<number>(0);
   const [tooltipTop, setTooltipTop] = useState<number>(0);
   const [tooltipOpen, setTooltipOpen] = useState<boolean>(false);
-
-  // Reference for the tooltip container
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Update dimensions when container size changes
   useEffect(() => {
@@ -140,84 +139,18 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       
       const dataPoint = chartData[closestIndex];
       
-      // Calculate tooltip position relative to the chart container
-      // Ensure the tooltip stays within the chart boundaries
-      let tooltipWidth = 180; // Estimated tooltip width
-      let tooltipHeight = 150; // Estimated tooltip height
+      // Calculate tooltip position
+      // Ajustement simple: positionnez la tooltip directement sur les coordonnées du curseur
+      // avec un léger décalage pour éviter qu'elle ne recouvre le point de données
+      const tooltipX = x;
+      const tooltipY = y;
       
-      // Get screen dimensions
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-
-      // Position tooltip near the cursor but ensure it stays within chart boundaries
-      let tooltipLeft = x + tooltipWidth > dimensions.width
-        ? x - tooltipWidth - 10 // Place to the left of cursor if it would overflow right edge
-        : x + 10; // Otherwise place to the right of cursor
-      
-      // Position tooltip above or below cursor depending on available space
-      let tooltipTop = y - tooltipHeight < margin.top
-        ? y + 10 // Place below cursor if it would overflow top edge
-        : y - tooltipHeight - 10; // Otherwise place above cursor
-      
-      // Final adjustments to ensure tooltip stays within chart boundaries
-      let adjustedTooltipLeft = Math.max(margin.left, Math.min(tooltipLeft, dimensions.width - tooltipWidth - margin.right));
-      let adjustedTooltipTop = Math.max(margin.top, Math.min(tooltipTop, dimensions.height - tooltipHeight - margin.bottom));
-
-      // Adjust for screen boundaries
-      adjustedTooltipLeft = Math.max(0, Math.min(adjustedTooltipLeft, screenWidth - tooltipWidth));
-      adjustedTooltipTop = Math.max(0, Math.min(adjustedTooltipTop, screenHeight - tooltipHeight));
-
       setTooltipData(dataPoint);
-      setTooltipLeft(adjustedTooltipLeft - tooltipWidth / 2);
-      setTooltipTop(adjustedTooltipTop - tooltipHeight);
+      setTooltipLeft(tooltipX);
+      setTooltipTop(tooltipY);
       setTooltipOpen(true);
-
-      // Get tooltip dimensions
-      if (tooltipRef.current) {
-        const { width, height } = tooltipRef.current.getBoundingClientRect();
-        tooltipWidth = width;
-        tooltipHeight = height;
-
-        // Calculate potential positions
-        const positionAbove = {
-          left: x - tooltipWidth / 2,
-          top: y - tooltipHeight - 10,
-        };
-        const positionBelow = {
-          left: x - tooltipWidth / 2,
-          top: y + 10,
-        };
-
-        // Evaluate positions - check if they are within screen boundaries
-        const isAboveVisible =
-          positionAbove.left >= 0 &&
-          positionAbove.left + tooltipWidth <= screenWidth &&
-          positionAbove.top >= 0;
-        const isBelowVisible =
-          positionBelow.left >= 0 &&
-          positionBelow.left + tooltipWidth <= screenWidth &&
-          positionBelow.top + tooltipHeight <= screenHeight;
-
-        // Choose best position
-        let bestPosition = positionAbove;
-        if (isBelowVisible && !isAboveVisible) {
-          bestPosition = positionBelow;
-        }
-
-        // Adjust for screen boundaries
-        adjustedTooltipLeft = 550;
-        adjustedTooltipTop = 550;        
-        //adjustedTooltipLeft = Math.max(0, Math.min(bestPosition.left, screenWidth - tooltipWidth));
-        //adjustedTooltipTop = Math.max(0, Math.min(bestPosition.top, screenHeight - tooltipHeight));
-
-        setTooltipLeft(adjustedTooltipLeft);
-        setTooltipTop(adjustedTooltipTop);
-
-        console.log("Tooltip dimensions:", { width: tooltipWidth, height: tooltipHeight });
-        console.log("Calculated positions:", { adjustedTooltipLeft, adjustedTooltipTop });
-      }
     }, 50), // 50ms throttle to smooth performance
-    [chartData, timeScale, margin, dimensions, showConsumption, showProduction, showGrid, showClearSky, setTooltipData, setTooltipLeft, setTooltipTop, setTooltipOpen, tooltipRef]
+    [chartData, timeScale, margin, dimensions]
   );
 
   const hideTooltip = useCallback(() => {
@@ -278,7 +211,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       controls={renderChartControls()}
       isLoading={isLoadingFullDay && chartData.length === 0}
     >
-      <div ref={containerRef} className="w-full h-full">
+      <div ref={containerRef} className="w-full h-full relative">
         {dimensions.width > 0 && dimensions.height > 0 && (
           <svg width={dimensions.width} height={dimensions.height}>
             {/* Define gradients */}
@@ -495,15 +428,14 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
           </svg>
         )}
         
-        {/* Custom Tooltip */}
+        {/* Improved Custom Tooltip with better positioning */}
         {tooltipOpen && tooltipData && (
           <div 
             className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3 pointer-events-none"
             style={{
-              top: tooltipTop,
-              left: tooltipLeft,
+              transform: `translate(${tooltipLeft + 10}px, ${tooltipTop - 120}px)`,
               maxWidth: '220px',
-              transition: 'all 0.1s ease-out'
+              transition: 'transform 0.1s ease-out'
             }}
           >
             <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{tooltipData.time}</div>
@@ -554,15 +486,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 </div>
               )}
             </div>
-            {/* Tooltip arrow */}
-            <div 
-              className="absolute w-3 h-3 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700 transform rotate-45"
-              style={{
-                bottom: '-6px',
-                left: '50%',
-                marginLeft: '-6px'
-              }}
-            />
+            {/* Removed the tooltip arrow as it's no longer needed with the new positioning */}
           </div>
         )}
       </div>
