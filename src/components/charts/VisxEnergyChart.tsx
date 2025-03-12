@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -351,7 +350,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   fill: '#888',
                   fontSize: 10,
                   textAnchor: 'middle',
-4                })}
+                })}
                 tickFormat={(date) => {
                   const d = new Date(date as Date);
                   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
@@ -559,3 +558,4 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     </EnergyChartWrapper>
   );
 }
+
