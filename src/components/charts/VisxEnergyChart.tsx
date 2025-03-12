@@ -154,9 +154,9 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     setTooltipOpen(false);
   }, []);
 
-  // Filter data for voltage and clear sky production
+  // Filter data for voltage and clear sky production - removing any filtering of clear sky data
   const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
-  const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
+  const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined);
 
   // Prepare grid data - create a proper connected series with zeroes at transition points
   const prepareGridData = useCallback(() => {
@@ -428,7 +428,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Clear Sky Production line - improved for smoothness */}
+              {/* Clear Sky Production line - improved visibility of all points */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <>
                   <LinePath
@@ -436,7 +436,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                     x={d => timeScale(getX(d))}
                     y={d => powerScale(getClearSkyProduction(d))}
                     stroke="#D4E157"
-                    strokeWidth={3}
+                    strokeWidth={2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     curve={curveBasis}
@@ -446,7 +446,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                       key={`cs-point-${i}`}
                       cx={timeScale(getX(d))}
                       cy={powerScale(getClearSkyProduction(d))}
-                      r={3}
+                      r={2}
                       fill="#D4E157"
                       stroke="#fff"
                       strokeWidth={1}
