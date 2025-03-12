@@ -13,7 +13,7 @@ import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
-import { curveBasis } from '@visx/curve';
+import { curveBasis, curveMonotoneX } from '@visx/curve';
 import { 
   Tooltip, 
   TooltipWithBounds, 
