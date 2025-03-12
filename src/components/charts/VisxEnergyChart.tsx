@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -8,13 +7,13 @@ import { useEnergyChartData } from '@/hooks/useEnergyChartData';
 
 // ViSX imports
 import { Group } from '@visx/group';
-import { LinePath, AreaClosed, Bar } from '@visx/shape';
+import { LinePath, AreaClosed, Bar, Circle } from '@visx/shape';
 import { scaleTime, scaleLinear } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
-import { curveMonotoneX } from '@visx/curve';
+import { curveBasis } from '@visx/curve';
 import { 
   Tooltip, 
   TooltipWithBounds, 
@@ -431,16 +430,29 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
               
               {/* Clear Sky Production line - improved for smoothness */}
               {showClearSky && validClearSkyData.length > 0 && (
-                <LinePath
-                  data={validClearSkyData}
-                  x={d => timeScale(getX(d))}
-                  y={d => powerScale(getClearSkyProduction(d))}
-                  stroke="#D4E157"
-                  strokeWidth={3}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  curve={curveMonotoneX}
-                />
+                <>
+                  <LinePath
+                    data={validClearSkyData}
+                    x={d => timeScale(getX(d))}
+                    y={d => powerScale(getClearSkyProduction(d))}
+                    stroke="#D4E157"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    curve={curveBasis}
+                  />
+                  {validClearSkyData.map((d, i) => (
+                    <Circle
+                      key={`cs-point-${i}`}
+                      cx={timeScale(getX(d))}
+                      cy={powerScale(getClearSkyProduction(d))}
+                      r={3}
+                      fill="#D4E157"
+                      stroke="#fff"
+                      strokeWidth={1}
+                    />
+                  ))}
+                </>
               )}
               
               {/* Overlay for tooltip */}
