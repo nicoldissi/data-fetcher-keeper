@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -429,7 +428,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Clear Sky Production line - with smoother curve */}
+              {/* Clear Sky Production line with a smoother curve approach */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <LinePath
                   data={validClearSkyData}
@@ -437,8 +436,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   y={d => powerScale(getClearSkyProduction(d))}
                   stroke="#D4E157"
                   strokeWidth={3}
-                  // Using a smoother curve with higher tension for the clear sky line
-                  curve={curveCardinal.tension(0.8)}
+                  curve={curveMonotoneX}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -522,3 +520,4 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     </EnergyChartWrapper>
   );
 }
+

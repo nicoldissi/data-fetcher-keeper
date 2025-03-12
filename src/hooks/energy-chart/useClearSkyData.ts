@@ -25,69 +25,14 @@ export function useClearSkyData(configId: string | null) {
       } else if (data && data.length > 0) {
         console.log('Fetched clear sky data:', data);
         
-        // Create a more granular interpolation for smoother curve
-        const interpolatedData: ClearSkyDataPoint[] = [];
+        // Process the data for the chart - using the raw data points directly
+        const processedData = data.map(point => ({
+          timestamp: point.timestamp,
+          power: point.power
+        }));
         
-        // Create points every minute for smoother curve (previously used larger intervals)
-        const intervalMinutes = 1;
-        
-        for (let i = 0; i < data.length - 1; i++) {
-          const current = data[i];
-          const next = data[i + 1];
-          
-          // Parse dates from ISO strings to get local time
-          const currentTime = new Date(current.timestamp);
-          const nextTime = new Date(next.timestamp);
-          
-          // Calculate time difference in minutes
-          const timeDiffMinutes = (nextTime.getTime() - currentTime.getTime()) / (1000 * 60);
-          const powerDiff = next.power - current.power;
-          
-          // Calculate number of steps needed based on interval
-          const steps = Math.floor(timeDiffMinutes / intervalMinutes);
-          
-          if (steps > 0) {
-            // Create interpolated points at regular intervals
-            for (let step = 0; step <= steps; step++) {
-              // Calculate exact point in time for this step
-              const stepTime = new Date(currentTime.getTime() + (step * intervalMinutes * 60 * 1000));
-              
-              // Calculate interpolated power value (using cubic interpolation for smoother curve)
-              const t = step / steps;
-              // Cubic interpolation formula: smoother transition between points
-              const stepPower = current.power * (1 - t) * (1 - t) * (1 + 2 * t) + 
-                               next.power * t * t * (3 - 2 * t);
-              
-              interpolatedData.push({
-                timestamp: stepTime.toISOString(),
-                power: stepPower
-              });
-            }
-          } else {
-            // If steps == 0, just add the current point
-            interpolatedData.push({
-              timestamp: currentTime.toISOString(),
-              power: current.power
-            });
-          }
-        }
-        
-        // Add the last point if it hasn't been added yet
-        const lastPoint = data[data.length - 1];
-        const lastTime = new Date(lastPoint.timestamp);
-        const lastTimeExists = interpolatedData.some(
-          point => new Date(point.timestamp).getTime() === lastTime.getTime()
-        );
-        
-        if (!lastTimeExists) {
-          interpolatedData.push({
-            timestamp: lastTime.toISOString(),
-            power: lastPoint.power
-          });
-        }
-        
-        console.log('Created smoother interpolated clear sky data with', interpolatedData.length, 'points');
-        setClearSkyData(interpolatedData);
+        console.log('Using original clear sky data points:', processedData.length);
+        setClearSkyData(processedData);
       }
     };
 
