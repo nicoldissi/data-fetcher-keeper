@@ -50,20 +50,17 @@ interface DonutData {
   homeConsumption?: number;
 }
 
-// Animated Arc component using react-spring
 const AnimatedArc = animated(Arc);
 
 export function VisxRealtimeEnergyFlow({ data, className, configId, config }: VisxRealtimeEnergyFlowProps) {
   const [isClient, setIsClient] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   
-  // Set up dimensions
   const width = 700;
   const height = 500;
   const outerRadius = 60;
   const thickness = 12;
   
-  // Define centers for the nodes
   const centers = {
     PV:     { x: width / 2,        y: 120 },
     GRID:   { x: width / 2 - 240,  y: 380 },
@@ -74,11 +71,9 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     setIsClient(true);
   }, []);
 
-  // Process data for visualization
   const processData = () => {
     if (!data) return { donutsData: [], fluxData: [] };
 
-    // Convert kVA to Watts (multiply by 1000)
     const inverterKVA = config?.inverter_power_kva !== undefined ? Number(config.inverter_power_kva) : 3.0;
     const gridKVA = config?.grid_subscription_kva !== undefined ? Number(config.grid_subscription_kva) : 6.0;
     
@@ -88,13 +83,10 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     const pvPower = data.pv_power;
     const gridPower = Math.abs(data.power);
     
-    // Updated calculation for home consumption
     let realHomeConsumption;
     if (data.power < 0) {
-      // If we're injecting power (negative grid power), consumption = PV - |grid power|
       realHomeConsumption = data.pv_power - Math.abs(data.power);
     } else {
-      // If we're consuming from grid, consumption = grid power + PV
       realHomeConsumption = data.power + data.pv_power;
     }
 
@@ -105,7 +97,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
 
-    // Update flux values based on the new calculation
     const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption) : 0;
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
@@ -113,7 +104,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     const pvToHomeRatio = realHomeConsumption > 0 ? pvToHome / realHomeConsumption : 0;
     const gridToHomeRatio = realHomeConsumption > 0 ? gridToHome / realHomeConsumption : 0;
 
-    // Add these back to fix the TS errors
     const gridExportRatio = isGridExporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
     const gridImportRatio = isGridImporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
 
@@ -173,16 +163,16 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
       });
     }
 
-    if (gridToHome > 0) {
+    if (isGridImporting && gridToHome > 0) {
       fluxData.push({ 
         source: "GRID", 
         target: "MAISON", 
         kwh: gridToHome / 1000,
-        title: "Réseau"
+        title: "Consommation"
       });
     }
 
-    if (pvToGrid > 0) {
+    if (isGridExporting && pvToGrid > 0) {
       fluxData.push({ 
         source: "PV", 
         target: "GRID", 
@@ -194,33 +184,26 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     return { donutsData, fluxData };
   };
 
-  // Memoize the processed data to prevent unnecessary recalculations
   const { donutsData, fluxData } = useMemo(() => processData(), [data, config]);
 
-  // Animation for the flow paths - optimized with reduced frequency and delayed start
   const flowAnimation = useSpring({
     from: { dashOffset: 0 },
     to: { dashOffset: 16 },
     loop: { reverse: true },
     config: { duration: 3000 },
-    delay: 1000 // Delay initial animation to improve loading performance
+    delay: 1000
   });
-  
-  // Function to create a bezier path between two points - memoized to prevent recalculations
+
   const createBezierPath = useMemo(() => {
-    // Create a cache object to store calculated paths
     const pathCache: Record<string, string> = {};
     
     return (source: string, target: string) => {
-      // Create a cache key from source and target
       const cacheKey = `${source}-${target}`;
       
-      // Return cached path if available
       if (pathCache[cacheKey]) {
         return pathCache[cacheKey];
       }
       
-      // Calculate path if not in cache
       const s = centers[source as keyof typeof centers];
       const t = centers[target as keyof typeof centers];
       const dx = t.x - s.x;
@@ -236,7 +219,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2 - 40;
       
-      // Store result in cache
       const path = `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
       pathCache[cacheKey] = path;
       
@@ -244,14 +226,12 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     };
   }, [centers, outerRadius]);
 
-  // Function to get color based on source
   const getFluxColor = (source: string) => {
     if(source === "PV") return "#66BB6A";
     if(source === "GRID") return "#42A5F5";
     return "#888";
   };
 
-  // Scale for stroke width based on kWh
   const kwhValues = fluxData.map(f => f.kwh);
   const maxKwh = Math.max(...kwhValues, 0.1);
   const minKwh = Math.min(...kwhValues, 0.1);
@@ -260,8 +240,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     range: [2, 8],
     clamp: true
   });
-  
-  // Early returns after all hooks are defined
+
   if (!data) {
     return (
       <div className="h-[500px] flex items-center justify-center">
@@ -295,7 +274,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
             </filter>
           </defs>
 
-          {/* Title */}
           <Text
             x={width / 2}
             y={40}
@@ -306,7 +284,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
             Flux Énergétique en Temps Réel
           </Text>
 
-          {/* Flow paths */}
           {fluxData.map((flow, i) => (
             <g key={`flow-${i}`}>
               <animated.path
@@ -320,7 +297,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 filter="url(#glow)"
               />
               
-              {/* Flow label */}
               {(() => {
                 const s = centers[flow.source as keyof typeof centers];
                 const t = centers[flow.target as keyof typeof centers];
@@ -386,12 +362,10 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
             </g>
           ))}
 
-          {/* Donut charts */}
           {donutsData.map((donut) => {
             const center = centers[donut.id as keyof typeof centers];
             return (
               <Group key={donut.id} left={center.x} top={center.y}>
-                {/* Background circle */}
                 <circle
                   r={outerRadius - thickness / 2}
                   fill="white"
@@ -401,7 +375,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
                 {donut.id === "PV" && (
                   <>
-                    {/* PV Donut */}
                     <Arc
                       innerRadius={outerRadius - thickness}
                       outerRadius={outerRadius}
@@ -451,7 +424,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
                 {donut.id === "MAISON" && (
                   <>
-                    {/* Home Donut */}
                     <Arc
                       innerRadius={outerRadius - thickness}
                       outerRadius={outerRadius}
@@ -462,26 +434,20 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                     />
                     {donut.ratio > 0 && donut.homeConsumption && donut.homeConsumption > 0 && (
                       <>
-                        {/* Grid portion */}
-                        {donut.gridPower && donut.gridPower > 0 && (
-                          <Arc
-                            innerRadius={outerRadius - thickness}
-                            outerRadius={outerRadius}
-                            startAngle={-120 * (Math.PI / 180)}
-                            endAngle={-120 * (Math.PI / 180) + (donut.gridRatio || 0) * donut.ratio * 240 * (Math.PI / 180)}
-                            fill="#42A5F5"
-                          />
-                        )}
-                        {/* PV portion */}
-                        {donut.pvPower && donut.pvPower > 0 && (
-                          <Arc
-                            innerRadius={outerRadius - thickness}
-                            outerRadius={outerRadius}
-                            startAngle={-120 * (Math.PI / 180) + (donut.gridRatio || 0) * donut.ratio * 240 * (Math.PI / 180)}
-                            endAngle={-120 * (Math.PI / 180) + donut.ratio * 240 * (Math.PI / 180)}
-                            fill="#66BB6A"
-                          />
-                        )}
+                        <Arc
+                          innerRadius={outerRadius - thickness}
+                          outerRadius={outerRadius}
+                          startAngle={-120 * (Math.PI / 180)}
+                          endAngle={-120 * (Math.PI / 180) + (donut.gridRatio || 0) * donut.ratio * 240 * (Math.PI / 180)}
+                          fill="#42A5F5"
+                        />
+                        <Arc
+                          innerRadius={outerRadius - thickness}
+                          outerRadius={outerRadius}
+                          startAngle={-120 * (Math.PI / 180) + (donut.gridRatio || 0) * donut.ratio * 240 * (Math.PI / 180)}
+                          endAngle={-120 * (Math.PI / 180) + donut.ratio * 240 * (Math.PI / 180)}
+                          fill="#66BB6A"
+                        />
                       </>
                     )}
                     <foreignObject
@@ -516,7 +482,6 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
                 {donut.id === "GRID" && (
                   <>
-                    {/* Grid Donut */}
                     <Arc
                       innerRadius={outerRadius - thickness}
                       outerRadius={outerRadius}

@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -54,6 +53,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
   const [tooltipLeft, setTooltipLeft] = useState<number>(0);
   const [tooltipTop, setTooltipTop] = useState<number>(0);
   const [tooltipOpen, setTooltipOpen] = useState<boolean>(false);
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Update dimensions when container size changes
   useEffect(() => {
@@ -124,11 +124,9 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       const { x, y } = localPoint(event) || { x: 0, y: 0 };
       const x0 = timeScale.invert(x - margin.left);
       
-      // Find the closest data point using binary search for better performance
       let closestIndex = 0;
       let minDistance = Infinity;
       
-      // Optimize the search for closest point
       for (let i = 0; i < chartData.length; i++) {
         const distance = Math.abs(new Date(chartData[i].timestamp).getTime() - x0.getTime());
         if (distance < minDistance) {
@@ -139,20 +137,22 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       
       const dataPoint = chartData[closestIndex];
       
-      // Improved tooltip positioning - positioned above and to the left of cursor
-      const tooltipX = x - 20; // 20px to the left of cursor
-      const tooltipY = y - 20; // 20px above the cursor
+      // Position tooltip to the right of the cursor if possible
+      const tooltipX = x + 20; // 20px to the right of cursor
+      const tooltipY = Math.min(y - 20, height - 200); // Above cursor, but not too high
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
       setTooltipTop(tooltipY);
+      setCursorPosition({ x: x - margin.left, y: innerHeight });
       setTooltipOpen(true);
-    }, 50), // 50ms throttle to smooth performance
+    }, 50),
     [chartData, timeScale, margin, dimensions]
   );
 
   const hideTooltip = useCallback(() => {
     setTooltipOpen(false);
+    setCursorPosition(null);
   }, []);
 
   // Filter data for voltage and clear sky production
@@ -350,8 +350,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   fill: '#888',
                   fontSize: 10,
                   textAnchor: 'middle',
-                  dy: '0.33em',
-                })}
+4                })}
                 tickFormat={(date) => {
                   const d = new Date(date as Date);
                   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
@@ -478,6 +477,20 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 onMouseLeave={hideTooltip}
               />
             </Group>
+
+            {/* Add vertical cursor line */}
+            {cursorPosition && (
+              <line
+                x1={cursorPosition.x}
+                y1={0}
+                x2={cursorPosition.x}
+                y2={cursorPosition.y}
+                stroke="#666"
+                strokeWidth={1}
+                strokeDasharray="4,4"
+                pointerEvents="none"
+              />
+            )}
           </svg>
         )}
         
@@ -545,4 +558,3 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     </EnergyChartWrapper>
   );
 }
-
