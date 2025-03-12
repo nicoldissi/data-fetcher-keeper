@@ -35,8 +35,9 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       console.log(`Created clear sky map with ${clearSkyMap.size} entries`);
       
       const updatedData = fullDayData.map(point => {
-        // Convert Date object to string or number before formatting
-        const formattedPointTimestamp = formatTimestampForMatching(point.timestamp);
+        // Get timestamp as number from the point object
+        const pointTimestamp = point.timestamp;
+        const formattedPointTimestamp = formatTimestampForMatching(pointTimestamp);
         const clearSkyValue = clearSkyMap.get(formattedPointTimestamp);
         
         if (clearSkyValue !== undefined) {
@@ -111,8 +112,8 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
         });
         
         const localDate = new Date(item.timestamp);
-        // Convert Date object to timestamp (number) before formatting
-        const formattedPointTimestamp = formatTimestampForMatching(localDate.getTime());
+        // Use the timestamp directly for formatting
+        const formattedPointTimestamp = formatTimestampForMatching(item.timestamp);
         
         const grid = Math.round(item.power);
         const production = Math.round(item.pv_power || 0);
