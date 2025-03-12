@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -13,7 +14,7 @@ import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
-import { curveMonotoneX, curveCardinal } from '@visx/curve';
+import { curveMonotoneX } from '@visx/curve';
 import { 
   Tooltip, 
   TooltipWithBounds, 
@@ -428,7 +429,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                 />
               )}
               
-              {/* Clear Sky Production line with a smoother curve approach */}
+              {/* Clear Sky Production line - improved for smoothness */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <LinePath
                   data={validClearSkyData}
@@ -436,9 +437,9 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
                   y={d => powerScale(getClearSkyProduction(d))}
                   stroke="#D4E157"
                   strokeWidth={3}
-                  curve={curveMonotoneX}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  curve={curveMonotoneX}
                 />
               )}
               
@@ -520,4 +521,3 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
     </EnergyChartWrapper>
   );
 }
-
