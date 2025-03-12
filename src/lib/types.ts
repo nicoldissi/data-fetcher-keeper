@@ -2,20 +2,24 @@
 export interface ShellyEMData {
   id?: string;
   timestamp: number;
-  power: number;
-  reactive:number;          // Current power consumption in Watts (grid)
-  production_power: number; // Solar production power in Watts
-  total_energy: number;   // Total energy consumed in Watt-hours
-  production_energy: number; // Total energy produced in Watt-hours
-  grid_returned: number;  // Total energy returned to grid in Watt-hours
-  voltage: number;        // Current voltage (V)
-  current: number;        // Current amperage (A)
-  pf: number;             // Power factor
-  temperature: number;    // Device temperature
-  is_valid: boolean;      // Whether the reading is valid
-  channel: number;        // Which channel (0 or 1) the data comes from
-  shelly_config_id?: string; // ID of the Shelly device configuration
-  frequency?: number;     // Current frequency (Hz)
+  power: number;                // Consommation du réseau (grid) en Watts
+  reactive: number;             // Puissance réactive pour le réseau (grid)
+  pf: number;                   // Facteur de puissance pour le réseau (grid)
+  
+  pv_power: number;             // Production solaire en Watts
+  pv_reactive: number;          // Puissance réactive pour le solaire
+  pv_pf: number;                // Facteur de puissance pour le solaire
+  
+  total_energy: number;         // Énergie totale consommée en Watt-heures
+  pv_energy: number;            // Énergie totale produite en Watt-heures
+  grid_returned: number;        // Énergie totale retournée au réseau en Watt-heures
+  voltage: number;              // Tension actuelle (V)
+  current: number;              // Intensité actuelle (A)
+  temperature: number;          // Température de l'appareil
+  is_valid: boolean;            // Validité de la lecture
+  channel: number;              // Canal (0 ou 1) d'où proviennent les données
+  shelly_config_id?: string;    // ID de la configuration du dispositif Shelly
+  frequency?: number;           // Fréquence actuelle (Hz)
 }
 
 export interface ShellyEMResponse {
@@ -23,7 +27,7 @@ export interface ShellyEMResponse {
   data: {
     online: boolean;
     device_status: {
-      _updated: string;   // Device update time in format 'YYYY-MM-DD HH:mm:ss'
+      _updated: string;   // Heure de mise à jour du dispositif au format 'YYYY-MM-DD HH:mm:ss'
       temperature?: {
         tC: number;
       };
@@ -41,18 +45,33 @@ export interface ShellyEMResponse {
 }
 
 export interface ShellyConfig {
-  // Frontend property names (camelCase)
-  deviceId?: string;
-  apiKey?: string;
-  serverUrl?: string;
-  name?: string;
   id?: string;
-  user_id?: string;
+  serverUrl: string;
+  deviceId: string;
+  apiKey: string;
+  name?: string;
   deviceType?: 'ShellyEM' | 'ShellyProEM';
-  
-  // Database field mappings - snake_case format from Supabase
-  deviceid?: string;
+  inverter_power_kva?: number;
+  grid_subscription_kva?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  // Adding aliases for API compatibility
+  deviceid?: string; 
   apikey?: string;
   serverurl?: string;
-  device_type?: string;
+}
+
+export interface InitialData {
+  configs?: Record<string, {
+    inverter_power_kva?: number;
+    grid_subscription_kva?: number;
+    [key: string]: any;
+  }>;
+  [key: string]: any;
+}
+
+declare global {
+  interface Window {
+    __INITIAL_DATA__?: InitialData;
+  }
 }

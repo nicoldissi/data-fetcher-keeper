@@ -9,39 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clear_sky_production: {
+        Row: {
+          created_at: string
+          id: string
+          power: number
+          shelly_config_id: string
+          timestamp: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          power: number
+          shelly_config_id: string
+          timestamp: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          power?: number
+          shelly_config_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clear_sky_production_shelly_config_id_fkey"
+            columns: ["shelly_config_id"]
+            isOneToOne: false
+            referencedRelation: "shelly_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       energy_data: {
         Row: {
           consumption: number
           created_at: string | null
+          frequency: number | null
+          grid_pf: number | null
+          grid_reactive: number | null
           grid_total: number
           grid_total_returned: number
           id: number
           production: number
           production_total: number
+          pv_pf: number | null
+          pv_reactive: number | null
           shelly_config_id: string | null
           timestamp: string
+          voltage: number | null
         }
         Insert: {
           consumption: number
           created_at?: string | null
+          frequency?: number | null
+          grid_pf?: number | null
+          grid_reactive?: number | null
           grid_total?: number
           grid_total_returned?: number
           id?: number
           production: number
           production_total?: number
+          pv_pf?: number | null
+          pv_reactive?: number | null
           shelly_config_id?: string | null
           timestamp: string
+          voltage?: number | null
         }
         Update: {
           consumption?: number
           created_at?: string | null
+          frequency?: number | null
+          grid_pf?: number | null
+          grid_reactive?: number | null
           grid_total?: number
           grid_total_returned?: number
           id?: number
           production?: number
           production_total?: number
+          pv_pf?: number | null
+          pv_reactive?: number | null
           shelly_config_id?: string | null
           timestamp?: string
+          voltage?: number | null
         }
         Relationships: [
           {
@@ -53,38 +103,120 @@ export type Database = {
           },
         ]
       }
+      pv_panels: {
+        Row: {
+          azimuth: number
+          created_at: string
+          id: string
+          inclination: number
+          name: string | null
+          power_wp: number
+          shelly_config_id: string
+          updated_at: string
+        }
+        Insert: {
+          azimuth?: number
+          created_at?: string
+          id?: string
+          inclination?: number
+          name?: string | null
+          power_wp?: number
+          shelly_config_id: string
+          updated_at?: string
+        }
+        Update: {
+          azimuth?: number
+          created_at?: string
+          id?: string
+          inclination?: number
+          name?: string | null
+          power_wp?: number
+          shelly_config_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_panels_shelly_config_id_fkey"
+            columns: ["shelly_config_id"]
+            isOneToOne: false
+            referencedRelation: "shelly_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelly_configs: {
         Row: {
           apikey: string
           created_at: string
+          device_type: string | null
           deviceid: string
+          grid_subscription_kva: number | null
           id: string
+          inverter_power_kva: number | null
+          latitude: number | null
+          longitude: number | null
           name: string | null
           serverurl: string
           updated_at: string
-          user_id: string
         }
         Insert: {
           apikey: string
           created_at?: string
+          device_type?: string | null
           deviceid: string
+          grid_subscription_kva?: number | null
           id?: string
+          inverter_power_kva?: number | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
           serverurl?: string
           updated_at?: string
-          user_id: string
         }
         Update: {
           apikey?: string
           created_at?: string
+          device_type?: string | null
           deviceid?: string
+          grid_subscription_kva?: number | null
           id?: string
+          inverter_power_kva?: number | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string | null
           serverurl?: string
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
+      }
+      user_device_shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          shelly_config_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          shelly_config_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          shelly_config_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_device_shares_shelly_config_id_fkey"
+            columns: ["shelly_config_id"]
+            isOneToOne: false
+            referencedRelation: "shelly_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

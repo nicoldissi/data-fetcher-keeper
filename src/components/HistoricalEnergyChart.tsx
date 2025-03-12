@@ -20,7 +20,7 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       return {
         time: format(date, 'HH:mm:ss', { locale: fr }),
         consumption: Math.round(item.power),
-        production: Math.round(item.production_power || 0),
+        production: Math.round(item.pv_power || 0),
       };
     });
 

@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
@@ -31,13 +32,7 @@ serve(async (req) => {
       );
     }
 
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization');
-    
-    const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`;
-
-    // Create a Supabase client
-    const clientKey = isServiceRole ? serviceRoleKey : anonKey;
+    // Create a Supabase client with the service role key
     const supabaseClient = createClient(
       supabaseUrl,
       serviceRoleKey,
@@ -49,21 +44,15 @@ serve(async (req) => {
     );
 
     // Parse the request data
-    const requestBody = await req.json();
-
-    
-     
+    const requestBody = await req.json().catch(() => ({}));
     const { configId } = requestBody || {};
 
-    console.log('Request received:', { configId, isServiceRole, authHeader: authHeader ? 'present' : 'missing' });
+    console.log('Request received:', { configId, method: req.method });
 
     // Get the Shelly configuration(s)
     let query = supabaseClient
       .from('shelly_configs')
       .select('*');
-
-    // No need to check user_id since devices can be shared
-    console.log('Query to be executed:', query);
 
     if (configId) {
       query = query.eq('id', configId);
@@ -100,7 +89,7 @@ serve(async (req) => {
 
       console.log('configsData:', configsData);
       if (!configsData || configsData.length === 0) {
-        console.warn('No configurations found:', { isServiceRole });
+        console.warn('No configurations found');
         return new Response(
           JSON.stringify({ message: 'No Shelly configurations found' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -179,6 +168,13 @@ async function processShellyConfig(configData, supabaseClient) {
   }
 }
 
+// Calculate reactive power using the formula Q = √(S² - P²)
+function calculateReactivePower(apparentPower, activePower) {
+  // Safety check to ensure we don't calculate negative values under the square root
+  const underRoot = Math.pow(apparentPower, 2) - Math.pow(activePower, 2);
+  return underRoot > 0 ? Math.sqrt(underRoot) : 0;
+}
+
 // Helper function to process a single Shelly configuration without creating a Response
 async function processShellyConfigWithoutResponse(configData, supabaseClient) {
   // Construct the Shelly Cloud URL
@@ -219,9 +215,23 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
           total_returned: 0
         };
       } else {
+        // For Shelly Pro EM, extract active power and apparent power to calculate reactive power
+        const activePower = deviceStatus['em1:0'].act_power || 0;
+        const apparentPower = deviceStatus['em1:0'].aprt_power || 0;
+        
+        // Calculate reactive power using the formula Q = √(S² - P²)
+        // where S is apparent power and P is active power
+        const reactivePower = calculateReactivePower(apparentPower, activePower);
+        
+        console.log('Pro EM calculated values:', {
+          activePower,
+          apparentPower,
+          reactivePower
+        });
+        
         gridMeter = {
-          power: deviceStatus['em1:0'].act_power || 0,
-          reactive: 0, // Not available in the response
+          power: activePower,
+          reactive: reactivePower, // Use the calculated reactive power
           voltage: deviceStatus['em1:0'].voltage || 0,
           total: deviceStatus['em1data:0']?.total_act_energy || 0,
           pf: deviceStatus['em1:0'].pf || 0,
@@ -233,9 +243,16 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       if (!deviceStatus['em1:1']) {
         productionMeter = null;
       } else {
+        // Similarly for PV (production meter)
+        const pvActivePower = deviceStatus['em1:1'].act_power || 0;
+        const pvApparentPower = deviceStatus['em1:1'].aprt_power || 0;
+        const pvReactivePower = calculateReactivePower(pvApparentPower, pvActivePower);
+        
         productionMeter = {
-          power: deviceStatus['em1:1'].act_power || 0,
-          total: deviceStatus['em1data:1']?.total_act_energy || 0
+          power: pvActivePower,
+          reactive: pvReactivePower, // Use the calculated reactive power
+          total: deviceStatus['em1data:1']?.total_act_energy || 0,
+          pf: deviceStatus['em1:1'].pf || 0 // PV power factor
         };
       }
     } else {
@@ -262,45 +279,96 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
     const deviceDate = new Date(deviceStatus._updated + 'Z');
     const timestamp = deviceDate.getTime();
 
-    // Format the data
+    // Format the data with renamed fields
     const shellyData = {
       timestamp,
       power: gridMeter.power || 0,
       reactive: gridMeter.reactive || 0,
-      production_power: productionMeter ? (productionMeter.power || 0) : 0,
+      pv_power: productionMeter ? (productionMeter.power || 0) : 0,
+      pv_reactive: productionMeter ? (productionMeter.reactive || 0) : 0,
       total_energy: gridMeter.total || 0,
-      production_energy: productionMeter ? (productionMeter.total || 0) : 0,
+      pv_energy: productionMeter ? (productionMeter.total || 0) : 0,
       grid_returned: gridMeter.total_returned || 0,
       voltage: gridMeter.voltage || 0,
-      current: 0,
+      current: 0, // Not available directly from Shelly API
       pf: gridMeter.pf || 0,
+      pv_pf: productionMeter ? (productionMeter.pf || 0) : 0,
       temperature: deviceStatus.temperature?.tC || 0,
       is_valid: gridMeter.is_valid || false,
-      channel: 0
+      channel: 0,
+      frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || 0) : 0
     };
 
-    // Store the data in the database
-    const { error: storeError } = await supabaseClient
+    console.log(`Prepared Shelly data for insertion:`, JSON.stringify(shellyData, null, 2));
+
+    // Store the data in the database with the new field names
+    const insertData = {
+      timestamp: new Date(timestamp).toISOString(),
+      consumption: shellyData.power,
+      production: shellyData.pv_power,
+      grid_total: shellyData.total_energy,
+      grid_total_returned: shellyData.grid_returned,
+      production_total: shellyData.pv_energy,
+      shelly_config_id: configData.id,
+      voltage: shellyData.voltage,
+      frequency: shellyData.frequency,
+      grid_pf: shellyData.pf || 0,
+      grid_reactive: shellyData.reactive || 0,
+      pv_pf: shellyData.pv_pf || 0,
+      pv_reactive: shellyData.pv_reactive || 0
+    };
+
+    console.log(`Attempting to insert data into Supabase:`, JSON.stringify(insertData, null, 2));
+
+    // Test d'accès à la table avant insertion
+    try {
+      console.log('Testing table access before insertion...');
+      const { data: testData, error: testError } = await supabaseClient
+        .from('energy_data')
+        .select('id')
+        .limit(1);
+        
+      if (testError) {
+        console.error('Table access test failed:', testError);
+      } else {
+        console.log('Table access test succeeded');
+      }
+    } catch (e) {
+      console.error('Error during table access test:', e);
+    }
+
+    const { error: storeError, data: insertedData } = await supabaseClient
       .from('energy_data')
-      .insert([{
-        timestamp: new Date(timestamp).toISOString(),
-        consumption: shellyData.power,
-        production: shellyData.production_power,
-        grid_total: shellyData.total_energy,
-        grid_total_returned: shellyData.grid_returned,
-        production_total: shellyData.production_energy,
-        shelly_config_id: configData.id,
-        voltage: shellyData.voltage,
-        frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || null) : null
-      }]);
+      .insert([insertData])
+      .select();
 
     if (storeError) {
       console.error('Error storing data:', storeError);
+      // Try a few debugging steps if insertion fails
+      try {
+        // Check if the table exists and if we have permissions
+        const { data: tableInfo, error: tableError } = await supabaseClient
+          .from('energy_data')
+          .select('id')
+          .limit(1);
+          
+        if (tableError) {
+          console.error('Error checking table access:', tableError);
+        } else {
+          console.log('Table access verified with data:', tableInfo);
+        }
+      } catch (e) {
+        console.error('Error during debug checks:', e);
+      }
+      
+      throw storeError;
     }
+
+    console.log('Data successfully inserted:', insertedData);
 
     return {
       shellyData,
-      stored: !storeError
+      stored: true
     };
   } catch (error) {
     console.error(`Error in processShellyConfigWithoutResponse for device ${configData.deviceid}:`, error);

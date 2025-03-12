@@ -69,7 +69,7 @@ export function PowerTriangleCard({
   return (
     <Card
       className={cn(
-        "overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md",
+        "overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full",
         className
       )}
     >
@@ -84,7 +84,7 @@ export function PowerTriangleCard({
       <CardContent className="p-0 px-4">
         <div className="relative">
           <div className="h-[370px] w-full">
-            <svg viewBox="0 0 400 400" className="w-full h-full">
+            <svg viewBox="0 0 450 400" className="w-full h-full" style={{ transform: 'scale(0.75) translateX(55px) translateY(-35px)', transformOrigin: 'top left' }}>
               {/* Quarter circle (inchangé) */}
               <path
                 d="M 350,350 A 300,300 0 0 0 50,50"
