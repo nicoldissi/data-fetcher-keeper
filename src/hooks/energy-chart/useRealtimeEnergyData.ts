@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChartDataPoint } from './types';
-import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils';
+import { formatLocalDate, parseToLocalDate, getMidnightToday } from '@/lib/dateUtils';
 
 export function useRealtimeEnergyData(configId: string | null) {
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
@@ -107,9 +107,8 @@ export function useRealtimeEnergyData(configId: string | null) {
       setIsLoadingFullDay(true);
       
       try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const startOfDay = today.toISOString();
+        // Utiliser minuit du jour en cours
+        const startOfDay = getMidnightToday().toISOString();
         
         console.log('Fetching full day data since:', startOfDay);
         

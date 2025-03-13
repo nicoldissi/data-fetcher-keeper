@@ -59,3 +59,27 @@ export function parseToLocalDate(timestamp: string | number): Date {
   // Retourner un objet Date
   return new Date(utcTimestamp);
 }
+
+/**
+ * Vérifie si une date est comprise entre minuit et maintenant
+ * @param timestamp Le timestamp à vérifier (string ou number)
+ * @returns true si la date est entre minuit et maintenant, false sinon
+ */
+export function isDateBetweenMidnightAndNow(timestamp: string | number): boolean {
+  const date = parseToLocalDate(timestamp);
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  
+  return date >= midnight && date <= now;
+}
+
+/**
+ * Obtient la date de minuit du jour en cours
+ * @returns Date représentant minuit aujourd'hui
+ */
+export function getMidnightToday(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}

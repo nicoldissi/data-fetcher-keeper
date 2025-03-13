@@ -19,6 +19,18 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
     return date.toISOString().split(':').slice(0, 2).join(':'); // Format to "YYYY-MM-DDTHH:MM"
   };
 
+  // Fonction pour filtrer les données entre minuit et l'heure actuelle
+  const filterDataByTimeRange = (dataArray: ChartDataPoint[]): ChartDataPoint[] => {
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0); // Minuit aujourd'hui
+    
+    return dataArray.filter(point => {
+      const pointDate = new Date(point.timestamp);
+      return pointDate >= today && pointDate <= now;
+    });
+  };
+
   // Apply clear sky data to chart data points
   useEffect(() => {
     if (clearSkyData.length > 0 && fullDayData.length > 0) {
@@ -54,8 +66,11 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       const existingTimestamps = new Set(updatedData.map(point => formatTimestampForMatching(point.timestamp)));
       const additionalPoints: ChartDataPoint[] = [];
       
+      // Pour la production idéale (clearSky), on continue à afficher toutes les heures de la journée
+      const now = new Date();
       clearSkyData.forEach(clearSkyPoint => {
         const formattedTimestamp = formatTimestampForMatching(clearSkyPoint.timestamp);
+        const clearSkyDate = new Date(clearSkyPoint.timestamp);
         
         if (!existingTimestamps.has(formattedTimestamp)) {
           console.log(`Adding missing clear sky point for ${new Date(clearSkyPoint.timestamp).toISOString()}`);
@@ -88,11 +103,14 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       // Combine and sort all data points
       const combinedData = [...updatedData, ...additionalPoints].sort((a, b) => a.timestamp - b.timestamp);
       
-      // Count how many points have clearSkyProduction values
-      const pointsWithClearSky = combinedData.filter(d => d.clearSkyProduction !== undefined).length;
-      console.log(`Updated chart data: ${combinedData.length} total points, ${pointsWithClearSky} with clear sky values`);
+      // Filter data between midnight and now (except for clear sky data which is shown for the full day)
+      const filteredData = filterDataByTimeRange(combinedData);
       
-      setChartData(combinedData);
+      // Count how many points have clearSkyProduction values
+      const pointsWithClearSky = filteredData.filter(d => d.clearSkyProduction !== undefined).length;
+      console.log(`Updated chart data: ${filteredData.length} total points, ${pointsWithClearSky} with clear sky values`);
+      
+      setChartData(filteredData);
     }
   }, [clearSkyData, fullDayData]);
 
@@ -177,11 +195,14 @@ export function useEnergyChartData(history: ShellyEMData[], configId: string | n
       // Combine and sort all data points
       const combinedData = [...transformedData, ...additionalPoints].sort((a, b) => a.timestamp - b.timestamp);
 
+      // Filter data between midnight and now
+      const filteredData = filterDataByTimeRange(combinedData);
+
       // Count how many points have clearSkyProduction values
-      const pointsWithClearSky = combinedData.filter(d => d.clearSkyProduction !== undefined).length;
-      console.log(`Initial chart data: ${combinedData.length} total points, ${pointsWithClearSky} with clear sky values`);
+      const pointsWithClearSky = filteredData.filter(d => d.clearSkyProduction !== undefined).length;
+      console.log(`Initial chart data: ${filteredData.length} total points, ${pointsWithClearSky} with clear sky values`);
       
-      setChartData(combinedData);
+      setChartData(filteredData);
     }
   }, [history, fullDayData.length, clearSkyData]);
 

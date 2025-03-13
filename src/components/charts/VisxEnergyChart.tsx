@@ -73,13 +73,23 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
   const innerWidth = dimensions.width - margin.left - margin.right;
   const innerHeight = dimensions.height - margin.top - margin.bottom;
 
-  // Create scales
-  const timeScale = scaleTime<number>({
-    domain: chartData.length > 0 
-      ? [new Date(chartData[0].timestamp), new Date(chartData[chartData.length - 1].timestamp)]
-      : [new Date(), new Date()],
-    range: [0, innerWidth],
-  });
+  // Create scales for time domain from midnight to current time
+  const timeScale = useMemo(() => {
+    // Définir la plage de temps de minuit à maintenant
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Définir à minuit
+    
+    // Si nous avons des données, utiliser le dernier point temporel des données,
+    // sinon utiliser l'heure actuelle
+    const now = chartData.length > 0 
+      ? new Date(chartData[chartData.length - 1].timestamp)
+      : new Date();
+      
+    return scaleTime<number>({
+      domain: [today, now],
+      range: [0, innerWidth],
+    });
+  }, [chartData, innerWidth]);
 
   const powerDomain = calculateYAxisDomain(showConsumption, showProduction, showGrid);
   const powerScale = scaleLinear<number>({
@@ -162,7 +172,12 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
 
   // Filter data for voltage and clear sky production
   const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
-  const validClearSkyData = chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
+  
+  // Filtrer les données de production idéale pour la journée entière
+  const validClearSkyData = useMemo(() => {
+    // Extraire uniquement les points avec clearSkyProduction > 0
+    return chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
+  }, [chartData]);
 
   // Log clear sky data that will be used for rendering
   useEffect(() => {
@@ -454,8 +469,6 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
               {/* Clear Sky Production Line - no individual circles */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <>
-                  {/* Removed debugging log */}
-                  
                   {/* Only draw the line without individual points */}
                   <LinePath
                     data={validClearSkyData}
@@ -498,7 +511,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
           </svg>
         )}
         
-        {/* Improved tooltip positioning and rounded production idéale value */}
+        {/* Tooltip */}
         {tooltipOpen && tooltipData && (
           <div 
             className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3 pointer-events-none"
