@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Group } from '@visx/group';
@@ -308,7 +309,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 filter="url(#glow)"
               />
               
-              {/* Flow label */}
+              {/* Flow label without watts value */}
               {(() => {
                 const s = centers[flow.source as keyof typeof centers];
                 const t = centers[flow.target as keyof typeof centers];
@@ -330,8 +331,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
                 
                 const title = flow.title || "";
-                const valueText = `${flow.watts.toFixed(0)} W`;
-                const labelWidth = Math.max(90, Math.max(title.length, valueText.length) * 7);
+                const labelWidth = Math.max(90, title.length * 7);
                 
                 const borderColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#888";
                 const textColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#555";
@@ -340,9 +340,9 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                   <g key={`label-${i}`}>
                     <rect
                       x={bezierX - labelWidth/2}
-                      y={bezierY - 25}
+                      y={bezierY - 15}
                       width={labelWidth}
-                      height={40}
+                      height={30}
                       rx={12}
                       fill="white"
                       stroke={borderColor}
@@ -352,21 +352,12 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                     />
                     <Text
                       x={bezierX}
-                      y={bezierY - 6}
+                      y={bezierY}
                       textAnchor="middle"
                       verticalAnchor="middle"
-                      style={{ fontSize: 12, fontWeight: 500, fill: textColor }}
+                      style={{ fontSize: 13, fontWeight: 500, fill: textColor }}
                     >
                       {title}
-                    </Text>
-                    <Text
-                      x={bezierX}
-                      y={bezierY + 12}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 13, fontWeight: 'bold', fill: textColor }}
-                    >
-                      {valueText}
                     </Text>
                   </g>
                 );
@@ -579,4 +570,3 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     </div>
   );
 }
-
