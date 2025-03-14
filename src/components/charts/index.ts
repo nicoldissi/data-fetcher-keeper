@@ -1,9 +1,6 @@
 
-import HistoricalEnergyChart from '../HistoricalEnergyChart';
-import VisxEnergyChart from './VisxEnergyChart';
-
-export { HistoricalEnergyChart };
-export { VisxEnergyChart };
+export { HistoricalEnergyChart } from '../HistoricalEnergyChart';
+export { VisxEnergyChart } from './VisxEnergyChart';
 export { EnergyChartWrapper } from './EnergyChartWrapper';
 export { ChartSeriesToggle } from './ChartSeriesToggle';
 export { CustomChartTooltip } from './CustomChartTooltip';
