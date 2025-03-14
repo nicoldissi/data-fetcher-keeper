@@ -42,7 +42,7 @@ export function DateSelector({ date, onDateChange, className }: DateSelectorProp
             onSelect={(newDate) => newDate && onDateChange(newDate)}
             initialFocus
             locale={fr}
-            className="p-3 pointer-events-auto"
+            className="pointer-events-auto"
           />
         </PopoverContent>
       </Popover>

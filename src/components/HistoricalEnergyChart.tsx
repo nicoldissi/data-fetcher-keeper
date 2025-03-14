@@ -1,8 +1,7 @@
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, fromUnixTime, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
 import VisxEnergyChart from '@/components/charts/VisxEnergyChart';
@@ -12,7 +11,7 @@ interface HistoricalEnergyChartProps {
   configId?: string | null;
 }
 
-export default function HistoricalEnergyChart({ history, configId }: HistoricalEnergyChartProps) {
+export function HistoricalEnergyChart({ history, configId }: HistoricalEnergyChartProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // Filter history data for the selected date
@@ -34,21 +33,20 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <CardTitle>Historique Énergétique</CardTitle>
-          <DateSelector 
-            date={selectedDate}
-            onDateChange={handleDateChange}
-          />
-        </div>
+      <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 pb-2">
+        <CardTitle className="text-xl">Historique Énergétique</CardTitle>
+        <DateSelector 
+          date={selectedDate}
+          onDateChange={handleDateChange}
+          className="w-full sm:w-auto mt-2 sm:mt-0"
+        />
       </CardHeader>
-      <CardContent className="h-[500px]">
+      <CardContent className="h-[500px] pt-6">
         <VisxEnergyChart history={filteredHistory} configId={configId} />
       </CardContent>
     </Card>
   );
 }
 
-// For compatibility with existing imports
+// Make component exportable as a named export for compatibility with existing imports
 export { HistoricalEnergyChart };
