@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
-import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
+import { getShellyConfig, isShellyConfigValid } from '@/lib/api/index';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
 import { HistoricalEnergyChart } from './HistoricalEnergyChart';
