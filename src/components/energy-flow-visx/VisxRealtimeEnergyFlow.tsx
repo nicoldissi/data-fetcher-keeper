@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Group } from '@visx/group';
 import { useSpring, animated } from '@react-spring/web';
-import { Linear } from '@visx/curve';
+import { curveBasis } from '@visx/curve';
 import { LinePath } from '@visx/shape';
 import { scaleLinear } from '@visx/scale';
 import { Text } from '@visx/text';
@@ -13,9 +13,8 @@ import { localPoint } from '@visx/event';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { Line, Circle, Arc } from '@visx/shape';
 import { RectClipPath } from '@visx/clip-path';
-import { GradientOrangeRed, GradientPurpleGreen } from '@visx/gradient';
-import { Tooltip, useTooltip } from '@visx/tooltip';
-import { Spring } from 'react-spring';
+import { GradientOrangeRed, GradientPurpleRed } from '@visx/gradient';
+import { useTooltip } from '@visx/tooltip';
 
 interface NodePosition {
   x: number;
@@ -67,7 +66,8 @@ export function VisxRealtimeEnergyFlow({
   const INNER_RADIUS = 30;
   const ICON_SIZE = 32;
 
-  const { containerRef, tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } = useTooltip();
+  const { tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } = useTooltip();
+  const tooltipContainerRef = useRef<HTMLDivElement>(null);
 
   const xScale = scaleLinear({
     domain: [0, 1],
@@ -255,7 +255,7 @@ export function VisxRealtimeEnergyFlow({
 
   return (
     <div
-      ref={containerRef}
+      ref={tooltipContainerRef}
       style={{
         position: 'relative',
         width: '100%',
@@ -362,7 +362,7 @@ export function VisxRealtimeEnergyFlow({
                 <Text
                   textAnchor="middle"
                   verticalAnchor="middle"
-                  y="-3"
+                  y={-3}
                   fontSize={10}
                   fontWeight="bold"
                   fill="#374151"
@@ -372,7 +372,7 @@ export function VisxRealtimeEnergyFlow({
                 <Text
                   textAnchor="middle"
                   verticalAnchor="middle"
-                  y="9"
+                  y={9}
                   fontSize={9}
                   fill="#4b5563"
                 >

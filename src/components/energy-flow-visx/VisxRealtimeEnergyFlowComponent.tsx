@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { getShellyConfig } from '@/lib/api';
@@ -11,6 +12,8 @@ interface VisxRealtimeEnergyFlowComponentProps {
 
 export function VisxRealtimeEnergyFlowComponent({ data, className, configId }: VisxRealtimeEnergyFlowComponentProps) {
   const [config, setConfig] = useState<ShellyConfig | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
   // Fetch Shelly config when configId changes
   useEffect(() => {
@@ -28,6 +31,19 @@ export function VisxRealtimeEnergyFlowComponent({ data, className, configId }: V
     fetchConfig();
   }, [configId]);
 
+  // Set dimensions based on container size
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      setDimensions({ width, height });
+    });
+
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
   if (!data) {
     return (
       <div className="h-[500px] flex items-center justify-center">
@@ -37,11 +53,12 @@ export function VisxRealtimeEnergyFlowComponent({ data, className, configId }: V
   }
 
   return (
-    <div className={className}>
+    <div ref={containerRef} className={className}>
       <VisxRealtimeEnergyFlow 
         data={data} 
-        configId={configId} 
         config={config} 
+        width={dimensions.width}
+        height={dimensions.height}
       />
     </div>
   );
