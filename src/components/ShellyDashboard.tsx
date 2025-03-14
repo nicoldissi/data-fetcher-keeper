@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
-import { HistoricalEnergyChart } from './charts';
+import { HistoricalEnergyChart } from './HistoricalEnergyChart';
 import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -118,7 +117,6 @@ export function ShellyDashboard() {
 
         <Separator className="my-6" />
 
-        {/* Modified this section to ensure proper alignment */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="md:col-span-1 flex flex-col">
             <DeviceStatus
@@ -170,4 +168,3 @@ export function ShellyDashboard() {
     </div>
   );
 }
-
