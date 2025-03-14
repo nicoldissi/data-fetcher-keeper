@@ -1,27 +1,26 @@
 
-import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from "lucide-react";
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface EnergyChartWrapperProps {
-  children: React.ReactNode;
-  title?: string;
+  title: string;
   description?: string;
-  className?: string;
-  isLoading?: boolean;
   controls?: React.ReactNode;
   dateSelector?: React.ReactNode;
+  children: React.ReactNode;
+  isLoading?: boolean;
+  className?: string;
 }
 
 export function EnergyChartWrapper({
-  children,
-  title = "Historique d'énergie",
+  title,
   description,
-  className,
-  isLoading = false,
   controls,
-  dateSelector
+  dateSelector,
+  children,
+  isLoading = false,
+  className,
 }: EnergyChartWrapperProps) {
   return (
     <Card className={cn("w-full", className)}>
@@ -31,8 +30,12 @@ export function EnergyChartWrapper({
             <CardTitle>{title}</CardTitle>
             {description && <CardDescription>{description}</CardDescription>}
           </div>
-          <div className="flex flex-wrap items-center gap-2 justify-end">
-            {dateSelector}
+          <div className="flex flex-wrap items-center gap-4">
+            {dateSelector && (
+              <div className="mr-auto">
+                {dateSelector}
+              </div>
+            )}
             {controls && (
               <div className="flex flex-wrap gap-2">
                 {controls}
@@ -41,17 +44,14 @@ export function EnergyChartWrapper({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="h-[400px] w-full relative">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Chargement des données...</span>
-            </div>
-          ) : (
-            children
-          )}
-        </div>
+      <CardContent className="h-[500px]">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Chargement des données...</p>
+          </div>
+        ) : (
+          children
+        )}
       </CardContent>
     </Card>
   );

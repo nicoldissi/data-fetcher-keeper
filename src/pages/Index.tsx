@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { getShellyConfig } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +25,6 @@ import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle, Menu } from "luci
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { cn } from '@/lib/utils';
 import { ShellyConfigForm } from "@/components/ShellyConfigForm";
-import { EnergyChartWithDateSelector } from "@/components/EnergyChartWithDateSelector";
 
 const Index = () => {
   const [configId, setConfigId] = useState<string | undefined>();
@@ -170,7 +170,7 @@ const Index = () => {
         );
       case "chart":
         return (
-          <EnergyChartWithDateSelector 
+          <VisxEnergyChart 
             history={history} 
             configId={configId}
           />
