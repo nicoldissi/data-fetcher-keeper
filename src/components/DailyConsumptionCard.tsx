@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { DateSelector } from '@/components/DateSelector';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface DailyConsumptionCardProps {
   className?: string;

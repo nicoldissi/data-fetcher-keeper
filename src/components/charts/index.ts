@@ -1,5 +1,5 @@
 
-export { HistoricalEnergyChart } from '../HistoricalEnergyChart';
+export { default as HistoricalEnergyChart } from '../HistoricalEnergyChart';
 export { VisxEnergyChart } from './VisxEnergyChart';
 export { EnergyChartWrapper } from './EnergyChartWrapper';
 export { ChartSeriesToggle } from './ChartSeriesToggle';

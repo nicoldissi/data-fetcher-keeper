@@ -1,12 +1,11 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, fromUnixTime } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
-import EnergyChart from './EnergyChart';
+import { VisxEnergyChart } from '@/components/charts/VisxEnergyChart';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -15,7 +14,6 @@ interface HistoricalEnergyChartProps {
 
 export default function HistoricalEnergyChart({ history, configId }: HistoricalEnergyChartProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [chartData, setChartData] = useState<any[]>([]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
@@ -30,7 +28,10 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
         />
       </div>
       
-      <EnergyChart history={history} />
+      <VisxEnergyChart history={history} configId={configId} />
     </div>
   );
 }
+
+// For compatibility with existing imports
+export { HistoricalEnergyChart };
