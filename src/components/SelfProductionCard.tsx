@@ -21,21 +21,18 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
       return 0;
     }
     
-    // Direct consumption from PV (PV production that wasn't injected to grid)
-    const pvToHome = Math.max(0, dailyTotals.production - dailyTotals.injection);
+    // Correct calculation for self-produced consumption (what was produced and consumed locally)
+    const selfProducedConsumption = Math.max(0, dailyTotals.production - dailyTotals.injection);
     
-    // Grid import is directly from dailyTotals
-    const gridImport = dailyTotals.importFromGrid;
+    // Total consumption is grid consumption + self-produced consumption
+    const totalConsumption = dailyTotals.consumption + selfProducedConsumption;
     
-    // Total home consumption is the sum of what was taken from PV and from grid
-    const totalHomeConsumption = pvToHome + gridImport;
-    
-    if (totalHomeConsumption <= 0) {
+    if (totalConsumption <= 0) {
       return 0;
     }
     
-    // Self-production rate is the percentage of home consumption covered by PV
-    const selfProductionRate = (pvToHome / totalHomeConsumption) * 100;
+    // Self-production rate is percentage of total consumption covered by self-produced energy
+    const selfProductionRate = (selfProducedConsumption / totalConsumption) * 100;
     
     // Ensure the rate is between 0 and 100
     return Math.max(0, Math.min(100, selfProductionRate));
@@ -44,10 +41,10 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
   const selfProductionRate = calculateSelfProductionRate();
   const formattedRate = selfProductionRate.toFixed(1);
   
-  // Calculate energy values in kWh correctly using the same logic as in the calculation function
-  const pvToHome = Math.max(0, (dailyTotals?.production - dailyTotals?.injection || 0)) / 1000;
-  const gridImport = (dailyTotals?.importFromGrid || 0) / 1000;
-  const totalHomeConsumption = pvToHome + gridImport;
+  // Calculate energy values in kWh correctly
+  const selfProducedConsumption = Math.max(0, (dailyTotals?.production - dailyTotals?.injection || 0)) / 1000;
+  const gridConsumption = (dailyTotals?.consumption || 0) / 1000;
+  const totalConsumption = gridConsumption + selfProducedConsumption;
   
   // Determine color based on self-production rate
   const getColor = (rate: number) => {
@@ -112,7 +109,7 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
           
           {/* Center text - Total Consumption value */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <div className="text-2xl font-bold text-gray-800">{totalHomeConsumption.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-gray-800">{totalConsumption.toFixed(2)}</div>
             <div className="text-xs text-gray-600">kWh Conso</div>
             <div className="text-sm font-medium mt-1 text-gray-700">{formattedRate}% autoproduit</div>
           </div>
@@ -131,7 +128,7 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
             }}
           >
             <div>Origine photovoltaïque</div>
-            <div>{pvToHome.toFixed(2)} kWh</div>
+            <div>{selfProducedConsumption.toFixed(2)} kWh</div>
           </div>
 
           {/* Grid consumption sector label - dynamically positioned */}
@@ -148,7 +145,7 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
             }}
           >
             <div>Origine réseau</div>
-            <div>{gridImport.toFixed(2)} kWh</div>
+            <div>{gridConsumption.toFixed(2)} kWh</div>
           </div>
         </div>
       </CardContent>
