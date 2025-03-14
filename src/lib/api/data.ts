@@ -1,27 +1,69 @@
-
-import { ShellyEMData } from '../types';
 import { supabase } from '@/integrations/supabase/client';
-import { getShellyConfig } from './config';
+import { ShellyEMData } from '@/lib/types';
+import { DailyTotals } from '@/hooks/useDailyEnergyTotals';
 
-// Interface pour la représentation des données énergétiques dans la base de données
-interface DbEnergyData {
-    id?: number;
-    timestamp: string;
-    consumption: number;          // Consommation du réseau (grid)
-    production: number;           // Production solaire (pv)
-    grid_total: number;           // Énergie totale consommée du réseau
-    grid_total_returned: number;  // Énergie totale retournée au réseau
-    production_total: number;     // Énergie totale produite
-    shelly_config_id?: string;
-    created_at?: string;
-    voltage?: number;
-    frequency?: number;
-    
-    // Champs uniformisés
-    grid_pf?: number;             // Facteur de puissance pour le réseau (grid)
-    grid_reactive?: number;       // Puissance réactive pour le réseau (grid)
-    pv_pf?: number;               // Facteur de puissance pour le solaire (pv)
-    pv_reactive?: number;         // Puissance réactive pour le solaire (pv)
+export async function getLatestData(configId: string): Promise<ShellyEMData | null> {
+  if (!configId) return null;
+  
+  const { data, error } = await supabase
+    .from('shelly_data')
+    .select('*')
+    .eq('config_id', configId)
+    .order('timestamp', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('Error fetching data:', error);
+    return null;
+  }
+
+  return data.length > 0 ? data[0] as ShellyEMData : null;
+}
+
+export async function getHistoricalData(
+  configId: string, 
+  startTime: string, 
+  endTime: string
+): Promise<ShellyEMData[]> {
+  if (!configId) return [];
+  
+  const { data, error } = await supabase
+    .from('shelly_data')
+    .select('*')
+    .eq('config_id', configId)
+    .gte('timestamp', startTime)
+    .lte('timestamp', endTime)
+    .order('timestamp', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching historical data:', error);
+    return [];
+  }
+
+  return data as ShellyEMData[];
+}
+
+export async function getDailyTotals(
+  configId?: string,
+  date?: string
+): Promise<DailyTotals | null> {
+  if (!configId) return null;
+  
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  
+  const { data, error } = await supabase
+    .from('daily_energy_totals')
+    .select('*')
+    .eq('config_id', configId)
+    .eq('date', targetDate)
+    .limit(1);
+
+  if (error) {
+    console.error('Error fetching daily totals:', error);
+    return null;
+  }
+
+  return data.length > 0 ? data[0] as DailyTotals : null;
 }
 
 export const fetchShellyData = async (configId?: string): Promise<ShellyEMData | null> => {

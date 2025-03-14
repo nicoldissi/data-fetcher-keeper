@@ -8,10 +8,11 @@ import { useD3EnergyFlowVisualization } from '@/hooks/useD3EnergyFlowVisualizati
 interface D3EnergyFlowProps {
   configId?: string;
   className?: string;
+  date?: Date;
 }
 
-export function D3EnergyFlow({ configId, className }: D3EnergyFlowProps) {
-  const { dailyTotals, loading } = useDailyEnergyTotals(configId);
+export function D3EnergyFlow({ configId, className, date }: D3EnergyFlowProps) {
+  const { dailyTotals, loading } = useDailyEnergyTotals(configId, date);
   const svgRef = useRef<SVGSVGElement>(null);
   const [isClient, setIsClient] = useState(false);
   const [hasInitialData, setHasInitialData] = useState(false);
