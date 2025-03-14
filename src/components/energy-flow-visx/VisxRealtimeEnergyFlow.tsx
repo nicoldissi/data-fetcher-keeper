@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Group } from '@visx/group';
@@ -96,16 +95,13 @@ export function VisxRealtimeEnergyFlow({
     
     if (!start || !end) return '';
     
-    // Calculate the direct slope between source and target
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const midX = start.x + dx / 2;
     const midY = start.y + dy / 2;
     
-    // Additional control points to create a curved path
     const curveStrength = 50;
     
-    // PV to Home specific curve adjustment
     if (source === 'PV' && target === 'MAISON') {
       return `M${start.x},${start.y + start.radius} 
               C${start.x + curveStrength},${midY}, 
@@ -113,7 +109,6 @@ export function VisxRealtimeEnergyFlow({
                 ${end.x},${end.y - end.radius}`;
     }
     
-    // PV to Grid specific curve adjustment
     if (source === 'PV' && target === 'GRID') {
       return `M${start.x},${start.y + start.radius} 
               C${start.x - curveStrength},${midY}, 
@@ -121,7 +116,6 @@ export function VisxRealtimeEnergyFlow({
                 ${end.x + end.radius},${end.y}`;
     }
     
-    // Grid to Home specific curve adjustment
     if (source === 'GRID' && target === 'MAISON') {
       return `M${start.x + start.radius},${start.y} 
               C${midX},${start.y - curveStrength}, 
@@ -129,14 +123,12 @@ export function VisxRealtimeEnergyFlow({
                 ${end.x - end.radius},${end.y}`;
     }
     
-    // Default fallback for any other combinations
     return `M${start.x},${start.y}
             C${start.x},${midY}, 
               ${end.x},${midY}, 
               ${end.x},${end.y}`;
   };
 
-  // Process data to create the visualization data structures
   const processData = () => {
     if (!data) return { donutsData: [], fluxData: [] };
     
@@ -145,7 +137,6 @@ export function VisxRealtimeEnergyFlow({
     const isGridImporting = gridPower > 0;
     const isGridExporting = gridPower < 0;
     
-    // Calculate real consumption values
     const gridToHome = isGridImporting ? Math.abs(gridPower) : 0;
     const pvToGrid = isGridExporting ? Math.abs(gridPower) : 0;
     const pvToHome = Math.max(0, pvPower - pvToGrid);
@@ -183,7 +174,6 @@ export function VisxRealtimeEnergyFlow({
 
     const fluxData: FluxData[] = [];
 
-    // PV to Home flow
     if (pvToHome > 0) {
       fluxData.push({ 
         source: "PV", 
@@ -194,7 +184,6 @@ export function VisxRealtimeEnergyFlow({
       });
     }
 
-    // Grid to Home flow
     if (isGridImporting && gridToHome > 0) {
       fluxData.push({ 
         source: "GRID", 
@@ -205,7 +194,6 @@ export function VisxRealtimeEnergyFlow({
       });
     }
 
-    // PV to Grid flow (export)
     if (isGridExporting && pvToGrid > 0) {
       fluxData.push({ 
         source: "PV", 
@@ -221,7 +209,6 @@ export function VisxRealtimeEnergyFlow({
 
   const { donutsData, fluxData } = useMemo(() => processData(), [data, config]);
   
-  // Simple constant animation for flow - reversed to show correct direction
   const flowAnimation = useSpring({
     from: { dashOffset: 0 },
     to: { dashOffset: -16 },
@@ -229,17 +216,15 @@ export function VisxRealtimeEnergyFlow({
     config: { duration: 2000 }
   });
 
-  // Function to create a gradient ID
   const getGradientId = (source: string, target: string) => {
     return `gradient-${source.toLowerCase()}-${target.toLowerCase()}`;
   };
 
-  // Function to get colors for flow paths
   const getFlowColors = (source: string, target: string) => {
-    if (source === 'PV' && target === 'MAISON') return ['#10b981', '#047857']; // Green to dark green
-    if (source === 'PV' && target === 'GRID') return ['#10b981', '#4ade80']; // Green to light green
-    if (source === 'GRID' && target === 'MAISON') return ['#3b82f6', '#1d4ed8']; // Blue to dark blue
-    return ['#9ca3af', '#374151']; // Default gray gradient
+    if (source === 'PV' && target === 'MAISON') return ['#10b981', '#047857'];
+    if (source === 'PV' && target === 'GRID') return ['#10b981', '#4ade80'];
+    if (source === 'GRID' && target === 'MAISON') return ['#3b82f6', '#1d4ed8'];
+    return ['#9ca3af', '#374151'];
   };
 
   const getFlowMarkers = (source: string) => {
@@ -269,7 +254,6 @@ export function VisxRealtimeEnergyFlow({
         overflow="visible"
       >
         <defs>
-          {/* Define gradients for flow paths */}
           <linearGradient id="gradient-pv-maison" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#10b981" />
             <stop offset="100%" stopColor="#047857" />
@@ -285,7 +269,6 @@ export function VisxRealtimeEnergyFlow({
             <stop offset="100%" stopColor="#1d4ed8" />
           </linearGradient>
           
-          {/* Arrow markers for flow paths */}
           <marker
             id="arrowGreen"
             viewBox="0 0 10 10"
@@ -322,7 +305,6 @@ export function VisxRealtimeEnergyFlow({
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af" />
           </marker>
           
-          {/* Glow filter for flow paths */}
           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -330,10 +312,8 @@ export function VisxRealtimeEnergyFlow({
         </defs>
         
         <Group>
-          {/* Flow paths between nodes */}
           {fluxData.map((flow, i) => (
             <g key={`flow-${i}`}>
-              {/* The path with simplified animation */}
               <animated.path
                 d={createBezierPath(flow.source, flow.target)}
                 fill="none"
@@ -346,7 +326,6 @@ export function VisxRealtimeEnergyFlow({
                 markerEnd={getFlowMarkers(flow.source)}
               />
               
-              {/* Flow label with wattage */}
               <g transform={`translate(${(nodes[flow.source].x + nodes[flow.target].x) / 2}, ${(nodes[flow.source].y + nodes[flow.target].y) / 2})`}>
                 <rect
                   x="-40"
@@ -376,16 +355,14 @@ export function VisxRealtimeEnergyFlow({
                   fontSize={9}
                   fill="#4b5563"
                 >
-                  {flow.watts.toLocaleString()} W
+                  {`${flow.watts.toLocaleString()} W`}
                 </Text>
               </g>
             </g>
           ))}
           
-          {/* Circular nodes for energy sources/destinations */}
           {donutsData.map((node) => (
             <g key={node.id} transform={`translate(${nodes[node.id].x}, ${nodes[node.id].y})`}>
-              {/* Background circle */}
               <circle
                 r={OUTER_RADIUS}
                 fill="white"
@@ -394,7 +371,6 @@ export function VisxRealtimeEnergyFlow({
                 strokeWidth={2}
               />
               
-              {/* Inner colored ring to represent power */}
               <circle
                 r={CENTER_RADIUS}
                 fill={node.color}
@@ -404,7 +380,6 @@ export function VisxRealtimeEnergyFlow({
                 strokeOpacity={0.5}
               />
               
-              {/* Node icon placeholder */}
               <g transform={`translate(-${ICON_SIZE/2}, -${ICON_SIZE/2})`}>
                 {node.id === 'PV' && (
                   <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500">
@@ -429,12 +404,11 @@ export function VisxRealtimeEnergyFlow({
                 
                 {node.id === 'GRID' && (
                   <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3z" />
                   </svg>
                 )}
               </g>
               
-              {/* Node label */}
               <text
                 textAnchor="middle"
                 y={CENTER_RADIUS + 25}
@@ -445,7 +419,6 @@ export function VisxRealtimeEnergyFlow({
                 {node.label}
               </text>
               
-              {/* Power value */}
               <text
                 textAnchor="middle"
                 y={5}
@@ -456,7 +429,6 @@ export function VisxRealtimeEnergyFlow({
                 {node.power.toLocaleString()}
               </text>
               
-              {/* Power unit */}
               <text
                 textAnchor="middle"
                 y={20}
@@ -472,4 +444,3 @@ export function VisxRealtimeEnergyFlow({
     </div>
   );
 }
-
