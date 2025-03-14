@@ -19,6 +19,13 @@ interface DateSelectorProps {
 }
 
 export function DateSelector({ date, onDateChange, className }: DateSelectorProps) {
+  const handleSelect = (newDate: Date | undefined) => {
+    if (newDate) {
+      console.log("DateSelector: new date selected:", newDate);
+      onDateChange(newDate);
+    }
+  };
+
   return (
     <div className={cn("flex items-center space-x-2", className)}>
       <span className="text-sm text-muted-foreground inline">Date:</span>
@@ -39,7 +46,7 @@ export function DateSelector({ date, onDateChange, className }: DateSelectorProp
           <Calendar
             mode="single"
             selected={date}
-            onSelect={(newDate) => newDate && onDateChange(newDate)}
+            onSelect={handleSelect}
             initialFocus
             locale={fr}
             className="pointer-events-auto"

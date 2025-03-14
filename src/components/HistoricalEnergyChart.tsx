@@ -1,10 +1,10 @@
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
 import VisxEnergyChart from '@/components/charts/VisxEnergyChart';
+import { EnergyChartWrapper } from '@/components/charts/EnergyChartWrapper';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -28,22 +28,23 @@ export function HistoricalEnergyChart({ history, configId }: HistoricalEnergyCha
   }, [history, selectedDate]);
 
   const handleDateChange = (date: Date) => {
+    console.log("HistoricalEnergyChart: Date changed to:", date);
     setSelectedDate(date);
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 pb-2">
-        <CardTitle className="text-xl">Historique Énergétique</CardTitle>
+    <EnergyChartWrapper
+      title="Historique Énergétique"
+      description="Visualisation des données énergétiques par jour"
+      dateSelector={
         <DateSelector 
           date={selectedDate}
           onDateChange={handleDateChange}
-          className="w-full sm:w-auto mt-2 sm:mt-0"
+          className="w-full sm:w-auto"
         />
-      </CardHeader>
-      <CardContent className="h-[500px] pt-6">
-        <VisxEnergyChart history={filteredHistory} configId={configId} />
-      </CardContent>
-    </Card>
+      }
+    >
+      <VisxEnergyChart history={filteredHistory} configId={configId} />
+    </EnergyChartWrapper>
   );
 }

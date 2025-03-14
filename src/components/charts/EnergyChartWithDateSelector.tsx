@@ -36,10 +36,19 @@ export function EnergyChartWithDateSelector({
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
     
-    return history.filter(item => {
+    console.log("Filtering data for date range:", { 
+      start: start.toISOString(), 
+      end: end.toISOString(),
+      totalDataPoints: history.length
+    });
+    
+    const filtered = history.filter(item => {
       const itemDate = new Date(item.timestamp);
       return isWithinInterval(itemDate, { start, end });
     });
+    
+    console.log(`Filtered data: ${filtered.length} points out of ${history.length}`);
+    return filtered;
   }, [history, selectedDate]);
 
   const handleDateChange = (date: Date) => {

@@ -24,7 +24,7 @@ export function EnergyChartWrapper({
 }: EnergyChartWrapperProps) {
   return (
     <Card className={cn("w-full", className)}>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle>{title}</CardTitle>
@@ -44,7 +44,7 @@ export function EnergyChartWrapper({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-[500px]">
+      <CardContent className="h-[500px] pt-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">Chargement des données...</p>
