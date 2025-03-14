@@ -21,15 +21,15 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
       return 0;
     }
     
-    // Total house consumption is (grid consumption + production - injection)
-    const totalConsumption = dailyTotals.consumption + dailyTotals.production - dailyTotals.injection;
+    // Calcul correct de la consommation totale de la maison
+    // C'est la consommation du réseau + (production PV - injection)
+    // La production consommée sur place est (production - injection)
+    const selfProducedConsumption = Math.max(0, dailyTotals.production - dailyTotals.injection);
+    const totalConsumption = dailyTotals.consumption + selfProducedConsumption;
     
     if (totalConsumption <= 0) {
       return 0;
     }
-    
-    // Self-produced consumption is (production - injection)
-    const selfProducedConsumption = dailyTotals.production - dailyTotals.injection;
     
     // Self-production rate is percentage of total consumption covered by self-produced energy
     const selfProductionRate = (selfProducedConsumption / totalConsumption) * 100;
@@ -41,10 +41,10 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
   const selfProductionRate = calculateSelfProductionRate();
   const formattedRate = selfProductionRate.toFixed(1);
   
-  // Calculate energy values in kWh
-  const totalConsumption = (dailyTotals?.consumption + dailyTotals?.production - dailyTotals?.injection || 0) / 1000;
+  // Calculate energy values in kWh correctly
+  const selfProducedConsumption = Math.max(0, (dailyTotals?.production - dailyTotals?.injection || 0)) / 1000;
   const gridConsumption = (dailyTotals?.consumption || 0) / 1000;
-  const selfProducedConsumption = (dailyTotals?.production - dailyTotals?.injection || 0) / 1000;
+  const totalConsumption = gridConsumption + selfProducedConsumption;
   
   // Determine color based on self-production rate
   const getColor = (rate: number) => {
