@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Group } from '@visx/group';
@@ -26,7 +25,6 @@ interface FluxData {
   target: string;
   kwh: number;
   title?: string;
-  direction: 'in' | 'out'; // Added direction property to control animation
   watts: number; // Power in watts for labeling
 }
 
@@ -160,39 +158,35 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
     const fluxData: FluxData[] = [];
 
-    // Fix flow direction logic with new direction property
-    // PV to Home flow - direction is always OUT from PV, IN to MAISON
+    // PV to Home flow
     if (pvToHome > 0) {
       fluxData.push({ 
         source: "PV", 
         target: "MAISON", 
         kwh: pvToHome / 1000,
         title: "Autoconsommation",
-        direction: 'out',
         watts: pvToHome
       });
     }
 
-    // Grid to Home flow - direction is always OUT from GRID, IN to MAISON
+    // Grid to Home flow
     if (isGridImporting && gridToHome > 0) {
       fluxData.push({ 
         source: "GRID", 
         target: "MAISON", 
         kwh: gridToHome / 1000,
         title: "Consommation",
-        direction: 'out',
         watts: gridToHome
       });
     }
 
-    // PV to Grid flow (export) - direction is always OUT from PV, IN to GRID
+    // PV to Grid flow (export)
     if (isGridExporting && pvToGrid > 0) {
       fluxData.push({ 
         source: "PV", 
         target: "GRID", 
         kwh: pvToGrid / 1000,
         title: "Injection",
-        direction: 'out',
         watts: pvToGrid
       });
     }
@@ -202,10 +196,10 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
   const { donutsData, fluxData } = useMemo(() => processData(), [data, config]);
   
-  // Simplified animation - always moves in the direction of flow
+  // Simple constant animation for flow
   const flowAnimation = useSpring({
-    from: { dashOffset: 0 },
-    to: { dashOffset: 16 },
+    from: { dashOffset: 16 },
+    to: { dashOffset: 0 },
     loop: true,
     config: { duration: 2000 }
   });
@@ -302,7 +296,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
           {fluxData.map((flow, i) => (
             <g key={`flow-${i}`}>
-              {/* The path with fixed animation direction */}
+              {/* The path with simplified animation */}
               <animated.path
                 d={createBezierPath(flow.source, flow.target)}
                 fill="none"
@@ -310,7 +304,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 strokeWidth={strokeScale(Math.max(0.1, flow.kwh))}
                 strokeLinecap="round"
                 strokeDasharray="8 8"
-                strokeDashoffset={flow.direction === 'out' ? flowAnimation.dashOffset : flowAnimation.dashOffset.to(v => -v)}
+                strokeDashoffset={flowAnimation.dashOffset}
                 filter="url(#glow)"
               />
               
@@ -585,3 +579,4 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     </div>
   );
 }
+

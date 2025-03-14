@@ -21,10 +21,10 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
       return 0;
     }
     
-    // Calcul correct de la consommation totale de la maison
-    // C'est la consommation du réseau + (production PV - injection)
-    // La production consommée sur place est (production - injection)
+    // Correct calculation for self-produced consumption (what was produced and consumed locally)
     const selfProducedConsumption = Math.max(0, dailyTotals.production - dailyTotals.injection);
+    
+    // Total consumption is grid consumption + self-produced consumption
     const totalConsumption = dailyTotals.consumption + selfProducedConsumption;
     
     if (totalConsumption <= 0) {
