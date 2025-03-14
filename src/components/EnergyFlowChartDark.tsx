@@ -7,7 +7,6 @@ import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils';
 import { Clock, Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { D3EnergyFlow } from './energy-flow/D3EnergyFlow';
-// Import the new ViSX-based component instead of D3
 import { VisxRealtimeEnergyFlowComponent } from './energy-flow-visx';
 
 interface EnergyFlowChartDarkProps {
@@ -39,10 +38,7 @@ export function EnergyFlowChartDark({
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium flex items-center justify-between">
-          <div className="flex items-center">
-            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded mr-2">FLUX D'ÉNERGIE</span>
-          </div>
+        <div className="flex items-center justify-between">
           <Tabs 
             value={viewMode} 
             onValueChange={(value) => setViewMode(value as 'realtime' | 'daily')} 
@@ -59,7 +55,10 @@ export function EnergyFlowChartDark({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </CardTitle>
+          <div className="flex items-center">
+            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">FLUX D'ÉNERGIE</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="flex items-center justify-center p-4 h-[calc(100%-60px)]">
         {viewMode === 'realtime' ? (

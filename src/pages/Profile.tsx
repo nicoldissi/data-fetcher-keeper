@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -8,6 +7,8 @@ import { ShellyConfig } from "@/lib/types";
 import { UserProfileCard } from "@/components/profile/UserProfileCard";
 import { ShellyConfigList } from "@/components/profile/ShellyConfigList";
 import { RoofSections } from "@/components/profile/RoofSections";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -15,7 +16,6 @@ export default function Profile() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
   
-  // Shelly configurations state
   const [shellyConfigs, setShellyConfigs] = useState<ShellyConfig[]>([]);
   const [savingConfig, setSavingConfig] = useState<string | null>(null);
   const [deletingConfig, setDeletingConfig] = useState<string | null>(null);
@@ -46,7 +46,6 @@ export default function Profile() {
       }
     );
 
-    // Load Shelly configurations
     const loadShellyConfigs = async () => {
       const configs = await getShellyConfigs();
       setShellyConfigs(configs);
@@ -64,7 +63,7 @@ export default function Profile() {
     setSavingConfig(config.id || "new");
     
     try {
-      console.log('Updating config:', JSON.stringify(config, null, 2)); // More detailed debug log
+      console.log('Updating config:', JSON.stringify(config, null, 2));
       const updatedConfig = await updateShellyConfig({
         id: config.id,
         deviceId: config.deviceId?.trim() || '',
@@ -79,7 +78,7 @@ export default function Profile() {
       });
       
       if (updatedConfig) {
-        console.log('Config updated successfully:', JSON.stringify(updatedConfig, null, 2)); // More detailed debug log
+        console.log('Config updated successfully:', JSON.stringify(updatedConfig, null, 2));
         const newConfigs = [...shellyConfigs];
         newConfigs[index] = updatedConfig;
         setShellyConfigs(newConfigs);
@@ -112,7 +111,6 @@ export default function Profile() {
       const success = await deleteShellyConfig(id);
       
       if (success) {
-        // Remove the config from the list
         const newConfigs = [...shellyConfigs];
         newConfigs.splice(index, 1);
         setShellyConfigs(newConfigs);
@@ -162,6 +160,10 @@ export default function Profile() {
     setShellyConfigs(newConfigs);
   };
 
+  const handleGoBack = () => {
+    navigate("/");
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Chargement...</div>;
   }
@@ -172,7 +174,13 @@ export default function Profile() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-6">Profil utilisateur</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Profil utilisateur</h1>
+        <Button variant="outline" size="sm" onClick={handleGoBack} className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Retour au tableau de bord
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 gap-6">
         <UserProfileCard 

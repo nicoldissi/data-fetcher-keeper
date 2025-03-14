@@ -9,7 +9,7 @@ interface EnergyChartWrapperProps {
   controls?: React.ReactNode;
   children: React.ReactNode;
   isLoading?: boolean;
-  className?: string; // Added className prop
+  className?: string;
 }
 
 export function EnergyChartWrapper({
@@ -35,7 +35,7 @@ export function EnergyChartWrapper({
           )}
         </div>
       </CardHeader>
-      <CardContent className="h-[400px]">
+      <CardContent className="h-[500px]">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">Chargement des données...</p>

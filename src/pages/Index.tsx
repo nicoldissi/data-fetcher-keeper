@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { getShellyConfig } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle, Menu } from "lucide-react";
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { cn } from '@/lib/utils';
+import { ShellyConfigForm } from "@/components/ShellyConfigForm";
 
 const Index = () => {
   const [configId, setConfigId] = useState<string | undefined>();
@@ -216,7 +218,7 @@ const Index = () => {
             </div>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarMenu>
+            <SidebarMenu className="bg-white dark:bg-gray-900 md:bg-transparent">
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setActiveSection("device-status")}
