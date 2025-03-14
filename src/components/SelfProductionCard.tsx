@@ -92,7 +92,7 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium flex items-center">
           <span className="bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded mr-2">QUOTIDIEN</span>
-          Taux d'Autoproduction
+          Autoproduction
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center p-6 h-[calc(100%-4rem)]">
