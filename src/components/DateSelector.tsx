@@ -22,7 +22,9 @@ export function DateSelector({ date, onDateChange, className }: DateSelectorProp
   const handleSelect = (newDate: Date | undefined) => {
     if (newDate) {
       console.log("DateSelector: new date selected:", newDate);
-      onDateChange(newDate);
+      // Create a new Date object to ensure it's treated as a new value
+      const selectedDate = new Date(newDate);
+      onDateChange(selectedDate);
     }
   };
 

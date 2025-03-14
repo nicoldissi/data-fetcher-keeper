@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
@@ -21,11 +21,22 @@ export function HistoricalEnergyChart({ history, configId }: HistoricalEnergyCha
     const start = startOfDay(selectedDate);
     const end = endOfDay(selectedDate);
     
-    return history.filter(item => {
+    console.log("HistoricalEnergyChart: Filtering for date:", selectedDate.toISOString());
+    console.log("Date range:", { start: start.toISOString(), end: end.toISOString() });
+    
+    const filtered = history.filter(item => {
       const itemDate = new Date(item.timestamp);
       return isWithinInterval(itemDate, { start, end });
     });
+    
+    console.log(`Filtered history: ${filtered.length} points out of ${history.length}`);
+    return filtered;
   }, [history, selectedDate]);
+
+  // Log when selectedDate changes to verify it's being updated
+  useEffect(() => {
+    console.log("HistoricalEnergyChart: Selected date changed to:", selectedDate.toISOString());
+  }, [selectedDate]);
 
   const handleDateChange = (date: Date) => {
     console.log("HistoricalEnergyChart: Date changed to:", date);

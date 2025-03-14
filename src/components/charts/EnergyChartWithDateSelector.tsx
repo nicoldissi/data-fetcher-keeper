@@ -26,7 +26,7 @@ export function EnergyChartWithDateSelector({
 
   // Log to debug
   useEffect(() => {
-    console.log("EnergyChartWithDateSelector rendered", { selectedDate });
+    console.log("EnergyChartWithDateSelector: Selected date changed to:", selectedDate.toISOString());
   }, [selectedDate]);
 
   // Filter history data for the selected date
@@ -52,8 +52,9 @@ export function EnergyChartWithDateSelector({
   }, [history, selectedDate]);
 
   const handleDateChange = (date: Date) => {
-    console.log("Date changed to:", date);
-    setSelectedDate(date);
+    console.log("Date selection changed to:", date.toISOString());
+    // Force a new Date object to trigger state update
+    setSelectedDate(new Date(date));
   };
 
   return (
