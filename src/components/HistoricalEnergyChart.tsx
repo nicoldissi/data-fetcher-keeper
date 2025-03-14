@@ -33,16 +33,20 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <DateSelector 
-          date={selectedDate}
-          onDateChange={handleDateChange}
-        />
-      </div>
-      
-      <VisxEnergyChart history={filteredHistory} configId={configId} />
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <CardTitle>Historique Énergétique</CardTitle>
+          <DateSelector 
+            date={selectedDate}
+            onDateChange={handleDateChange}
+          />
+        </div>
+      </CardHeader>
+      <CardContent className="h-[500px]">
+        <VisxEnergyChart history={filteredHistory} configId={configId} />
+      </CardContent>
+    </Card>
   );
 }
 

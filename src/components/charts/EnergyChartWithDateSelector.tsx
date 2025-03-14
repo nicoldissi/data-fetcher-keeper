@@ -47,6 +47,7 @@ export function EnergyChartWithDateSelector({
         <DateSelector
           date={selectedDate}
           onDateChange={setSelectedDate}
+          className="w-full sm:w-auto"
         />
       }
     >

@@ -27,7 +27,7 @@ export function DateSelector({ date, onDateChange, className }: DateSelectorProp
           <Button
             variant={"outline"}
             className={cn(
-              "w-[180px] justify-start text-left font-normal",
+              "w-full sm:w-[180px] justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
