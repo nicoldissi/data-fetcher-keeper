@@ -1,23 +1,26 @@
+
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
 import { Group } from '@visx/group';
-import { Arc } from '@visx/shape';
-import { Text } from '@visx/text';
+import { useSpring, animated } from '@react-spring/web';
+import { Linear } from '@visx/curve';
+import { LinePath } from '@visx/shape';
 import { scaleLinear } from '@visx/scale';
+import { Text } from '@visx/text';
+import { GridRows, GridColumns } from '@visx/grid';
 import { LinearGradient } from '@visx/gradient';
-import { animated, useSpring } from '@react-spring/web';
-import { Sun, HousePlug, Zap } from 'lucide-react';
+import { localPoint } from '@visx/event';
+import { AxisLeft, AxisBottom } from '@visx/axis';
+import { Line, Circle, Arc } from '@visx/shape';
+import { RectClipPath } from '@visx/clip-path';
+import { GradientOrangeRed, GradientPurpleGreen } from '@visx/gradient';
+import { Tooltip, useTooltip } from '@visx/tooltip';
+import { Spring } from 'react-spring';
 
-interface VisxRealtimeEnergyFlowProps {
-  data: ShellyEMData | null;
-  className?: string;
-  configId?: string;
-  config?: ShellyConfig | null;
-}
-
-interface Center {
+interface NodePosition {
   x: number;
   y: number;
+  radius: number;
 }
 
 interface FluxData {
@@ -30,129 +33,151 @@ interface FluxData {
 
 interface DonutData {
   id: string;
-  label: string;
-  totalKwh: number;
-  ratio: number;
-  importTotal?: number;
-  exportTotal?: number;
-  selfConsumptionRatio?: number;
-  color?: string;
-  textColor?: string;
-  powerValue?: string;
-  maxValue?: string;
-  pvPower?: number;
-  gridPower?: number;
-  pvRatio?: number;
-  gridRatio?: number;
-  importRatio?: number;
-  exportRatio?: number;
-  isExporting?: boolean;
-  isImporting?: boolean;
-  homeConsumption?: number;
+  label?: string;
+  power: number;
+  unit: string;
+  color: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  direction?: 'in' | 'out';
 }
 
-const AnimatedArc = animated(Arc);
+interface EnergyFlowProps {
+  width: number;
+  height: number;
+  data: ShellyEMData;
+  config?: ShellyConfig;
+  margin?: { top: number; right: number; bottom: number; left: number };
+}
 
-export function VisxRealtimeEnergyFlow({ data, className, configId, config }: VisxRealtimeEnergyFlowProps) {
-  const [isClient, setIsClient] = useState(false);
+export function VisxRealtimeEnergyFlow({
+  width,
+  height,
+  data,
+  config,
+  margin = { top: 40, right: 40, bottom: 40, left: 40 }
+}: EnergyFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerWidth = width;
+  const containerHeight = height;
   
-  const width = 700;
-  const height = 500;
-  const outerRadius = 60;
-  const thickness = 12;
+  const nodeWidth = 100;
+  const CENTER_RADIUS = 40;
+  const OUTER_RADIUS = 50;
+  const INNER_RADIUS = 30;
+  const ICON_SIZE = 32;
+
+  const { containerRef, tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } = useTooltip();
+
+  const xScale = scaleLinear({
+    domain: [0, 1],
+    range: [margin.left, containerWidth - margin.right],
+  });
   
-  const centers = {
-    PV:     { x: width / 2,        y: 120 },
-    GRID:   { x: width / 2 - 240,  y: 380 },
-    MAISON: { x: width / 2 + 240,  y: 380 }
+  const yScale = scaleLinear({
+    domain: [0, 1],
+    range: [containerHeight - margin.bottom, margin.top],
+  });
+
+  const strokeScale = scaleLinear({
+    domain: [0, 5], // 0-5 kWh range
+    range: [2, 15], // 2-15px stroke width
+  });
+
+  const nodes: Record<string, NodePosition> = {
+    PV: { x: containerWidth / 2, y: margin.top + CENTER_RADIUS + 20, radius: CENTER_RADIUS },
+    GRID: { x: margin.left + CENTER_RADIUS + 40, y: containerHeight - margin.bottom - CENTER_RADIUS - 40, radius: CENTER_RADIUS },
+    MAISON: { x: containerWidth - margin.right - CENTER_RADIUS - 40, y: containerHeight - margin.bottom - CENTER_RADIUS - 40, radius: CENTER_RADIUS },
   };
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const createBezierPath = (source: string, target: string) => {
+    const start = nodes[source];
+    const end = nodes[target];
+    
+    if (!start || !end) return '';
+    
+    // Calculate the direct slope between source and target
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const midX = start.x + dx / 2;
+    const midY = start.y + dy / 2;
+    
+    // Additional control points to create a curved path
+    const curveStrength = 50;
+    
+    // PV to Home specific curve adjustment
+    if (source === 'PV' && target === 'MAISON') {
+      return `M${start.x},${start.y + start.radius} 
+              C${start.x + curveStrength},${midY}, 
+                ${end.x - curveStrength},${midY}, 
+                ${end.x},${end.y - end.radius}`;
+    }
+    
+    // PV to Grid specific curve adjustment
+    if (source === 'PV' && target === 'GRID') {
+      return `M${start.x},${start.y + start.radius} 
+              C${start.x - curveStrength},${midY}, 
+                ${end.x + curveStrength},${midY}, 
+                ${end.x + end.radius},${end.y}`;
+    }
+    
+    // Grid to Home specific curve adjustment
+    if (source === 'GRID' && target === 'MAISON') {
+      return `M${start.x + start.radius},${start.y} 
+              C${midX},${start.y - curveStrength}, 
+                ${midX},${end.y - curveStrength}, 
+                ${end.x - end.radius},${end.y}`;
+    }
+    
+    // Default fallback for any other combinations
+    return `M${start.x},${start.y}
+            C${start.x},${midY}, 
+              ${end.x},${midY}, 
+              ${end.x},${end.y}`;
+  };
 
+  // Process data to create the visualization data structures
   const processData = () => {
     if (!data) return { donutsData: [], fluxData: [] };
-
-    const inverterKVA = config?.inverter_power_kva !== undefined ? Number(config.inverter_power_kva) : 3.0;
-    const gridKVA = config?.grid_subscription_kva !== undefined ? Number(config.grid_subscription_kva) : 6.0;
     
-    const inverterMaxPower = inverterKVA * 1000;
-    const gridMaxPower = gridKVA * 1000;
-
-    const pvPower = data.pv_power;
-    const gridPower = Math.abs(data.power);
+    const pvPower = data.pv_power || 0;
+    const gridPower = data.power || 0;
+    const isGridImporting = gridPower > 0;
+    const isGridExporting = gridPower < 0;
     
-    let realHomeConsumption;
-    if (data.power < 0) {
-      // If grid power is negative, we're exporting (PV produces more than home consumes)
-      realHomeConsumption = data.pv_power - Math.abs(data.power);
-    } else {
-      // If grid power is positive, we're importing (home consumes more than PV produces)
-      realHomeConsumption = data.power + data.pv_power;
-    }
-
-    const pvRatio = Math.min(1, data.pv_power / inverterMaxPower);
-    const homeRatio = Math.min(1, realHomeConsumption / gridMaxPower);
-
-    const isPVProducing = data.pv_power > 6;
-    const isGridImporting = data.power > 0;
-    const isGridExporting = data.power < 0;
-
-    // Flow values
-    const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption) : 0;
-    const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) : 0;
-    const gridToHome = isGridImporting ? gridPower : 0;
-
-    const pvToHomeRatio = realHomeConsumption > 0 ? pvToHome / realHomeConsumption : 0;
-    const gridToHomeRatio = realHomeConsumption > 0 ? gridToHome / realHomeConsumption : 0;
-
-    const gridExportRatio = isGridExporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
-    const gridImportRatio = isGridImporting ? Math.min(1, Math.abs(data.power) / gridMaxPower) : 0;
-
-    const donutsData = [
-      { 
-        id: "PV", 
-        label: "", 
-        totalKwh: pvPower / 1000, 
-        ratio: pvRatio, 
-        selfConsumptionRatio: pvPower > 0 ? (pvToHome / pvPower) * 100 : 0,
-        powerValue: `${data.pv_power.toFixed(0)} W`,
-        maxValue: `${inverterKVA.toFixed(1)} kW`,
-        color: "#66BB6A",
-        textColor: "#4CAF50"
+    // Calculate real consumption values
+    const gridToHome = isGridImporting ? Math.abs(gridPower) : 0;
+    const pvToGrid = isGridExporting ? Math.abs(gridPower) : 0;
+    const pvToHome = Math.max(0, pvPower - pvToGrid);
+    const totalConsumption = pvToHome + gridToHome;
+    
+    const donutsData: DonutData[] = [
+      {
+        id: "PV",
+        label: "Photovoltaïque",
+        power: pvPower,
+        unit: "W",
+        color: "#10b981",
+        tooltip: `Production PV: ${pvPower}W`,
+        direction: pvPower > 0 ? 'out' : 'in'
       },
-      { 
-        id: "MAISON", 
-        label: "", 
-        totalKwh: realHomeConsumption / 1000,
-        ratio: Math.min(1, realHomeConsumption / gridMaxPower),
-        pvRatio: pvToHomeRatio,
-        gridRatio: gridToHomeRatio,
-        powerValue: `${realHomeConsumption.toFixed(0)} W`,
-        maxValue: `${gridKVA.toFixed(1)} kW`,
-        pvPower: pvToHome,
-        gridPower: gridToHome,
-        homeConsumption: realHomeConsumption,
-        color: "#F97316",
-        textColor: "#EA580C"
+      {
+        id: "MAISON",
+        label: "Maison",
+        power: totalConsumption,
+        unit: "W",
+        color: "#f97316",
+        tooltip: `Consommation totale: ${totalConsumption}W`,
+        direction: 'in'
       },
-      { 
-        id: "GRID", 
-        label: "", 
-        totalKwh: gridPower / 1000, 
-        ratio: 1,
-        importRatio: gridImportRatio,
-        exportRatio: gridExportRatio,
-        isExporting: isGridExporting,
-        isImporting: isGridImporting,
-        importTotal: isGridImporting ? gridPower / 1000 : 0, 
-        exportTotal: isGridExporting ? gridPower / 1000 : 0,
-        powerValue: `${Math.abs(data.power).toFixed(0)} W`,
-        maxValue: `${gridKVA.toFixed(1)} kW`,
-        color: "#42A5F5",
-        textColor: "#2196F3"
+      {
+        id: "GRID",
+        label: "Réseau",
+        power: Math.abs(gridPower),
+        unit: "W",
+        color: isGridImporting ? "#3b82f6" : "#ef4444",
+        tooltip: `${isGridImporting ? 'Import' : 'Export'} réseau: ${Math.abs(gridPower)}W`,
+        direction: isGridImporting ? 'out' : 'in'
       }
     ];
 
@@ -190,392 +215,260 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
         watts: pvToGrid
       });
     }
-
+    
     return { donutsData, fluxData };
   };
 
   const { donutsData, fluxData } = useMemo(() => processData(), [data, config]);
   
-  // Simple constant animation for flow
+  // Simple constant animation for flow - reversed to show correct direction
   const flowAnimation = useSpring({
-    from: { dashOffset: 16 },
-    to: { dashOffset: 0 },
+    from: { dashOffset: 0 },
+    to: { dashOffset: -16 },
     loop: true,
     config: { duration: 2000 }
   });
 
-  const createBezierPath = useMemo(() => {
-    const pathCache: Record<string, string> = {};
-    
-    return (source: string, target: string) => {
-      const cacheKey = `${source}-${target}`;
-      
-      if (pathCache[cacheKey]) {
-        return pathCache[cacheKey];
-      }
-      
-      const s = centers[source as keyof typeof centers];
-      const t = centers[target as keyof typeof centers];
-      const dx = t.x - s.x;
-      const dy = t.y - s.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const offset = outerRadius + 5;
-      const ratioStart = offset / dist;
-      const x1 = s.x + dx * ratioStart;
-      const y1 = s.y + dy * ratioStart;
-      const ratioEnd = (dist - offset) / dist;
-      const x2 = s.x + dx * ratioEnd;
-      const y2 = s.y + dy * ratioEnd;
-      const mx = (x1 + x2) / 2;
-      const my = (y1 + y2) / 2 - 40;
-      
-      const path = `M ${x1},${y1} Q ${mx},${my} ${x2},${y2}`;
-      pathCache[cacheKey] = path;
-      
-      return path;
-    };
-  }, [centers, outerRadius]);
-
-  const getFluxColor = (source: string) => {
-    if(source === "PV") return "#66BB6A";
-    if(source === "GRID") return "#42A5F5";
-    return "#888";
+  // Function to create a gradient ID
+  const getGradientId = (source: string, target: string) => {
+    return `gradient-${source.toLowerCase()}-${target.toLowerCase()}`;
   };
 
-  const kwhValues = fluxData.map(f => f.kwh);
-  const maxKwh = Math.max(...kwhValues, 0.1);
-  const minKwh = Math.min(...kwhValues, 0.1);
-  const strokeScale = scaleLinear<number>({
-    domain: [Math.max(0.1, minKwh), Math.max(1, maxKwh)],
-    range: [2, 8],
-    clamp: true
-  });
+  // Function to get colors for flow paths
+  const getFlowColors = (source: string, target: string) => {
+    if (source === 'PV' && target === 'MAISON') return ['#10b981', '#047857']; // Green to dark green
+    if (source === 'PV' && target === 'GRID') return ['#10b981', '#4ade80']; // Green to light green
+    if (source === 'GRID' && target === 'MAISON') return ['#3b82f6', '#1d4ed8']; // Blue to dark blue
+    return ['#9ca3af', '#374151']; // Default gray gradient
+  };
 
-  if (!data) {
-    return (
-      <div className="h-[500px] flex items-center justify-center">
-        <p className="text-gray-500">En attente de données en temps réel...</p>
-      </div>
-    );
-  }
+  const getFlowMarkers = (source: string) => {
+    if (source === 'PV') return 'url(#arrowGreen)';
+    if (source === 'GRID') return 'url(#arrowBlue)';
+    return 'url(#arrowGray)';
+  };
 
-  if (!isClient) {
-    return null;
-  }
+  useEffect(() => {
+    console.log('VisxRealtimeEnergyFlow rendered with data:', data);
+    console.log('Processed flux data:', fluxData);
+  }, [data, fluxData]);
 
   return (
-    <div className={className}>
-      <div className="flex justify-center relative">
-        <svg 
-          ref={svgRef} 
-          width={width} 
-          height={height} 
-          viewBox={`0 0 ${width} ${height}`}
-          className="max-w-full h-auto"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          <Text
-            x={width / 2}
-            y={40}
-            textAnchor="middle"
-            verticalAnchor="middle"
-            style={{ fontSize: 18, fontWeight: 'bold', fill: '#555' }}
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%'
+      }}
+    >
+      <svg
+        ref={svgRef}
+        width={containerWidth}
+        height={containerHeight}
+        overflow="visible"
+      >
+        <defs>
+          {/* Define gradients for flow paths */}
+          <linearGradient id="gradient-pv-maison" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#047857" />
+          </linearGradient>
+          
+          <linearGradient id="gradient-pv-grid" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#4ade80" />
+          </linearGradient>
+          
+          <linearGradient id="gradient-grid-maison" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#1d4ed8" />
+          </linearGradient>
+          
+          {/* Arrow markers for flow paths */}
+          <marker
+            id="arrowGreen"
+            viewBox="0 0 10 10"
+            refX="1"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
           >
-            Flux Énergétique en Temps Réel
-          </Text>
-
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+          </marker>
+          
+          <marker
+            id="arrowBlue"
+            viewBox="0 0 10 10"
+            refX="1"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+          </marker>
+          
+          <marker
+            id="arrowGray"
+            viewBox="0 0 10 10"
+            refX="1"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af" />
+          </marker>
+          
+          {/* Glow filter for flow paths */}
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        
+        <Group>
+          {/* Flow paths between nodes */}
           {fluxData.map((flow, i) => (
             <g key={`flow-${i}`}>
               {/* The path with simplified animation */}
               <animated.path
                 d={createBezierPath(flow.source, flow.target)}
                 fill="none"
-                stroke={getFluxColor(flow.source)}
+                stroke={`url(#gradient-${flow.source.toLowerCase()}-${flow.target.toLowerCase()})`}
                 strokeWidth={strokeScale(Math.max(0.1, flow.kwh))}
                 strokeLinecap="round"
                 strokeDasharray="8 8"
                 strokeDashoffset={flowAnimation.dashOffset}
                 filter="url(#glow)"
+                markerEnd={getFlowMarkers(flow.source)}
               />
               
-              {/* Flow label */}
-              {(() => {
-                const s = centers[flow.source as keyof typeof centers];
-                const t = centers[flow.target as keyof typeof centers];
-                const dx = t.x - s.x;
-                const dy = t.y - s.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const offset = outerRadius + 5;
-                const ratioStart = offset / dist;
-                const x1 = s.x + dx * ratioStart;
-                const y1 = s.y + dy * ratioStart;
-                const ratioEnd = (dist - offset) / dist;
-                const x2 = s.x + dx * ratioEnd;
-                const y2 = s.y + dy * ratioEnd;
-                const mx = (x1 + x2) / 2;
-                const my = (y1 + y2) / 2 - 10;
-                
-                const tParam = 0.5;
-                const bezierX = (1-tParam)*(1-tParam)*x1 + 2*(1-tParam)*tParam*mx + tParam*tParam*x2;
-                const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
-                
-                const title = flow.title || "";
-                const valueText = `${flow.watts.toFixed(0)} W`;
-                const labelWidth = Math.max(90, Math.max(title.length, valueText.length) * 7);
-                
-                const borderColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#888";
-                const textColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#555";
-                
-                return (
-                  <g key={`label-${i}`}>
-                    <rect
-                      x={bezierX - labelWidth/2}
-                      y={bezierY - 25}
-                      width={labelWidth}
-                      height={40}
-                      rx={12}
-                      fill="white"
-                      stroke={borderColor}
-                      strokeWidth={1}
-                      fillOpacity={0.9}
-                      filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.1))"
-                    />
-                    <Text
-                      x={bezierX}
-                      y={bezierY - 6}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 12, fontWeight: 500, fill: textColor }}
-                    >
-                      {title}
-                    </Text>
-                    <Text
-                      x={bezierX}
-                      y={bezierY + 12}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 13, fontWeight: 'bold', fill: textColor }}
-                    >
-                      {valueText}
-                    </Text>
-                  </g>
-                );
-              })()}
+              {/* Flow label with wattage */}
+              <g transform={`translate(${(nodes[flow.source].x + nodes[flow.target].x) / 2}, ${(nodes[flow.source].y + nodes[flow.target].y) / 2})`}>
+                <rect
+                  x="-40"
+                  y="-15"
+                  width="80"
+                  height="30"
+                  rx="15"
+                  fill="white"
+                  fillOpacity="0.8"
+                  stroke={flow.source === 'PV' ? '#10b981' : '#3b82f6'}
+                  strokeWidth="1"
+                />
+                <Text
+                  textAnchor="middle"
+                  verticalAnchor="middle"
+                  y="-3"
+                  fontSize={10}
+                  fontWeight="bold"
+                  fill="#374151"
+                >
+                  {flow.title}
+                </Text>
+                <Text
+                  textAnchor="middle"
+                  verticalAnchor="middle"
+                  y="9"
+                  fontSize={9}
+                  fill="#4b5563"
+                >
+                  {flow.watts.toLocaleString()} W
+                </Text>
+              </g>
             </g>
           ))}
-
-          {donutsData.map((donut) => {
-            const center = centers[donut.id as keyof typeof centers];
-            return (
-              <Group key={donut.id} left={center.x} top={center.y}>
-                <circle
-                  r={outerRadius - thickness / 2}
-                  fill="white"
-                  stroke="#e2e8f0"
-                  strokeWidth={thickness}
-                />
-
-                {donut.id === "PV" && (
-                  <>
-                    <Arc
-                      innerRadius={outerRadius - thickness}
-                      outerRadius={outerRadius}
-                      startAngle={-120 * (Math.PI / 180)}
-                      endAngle={120 * (Math.PI / 180)}
-                      fill="#8E9196"
-                      fillOpacity={0.2}
-                    />
-                    {donut.ratio > 0 && (
-                      <Arc
-                        innerRadius={outerRadius - thickness}
-                        outerRadius={outerRadius}
-                        startAngle={-120 * (Math.PI / 180)}
-                        endAngle={-120 * (Math.PI / 180) + (donut.ratio * 240 * (Math.PI / 180))}
-                        fill={donut.color || "#66BB6A"}
-                      />
-                    )}
-                    <foreignObject
-                      width={24}
-                      height={24}
-                      x={-12}
-                      y={-36}
-                      style={{ overflow: 'visible' }}
-                    >
-                      <Sun size={24} color={donut.textColor} />
-                    </foreignObject>
-                    <Text
-                      x={0}
-                      y={10}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 18, fontWeight: 500, fill: donut.textColor }}
-                    >
-                      {donut.powerValue}
-                    </Text>
-                    <Text
-                      x={65}
-                      y={35}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 12, fontWeight: 400, fill: donut.textColor }}
-                    >
-                      {donut.maxValue}
-                    </Text>
-                  </>
+          
+          {/* Circular nodes for energy sources/destinations */}
+          {donutsData.map((node) => (
+            <g key={node.id} transform={`translate(${nodes[node.id].x}, ${nodes[node.id].y})`}>
+              {/* Background circle */}
+              <circle
+                r={OUTER_RADIUS}
+                fill="white"
+                fillOpacity={0.8}
+                stroke="#f1f5f9"
+                strokeWidth={2}
+              />
+              
+              {/* Inner colored ring to represent power */}
+              <circle
+                r={CENTER_RADIUS}
+                fill={node.color}
+                fillOpacity={0.15}
+                stroke={node.color}
+                strokeWidth={2}
+                strokeOpacity={0.5}
+              />
+              
+              {/* Node icon placeholder */}
+              <g transform={`translate(-${ICON_SIZE/2}, -${ICON_SIZE/2})`}>
+                {node.id === 'PV' && (
+                  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                  </svg>
                 )}
-
-                {donut.id === "MAISON" && (
-                  <>
-                    <Arc
-                      innerRadius={outerRadius - thickness}
-                      outerRadius={outerRadius}
-                      startAngle={-120 * (Math.PI / 180)}
-                      endAngle={120 * (Math.PI / 180)}
-                      fill="#8E9196"
-                      fillOpacity={0.2}
-                    />
-                    {donut.ratio > 0 && donut.homeConsumption && donut.homeConsumption > 0 && (
-                      <>
-                        <Arc
-                          innerRadius={outerRadius - thickness}
-                          outerRadius={outerRadius}
-                          startAngle={-120 * (Math.PI / 180)}
-                          endAngle={-120 * (Math.PI / 180) + (donut.gridRatio || 0) * donut.ratio * 240 * (Math.PI / 180)}
-                          fill="#42A5F5"
-                        />
-                        <Arc
-                          innerRadius={outerRadius - thickness}
-                          outerRadius={outerRadius}
-                          startAngle={-120 * (Math.PI / 180) + (donut.gridRatio || 0) * donut.ratio * 240 * (Math.PI / 180)}
-                          endAngle={-120 * (Math.PI / 180) + donut.ratio * 240 * (Math.PI / 180)}
-                          fill="#66BB6A"
-                        />
-                      </>
-                    )}
-                    <foreignObject
-                      width={24}
-                      height={24}
-                      x={-12}
-                      y={-36}
-                      style={{ overflow: 'visible' }}
-                    >
-                      <HousePlug size={24} color={donut.textColor} />
-                    </foreignObject>
-                    <Text
-                      x={0}
-                      y={10}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 18, fontWeight: 500, fill: donut.textColor }}
-                    >
-                      {donut.powerValue}
-                    </Text>
-                    <Text
-                      x={65}
-                      y={35}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 12, fontWeight: 400, fill: donut.textColor }}
-                    >
-                      {donut.maxValue}
-                    </Text>
-                  </>
+                
+                {node.id === 'MAISON' && (
+                  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
                 )}
-
-                {donut.id === "GRID" && (
-                  <>
-                    <Arc
-                      innerRadius={outerRadius - thickness}
-                      outerRadius={outerRadius}
-                      startAngle={-120 * (Math.PI / 180)}
-                      endAngle={120 * (Math.PI / 180)}
-                      fill="#8E9196"
-                      fillOpacity={0.2}
-                    />
-                    {donut.isImporting && donut.importRatio && donut.importRatio > 0 && (
-                      <Arc
-                        innerRadius={outerRadius - thickness}
-                        outerRadius={outerRadius}
-                        startAngle={-120 * (Math.PI / 180)}
-                        endAngle={-120 * (Math.PI / 180) + (donut.importRatio * 240 * (Math.PI / 180))}
-                        fill={donut.color || "#42A5F5"}
-                      />
-                    )}
-                    {donut.isExporting && donut.exportRatio && donut.exportRatio > 0 && (
-                      <Arc
-                        innerRadius={outerRadius - thickness}
-                        outerRadius={outerRadius}
-                        startAngle={-120 * (Math.PI / 180)}
-                        endAngle={-120 * (Math.PI / 180) + (donut.exportRatio * 240 * (Math.PI / 180))}
-                        fill={donut.color || "#42A5F5"}
-                      />
-                    )}
-                    <foreignObject
-                      width={24}
-                      height={24}
-                      x={-12}
-                      y={-36}
-                      style={{ overflow: 'visible' }}
-                    >
-                      <Zap size={24} color={donut.textColor} />
-                    </foreignObject>
-                    <Text
-                      x={0}
-                      y={10}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 18, fontWeight: 500, fill: donut.textColor }}
-                    >
-                      {donut.powerValue}
-                    </Text>
-                    <Text
-                      x={65}
-                      y={35}
-                      textAnchor="middle"
-                      verticalAnchor="middle"
-                      style={{ fontSize: 12, fontWeight: 400, fill: donut.textColor }}
-                    >
-                      {donut.maxValue}
-                    </Text>
-                    {donut.isExporting && (
-                      <Text
-                        x={-65}
-                        y={35}
-                        textAnchor="middle"
-                        verticalAnchor="middle"
-                        style={{ fontSize: 12, fontWeight: 500, fill: donut.textColor }}
-                      >
-                        Injection
-                      </Text>
-                    )}
-                    {donut.isImporting && (
-                      <Text
-                        x={-65}
-                        y={35}
-                        textAnchor="middle"
-                        verticalAnchor="middle"
-                        style={{ fontSize: 12, fontWeight: 500, fill: donut.textColor }}
-                      >
-                        Consommation
-                      </Text>
-                    )}
-                  </>
+                
+                {node.id === 'GRID' && (
+                  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+                  </svg>
                 )}
-              </Group>
-            );
-          })}
-        </svg>
-      </div>
+              </g>
+              
+              {/* Node label */}
+              <text
+                textAnchor="middle"
+                y={CENTER_RADIUS + 25}
+                fontSize={12}
+                fontWeight="600"
+                fill="#334155"
+              >
+                {node.label}
+              </text>
+              
+              {/* Power value */}
+              <text
+                textAnchor="middle"
+                y={5}
+                fontSize={14}
+                fontWeight="bold"
+                fill="#1e293b"
+              >
+                {node.power.toLocaleString()}
+              </text>
+              
+              {/* Power unit */}
+              <text
+                textAnchor="middle"
+                y={20}
+                fontSize={10}
+                fill="#64748b"
+              >
+                {node.unit}
+              </text>
+            </g>
+          ))}
+        </Group>
+      </svg>
     </div>
   );
 }
