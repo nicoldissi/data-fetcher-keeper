@@ -47,6 +47,3 @@ export function HistoricalEnergyChart({ history, configId }: HistoricalEnergyCha
     </Card>
   );
 }
-
-// Make component exportable as a named export for compatibility with existing imports
-export { HistoricalEnergyChart };
