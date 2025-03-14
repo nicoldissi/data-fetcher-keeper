@@ -1,6 +1,6 @@
 
 export { default as HistoricalEnergyChart } from '../HistoricalEnergyChart';
-export { VisxEnergyChart } from './VisxEnergyChart';
+export { default as VisxEnergyChart } from './VisxEnergyChart';
 export { EnergyChartWrapper } from './EnergyChartWrapper';
 export { ChartSeriesToggle } from './ChartSeriesToggle';
 export { CustomChartTooltip } from './CustomChartTooltip';

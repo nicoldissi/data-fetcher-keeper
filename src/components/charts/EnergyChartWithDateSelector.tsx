@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
 import { EnergyChartWrapper } from '@/components/charts/EnergyChartWrapper';
-import { VisxEnergyChart } from '@/components/charts/VisxEnergyChart';
+import VisxEnergyChart from '@/components/charts/VisxEnergyChart';
 
 interface EnergyChartWithDateSelectorProps {
   history: ShellyEMData[];

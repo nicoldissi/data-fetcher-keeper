@@ -29,7 +29,8 @@ interface VisxEnergyChartProps {
 // Define margin for the chart
 const margin = { top: 20, right: 30, bottom: 50, left: 50 };
 
-export default function VisxEnergyChart({ history, configId, className }: VisxEnergyChartProps) {
+// Changed from export default function to just export default
+const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps) => {
   // Toggle visibility of lines
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
@@ -575,4 +576,6 @@ export default function VisxEnergyChart({ history, configId, className }: VisxEn
       </div>
     </EnergyChartWrapper>
   );
-}
+};
+
+export default VisxEnergyChart;

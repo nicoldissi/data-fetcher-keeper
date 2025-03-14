@@ -5,7 +5,7 @@ import { format, fromUnixTime } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
-import { VisxEnergyChart } from '@/components/charts/VisxEnergyChart';
+import VisxEnergyChart from '@/components/charts/VisxEnergyChart';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
