@@ -9,7 +9,7 @@ import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
 import { EnergyChartWrapper } from './EnergyChartWrapper';
 import { ChartSeriesToggle } from './ChartSeriesToggle';
 import { CustomChartTooltip } from './CustomChartTooltip';
-import { useEnergyChartData } from '@/hooks/useEnergyChartData';
+import { useEnergyChartData } from '@/hooks/energy-chart/useEnergyChartData';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];

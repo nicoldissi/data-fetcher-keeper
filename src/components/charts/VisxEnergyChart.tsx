@@ -3,7 +3,7 @@ import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
 import { EnergyChartWrapper } from './EnergyChartWrapper';
 import { ChartSeriesToggle } from './ChartSeriesToggle';
-import { useEnergyChartData } from '@/hooks/useEnergyChartData';
+import { useEnergyChartData } from '@/hooks/energy-chart/useEnergyChartData';
 
 // ViSX imports
 import { Group } from '@visx/group';
