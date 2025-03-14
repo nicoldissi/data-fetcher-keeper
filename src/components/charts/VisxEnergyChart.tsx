@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
@@ -24,12 +23,13 @@ import {
 interface VisxEnergyChartProps {
   history: ShellyEMData[];
   configId?: string | null;
+  className?: string;
 }
 
 // Define margin for the chart
 const margin = { top: 20, right: 30, bottom: 50, left: 50 };
 
-export default function VisxEnergyChart({ history, configId }: VisxEnergyChartProps) {
+export default function VisxEnergyChart({ history, configId, className }: VisxEnergyChartProps) {
   // Toggle visibility of lines
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
@@ -277,6 +277,7 @@ export default function VisxEnergyChart({ history, configId }: VisxEnergyChartPr
       description="Évolution de la consommation et production d'énergie"
       controls={renderChartControls()}
       isLoading={isLoadingFullDay && chartData.length === 0}
+      className={className}
     >
       <div ref={containerRef} className="w-full h-full relative">
         {dimensions.width > 0 && dimensions.height > 0 && (

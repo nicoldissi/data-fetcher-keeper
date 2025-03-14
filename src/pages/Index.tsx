@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { getShellyConfig } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,8 +18,7 @@ import { EnergyFlowChartDark } from "@/components/EnergyFlowChartDark";
 import { SelfConsumptionCard } from "@/components/SelfConsumptionCard";
 import { SelfProductionCard } from "@/components/SelfProductionCard";
 import { PowerTriangleCard } from "@/components/PowerTriangleCard";
-import { HistoricalEnergyChart } from "@/components/charts";
-import { ShellyConfigForm } from "@/components/ShellyConfigForm";
+import { HistoricalEnergyChart, VisxEnergyChart } from "@/components/charts";
 import { UserMenu } from "@/components/UserMenu";
 import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle, Menu } from "lucide-react";
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
@@ -33,12 +31,9 @@ const Index = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("device-status");
   
-  // Enable realtime subscription for the energy_data table
   useEffect(() => {
-    // First, make sure the table is set up for realtime
     const setupRealtimeTable = async () => {
       try {
-        // Check if we have at least one shelly config
         const { data, error } = await supabase
           .from('shelly_configs')
           .select('id')
@@ -136,7 +131,6 @@ const Index = () => {
     );
   }
 
-  // Render the appropriate section based on activeSection
   const renderSection = () => {
     switch (activeSection) {
       case "device-status":
@@ -174,10 +168,9 @@ const Index = () => {
         );
       case "chart":
         return (
-          <HistoricalEnergyChart 
+          <VisxEnergyChart 
             history={history} 
             configId={configId}
-            className="w-full h-full"
           />
         );
       case "power-triangle":
@@ -206,7 +199,6 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950">
-        {/* Top user menu bar for mobile and desktop */}
         <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-950 border-b p-2 flex items-center justify-between md:px-6">
           <div className="flex items-center">
             <SidebarTrigger className="md:hidden mr-2" />
@@ -281,16 +273,6 @@ const Index = () => {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter className="border-t">
-            <div className="p-4">
-              <button 
-                className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md text-sm transition-colors"
-                onClick={() => setShowConfig(true)}
-              >
-                Configurer
-              </button>
-            </div>
-          </SidebarFooter>
         </Sidebar>
         <div className="flex-1 p-6 md:p-8 mt-12">
           <div className="h-[calc(100vh-7rem)] max-w-full mx-auto">

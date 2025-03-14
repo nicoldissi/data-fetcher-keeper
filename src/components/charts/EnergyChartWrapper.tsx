@@ -1,13 +1,15 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface EnergyChartWrapperProps {
   title: string;
-  description: string;
-  controls?: ReactNode;
-  children: ReactNode;
+  description?: string;
+  controls?: React.ReactNode;
+  children: React.ReactNode;
   isLoading?: boolean;
+  className?: string; // Added className prop
 }
 
 export function EnergyChartWrapper({
@@ -15,15 +17,16 @@ export function EnergyChartWrapper({
   description,
   controls,
   children,
-  isLoading = false
+  isLoading = false,
+  className,
 }: EnergyChartWrapperProps) {
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", className)}>
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            {description && <CardDescription>{description}</CardDescription>}
           </div>
           {controls && (
             <div className="flex flex-wrap gap-2">
@@ -32,20 +35,14 @@ export function EnergyChartWrapper({
           )}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="h-[400px] w-full">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">Chargement des données...</p>
-            </div>
-          ) : children ? (
-            children
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">Pas de données disponibles</p>
-            </div>
-          )}
-        </div>
+      <CardContent className="h-[400px]">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Chargement des données...</p>
+          </div>
+        ) : (
+          children
+        )}
       </CardContent>
     </Card>
   );
