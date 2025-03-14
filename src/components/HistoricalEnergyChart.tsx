@@ -1,7 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, fromUnixTime } from 'date-fns';
+import { format, fromUnixTime, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
@@ -14,6 +14,19 @@ interface HistoricalEnergyChartProps {
 
 export default function HistoricalEnergyChart({ history, configId }: HistoricalEnergyChartProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Filter history data for the selected date
+  const filteredHistory = useMemo(() => {
+    if (!history || history.length === 0) return [];
+    
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
+    
+    return history.filter(item => {
+      const itemDate = new Date(item.timestamp);
+      return isWithinInterval(itemDate, { start, end });
+    });
+  }, [history, selectedDate]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
@@ -28,7 +41,7 @@ export default function HistoricalEnergyChart({ history, configId }: HistoricalE
         />
       </div>
       
-      <VisxEnergyChart history={history} configId={configId} />
+      <VisxEnergyChart history={filteredHistory} configId={configId} />
     </div>
   );
 }
