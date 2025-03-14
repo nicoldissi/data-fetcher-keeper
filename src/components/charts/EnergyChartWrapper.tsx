@@ -7,6 +7,7 @@ interface EnergyChartWrapperProps {
   title: string;
   description?: string;
   controls?: React.ReactNode;
+  dateSelector?: React.ReactNode;
   children: React.ReactNode;
   isLoading?: boolean;
   className?: string;
@@ -16,6 +17,7 @@ export function EnergyChartWrapper({
   title,
   description,
   controls,
+  dateSelector,
   children,
   isLoading = false,
   className,
@@ -28,11 +30,18 @@ export function EnergyChartWrapper({
             <CardTitle>{title}</CardTitle>
             {description && <CardDescription>{description}</CardDescription>}
           </div>
-          {controls && (
-            <div className="flex flex-wrap gap-2">
-              {controls}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-4">
+            {dateSelector && (
+              <div className="mr-auto">
+                {dateSelector}
+              </div>
+            )}
+            {controls && (
+              <div className="flex flex-wrap gap-2">
+                {controls}
+              </div>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="h-[500px]">

@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { formatDistance } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatLocalDate, parseToLocalDate } from '@/lib/dateUtils';
+import { useState } from 'react';
+import { DateSelector } from './DateSelector';
 
 interface DataTableProps {
   data: ShellyEMData[];
@@ -13,16 +15,39 @@ interface DataTableProps {
 }
 
 export function DataTable({ data, className, configId }: DataTableProps) {
-  const filteredData = configId 
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  
+  // Filter data based on selected date (same day)
+  const filterDataByDate = (items: ShellyEMData[], date: Date) => {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return items.filter(item => {
+      const itemDate = parseToLocalDate(item.timestamp);
+      return itemDate >= startOfDay && itemDate <= endOfDay;
+    });
+  };
+  
+  const filteredByConfig = configId 
     ? data.filter(item => item.shelly_config_id === configId)
     : data;
     
-  const reversedData = [...filteredData].reverse().slice(0, 5);
+  const filteredByDate = filterDataByDate(filteredByConfig, selectedDate);
+  const reversedData = [...filteredByDate].reverse().slice(0, 5);
   
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md", className)}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Recent Readings</CardTitle>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle className="text-lg font-medium">Lectures récentes</CardTitle>
+          <DateSelector 
+            date={selectedDate} 
+            onDateChange={setSelectedDate}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {reversedData.length > 0 ? (
@@ -90,7 +115,7 @@ export function DataTable({ data, className, configId }: DataTableProps) {
           </div>
         ) : (
           <div className="py-8 text-center text-muted-foreground">
-            No data available yet
+            Aucune donnée disponible pour cette date
           </div>
         )}
       </CardContent>

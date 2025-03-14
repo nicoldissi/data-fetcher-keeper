@@ -8,6 +8,7 @@ import { Clock, Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { D3EnergyFlow } from './energy-flow/D3EnergyFlow';
 import { VisxRealtimeEnergyFlowComponent } from './energy-flow-visx';
+import { DateSelector } from './DateSelector';
 
 interface EnergyFlowChartDarkProps {
   data: ShellyEMData | null;
@@ -22,6 +23,7 @@ export function EnergyFlowChartDark({
 }: EnergyFlowChartDarkProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'realtime' | 'daily'>('realtime');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
@@ -55,9 +57,12 @@ export function EnergyFlowChartDark({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex items-center">
-            <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">FLUX D'ÉNERGIE</span>
-          </div>
+          {viewMode === 'daily' && (
+            <DateSelector 
+              date={selectedDate} 
+              onDateChange={setSelectedDate} 
+            />
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex items-center justify-center p-4 h-[calc(100%-60px)]">
@@ -78,7 +83,7 @@ export function EnergyFlowChartDark({
           )
         ) : (
           <div className="w-full h-full">
-            <D3EnergyFlow configId={configId} className="w-full h-full" />
+            <D3EnergyFlow configId={configId} date={selectedDate} className="w-full h-full" />
           </div>
         )}
       </CardContent>
