@@ -18,12 +18,13 @@ import { EnergyFlowChartDark } from "@/components/EnergyFlowChartDark";
 import { SelfConsumptionCard } from "@/components/SelfConsumptionCard";
 import { SelfProductionCard } from "@/components/SelfProductionCard";
 import { PowerTriangleCard } from "@/components/PowerTriangleCard";
+import { HistoricalEnergyChart, VisxEnergyChart } from "@/components/charts";
 import { UserMenu } from "@/components/UserMenu";
 import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle, Menu } from "lucide-react";
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { cn } from '@/lib/utils';
 import { ShellyConfigForm } from "@/components/ShellyConfigForm";
-import { EnergyChartWithDateSelector } from "@/components/charts/EnergyChartWithDateSelector";
+import { EnergyChartWithDateSelector } from "@/components/EnergyChartWithDateSelector";
 
 const Index = () => {
   const [configId, setConfigId] = useState<string | undefined>();
