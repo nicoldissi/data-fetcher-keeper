@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
@@ -25,7 +26,7 @@ export function DailyConsumptionCard({ className, configId }: DailyConsumptionCa
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
+          <p className="text-red-500">{error.message || "Une erreur s'est produite"}</p>
         ) : (
           <div className="text-center py-4">
             <p className="text-4xl font-bold">{totalConsumption} kWh</p>

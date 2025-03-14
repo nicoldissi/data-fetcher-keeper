@@ -10,6 +10,8 @@ export interface DailyTotals {
   injection: number;
   production: number;
   date: string;
+  id?: string;
+  config_id?: string;
 }
 
 export function useDailyEnergyTotals(configId?: string, date?: Date) {

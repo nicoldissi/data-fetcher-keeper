@@ -1,14 +1,17 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ShellyEMData } from '@/lib/types';
 import { DailyTotals } from '@/hooks/useDailyEnergyTotals';
+import { getShellyConfig } from '@/lib/api/config';
 
 export async function getLatestData(configId: string): Promise<ShellyEMData | null> {
   if (!configId) return null;
   
+  // Use the correct energy_data table instead of shelly_data
   const { data, error } = await supabase
-    .from('shelly_data')
+    .from('energy_data')
     .select('*')
-    .eq('config_id', configId)
+    .eq('shelly_config_id', configId)
     .order('timestamp', { ascending: false })
     .limit(1);
 
@@ -17,7 +20,33 @@ export async function getLatestData(configId: string): Promise<ShellyEMData | nu
     return null;
   }
 
-  return data.length > 0 ? data[0] as ShellyEMData : null;
+  if (data.length === 0) return null;
+  
+  // Map the data from Supabase to our ShellyEMData type
+  const energyData = data[0];
+  const timestamp = new Date(energyData.timestamp).getTime();
+  
+  const shellyData: ShellyEMData = {
+    timestamp,
+    power: energyData.consumption || 0,
+    reactive: energyData.grid_reactive || 0,
+    pf: energyData.grid_pf || 0,
+    pv_power: energyData.production || 0,
+    pv_reactive: energyData.pv_reactive || 0,
+    pv_pf: energyData.pv_pf || 0,
+    total_energy: energyData.grid_total || 0,
+    pv_energy: energyData.production_total || 0,
+    grid_returned: energyData.grid_total_returned || 0,
+    voltage: energyData.voltage || 0,
+    current: 0, // Not available in database
+    temperature: 0, // Not available in database
+    is_valid: true,
+    channel: 0,
+    shelly_config_id: configId,
+    frequency: energyData.frequency || 0
+  };
+
+  return shellyData;
 }
 
 export async function getHistoricalData(
@@ -27,10 +56,11 @@ export async function getHistoricalData(
 ): Promise<ShellyEMData[]> {
   if (!configId) return [];
   
+  // Use the correct energy_data table
   const { data, error } = await supabase
-    .from('shelly_data')
+    .from('energy_data')
     .select('*')
-    .eq('config_id', configId)
+    .eq('shelly_config_id', configId)
     .gte('timestamp', startTime)
     .lte('timestamp', endTime)
     .order('timestamp', { ascending: true });
@@ -40,7 +70,32 @@ export async function getHistoricalData(
     return [];
   }
 
-  return data as ShellyEMData[];
+  if (!data || data.length === 0) return [];
+
+  // Map each row to our ShellyEMData type
+  return data.map(row => {
+    const timestamp = new Date(row.timestamp).getTime();
+    
+    return {
+      timestamp,
+      power: row.consumption || 0,
+      reactive: row.grid_reactive || 0,
+      pf: row.grid_pf || 0,
+      pv_power: row.production || 0,
+      pv_reactive: row.pv_reactive || 0,
+      pv_pf: row.pv_pf || 0,
+      total_energy: row.grid_total || 0,
+      pv_energy: row.production_total || 0,
+      grid_returned: row.grid_total_returned || 0,
+      voltage: row.voltage || 0,
+      current: 0,
+      temperature: 0,
+      is_valid: true,
+      channel: 0,
+      shelly_config_id: configId,
+      frequency: row.frequency || 0
+    } as ShellyEMData;
+  });
 }
 
 export async function getDailyTotals(
@@ -51,19 +106,79 @@ export async function getDailyTotals(
   
   const targetDate = date || new Date().toISOString().split('T')[0];
   
+  // Since there's no daily_energy_totals table, we will aggregate the data from energy_data
+  const startOfDay = `${targetDate}T00:00:00`;
+  const endOfDay = `${targetDate}T23:59:59`;
+  
   const { data, error } = await supabase
-    .from('daily_energy_totals')
+    .from('energy_data')
     .select('*')
-    .eq('config_id', configId)
-    .eq('date', targetDate)
-    .limit(1);
+    .eq('shelly_config_id', configId)
+    .gte('timestamp', startOfDay)
+    .lte('timestamp', endOfDay);
 
   if (error) {
     console.error('Error fetching daily totals:', error);
     return null;
   }
 
-  return data.length > 0 ? data[0] as DailyTotals : null;
+  if (!data || data.length === 0) {
+    // Return default values if no data is found
+    return {
+      consumption: 0,
+      importFromGrid: 0,
+      injection: 0,
+      production: 0,
+      date: targetDate,
+      config_id: configId
+    };
+  }
+
+  // Calculate daily totals from energy data
+  let totalConsumption = 0;
+  let totalImportFromGrid = 0;
+  let totalProduction = 0;
+  let totalInjection = 0;
+
+  // Use the last entry for the day for totals
+  const lastEntry = data[data.length - 1];
+  const firstEntry = data[0];
+  
+  // Calculate the differences between first and last readings
+  if (lastEntry && firstEntry) {
+    totalConsumption = data.reduce((sum, entry) => sum + entry.consumption, 0) / data.length * 24;
+    totalProduction = data.reduce((sum, entry) => sum + entry.production, 0) / data.length * 24;
+    
+    // Simplistic approximation - in a real app, you would use more sophisticated calculations
+    totalImportFromGrid = Math.max(0, totalConsumption - totalProduction);
+    totalInjection = Math.max(0, totalProduction - totalConsumption);
+  }
+
+  return {
+    consumption: totalConsumption,
+    importFromGrid: totalImportFromGrid,
+    injection: totalInjection,
+    production: totalProduction,
+    date: targetDate,
+    config_id: configId
+  };
+}
+
+// Define the database energy data interface
+interface DbEnergyData {
+  timestamp: string;
+  consumption: number;
+  production: number;
+  grid_total: number;
+  grid_total_returned: number;
+  production_total: number;
+  voltage: number;
+  frequency: number;
+  grid_pf: number;
+  grid_reactive: number;
+  pv_pf: number;
+  pv_reactive: number;
+  shelly_config_id: string;
 }
 
 export const fetchShellyData = async (configId?: string): Promise<ShellyEMData | null> => {
@@ -97,14 +212,14 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
     // Map Supabase data to ShellyEMData format
     const energyData = data[0];
     
-    // Créer une date locale à partir du timestamp
+    // Create a local date from the timestamp
     const timestamp = new Date(energyData.timestamp).getTime();
     
     const shellyData: ShellyEMData = {
       timestamp,
       power: energyData.consumption || 0,
-      reactive: energyData.grid_reactive || 0, // Corriger pour utiliser grid_reactive
-      pf: energyData.grid_pf || 0, // Corriger pour utiliser grid_pf
+      reactive: energyData.grid_reactive || 0,
+      pf: energyData.grid_pf || 0,
       pv_power: energyData.production || 0,
       pv_reactive: energyData.pv_reactive || 0,
       pv_pf: energyData.pv_pf || 0,
@@ -112,11 +227,11 @@ export const fetchShellyData = async (configId?: string): Promise<ShellyEMData |
       pv_energy: energyData.production_total || 0,
       grid_returned: energyData.grid_total_returned || 0,
       voltage: energyData.voltage || 0,
-      current: 0, // Non disponible dans Supabase
-      temperature: 0, // Non disponible dans Supabase
-      is_valid: true, // On suppose que les données dans Supabase sont valides
-      channel: 0, // Non disponible dans Supabase
-      shelly_config_id: configId, // Ajouter l'ID de config pour assurer un suivi approprié
+      current: 0, // Not available in Supabase
+      temperature: 0, // Not available in Supabase
+      is_valid: true, // Assume data in Supabase is valid
+      channel: 0, // Not available in Supabase
+      shelly_config_id: configId,
       frequency: energyData.frequency || 0
     };
 
@@ -132,13 +247,13 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
     console.log('Attempting to store energy data in Supabase with configId:', configId);
     console.log('Data to store:', JSON.stringify(data, null, 2));
     
-    // Vérification plus stricte de la configuration
+    // More strict configuration verification
     if (!configId) {
       console.error('ConfigId is missing for storeEnergyData');
       return false;
     }
     
-    // Obtenir la configuration Shelly correspondante pour ajouter son ID aux données stockées
+    // Get the corresponding Shelly configuration to add its ID to the stored data
     const config = await getShellyConfig(configId);
     
     if (!config || !config.id) {
@@ -146,20 +261,20 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       return false;
     }
 
-    // S'assurer que le timestamp est une date valide
+    // Ensure the timestamp is a valid date
     let timestamp: string;
     if (typeof data.timestamp === 'number') {
-      // Convertir le timestamp en chaîne ISO UTC pour Supabase
+      // Convert the timestamp to a UTC ISO string for Supabase
       const date = new Date(data.timestamp);
       timestamp = date.toISOString();
       console.log('Converted timestamp to ISO string:', timestamp);
     } else {
       console.error('Invalid timestamp format:', data.timestamp);
-      timestamp = new Date().toISOString(); // Utiliser l'heure actuelle comme fallback
+      timestamp = new Date().toISOString(); // Use current time as fallback
       console.log('Using current time as fallback for timestamp:', timestamp);
     }
 
-    // Vérification des données numériques
+    // Numeric data validation
     const validateNumber = (value: any, name: string): number => {
       if (typeof value !== 'number' || isNaN(value)) {
         console.warn(`Invalid ${name} value:`, value, 'using 0 instead');
@@ -168,7 +283,7 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
       return value;
     };
 
-    // Préparer l'objet de données à insérer avec validation des valeurs numériques
+    // Prepare the data object to insert with numeric value validation
     const dataToInsert: DbEnergyData = {
       timestamp,
       consumption: validateNumber(data.power, 'power'),
@@ -187,7 +302,7 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
 
     console.log('Inserting data into Supabase:', JSON.stringify(dataToInsert, null, 2));
 
-    // Tenter d'insérer les données avec retour des données insérées pour vérification
+    // Attempt to insert the data with returning inserted data for verification
     const { error, data: insertedData } = await supabase
       .from('energy_data')
       .insert([dataToInsert])
@@ -196,7 +311,7 @@ export const storeEnergyData = async (data: ShellyEMData, configId?: string): Pr
     if (error) {
       console.error('Error storing data in Supabase:', error);
       
-      // Vérification supplémentaire de l'accès à la table
+      // Additional check for table access
       try {
         console.log('Testing table access...');
         const { data: testData, error: testError } = await supabase
