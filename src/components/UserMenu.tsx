@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/use-toast";
 export function UserMenu() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userInitials, setUserInitials] = useState("U");
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,7 +77,7 @@ export function UserMenu() {
   if (!userEmail) return null;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="relative h-10 w-10 rounded-full p-0 overflow-hidden">
           <Avatar className="h-10 w-10">
@@ -86,12 +87,23 @@ export function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{userEmail}</p>
-            <p className="text-xs leading-none text-muted-foreground">Compte utilisateur</p>
-          </div>
-        </DropdownMenuLabel>
+        <div className="flex justify-between items-center">
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{userEmail}</p>
+              <p className="text-xs leading-none text-muted-foreground">Compte utilisateur</p>
+            </div>
+          </DropdownMenuLabel>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-full"
+            onClick={() => setOpen(false)}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Fermer</span>
+          </Button>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/profile")}>
           <User className="mr-2 h-4 w-4" />

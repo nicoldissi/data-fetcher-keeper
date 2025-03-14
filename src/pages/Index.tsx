@@ -11,7 +11,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarSeparator,
-  SidebarFooter
+  SidebarFooter,
+  SidebarTrigger
 } from "@/components/ui/sidebar";
 import { DeviceStatus } from "@/components/DeviceStatus";
 import { EnergyFlowChartDark } from "@/components/EnergyFlowChartDark";
@@ -21,8 +22,9 @@ import { PowerTriangleCard } from "@/components/PowerTriangleCard";
 import { HistoricalEnergyChart } from "@/components/charts";
 import { ShellyConfigForm } from "@/components/ShellyConfigForm";
 import { UserMenu } from "@/components/UserMenu";
-import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle } from "lucide-react";
+import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle, Menu } from "lucide-react";
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const [configId, setConfigId] = useState<string | undefined>();
@@ -143,7 +145,7 @@ const Index = () => {
             data={currentData} 
             lastUpdated={currentData ? new Date(currentData.timestamp).toLocaleString() : 'Jamais'} 
             configId={configId} 
-            className="w-full"
+            className="w-full h-full"
           />
         );
       case "energy-flow":
@@ -151,7 +153,7 @@ const Index = () => {
           <EnergyFlowChartDark 
             data={currentData} 
             configId={configId}
-            className="w-full" 
+            className="w-full h-full" 
           />
         );
       case "self-consumption":
@@ -159,7 +161,7 @@ const Index = () => {
           <SelfConsumptionCard 
             data={currentData} 
             configId={configId}
-            className="w-full" 
+            className="w-full h-full" 
           />
         );
       case "self-production":
@@ -167,14 +169,15 @@ const Index = () => {
           <SelfProductionCard 
             data={currentData} 
             configId={configId}
-            className="w-full" 
+            className="w-full h-full" 
           />
         );
       case "chart":
         return (
           <HistoricalEnergyChart 
             history={history} 
-            configId={configId} 
+            configId={configId}
+            className="w-full h-full"
           />
         );
       case "power-triangle":
@@ -185,7 +188,7 @@ const Index = () => {
             reactivePower={currentData?.reactive || 0}
             powerFactor={currentData?.pf || 0}
             emeterIndex={0}
-            className="w-full"
+            className="w-full h-full"
           />
         );
       default:
@@ -194,7 +197,7 @@ const Index = () => {
             data={currentData} 
             lastUpdated={currentData ? new Date(currentData.timestamp).toLocaleString() : 'Jamais'} 
             configId={configId} 
-            className="w-full"
+            className="w-full h-full"
           />
         );
     }
@@ -203,10 +206,18 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950">
+        {/* Top user menu bar for mobile and desktop */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-950 border-b p-2 flex items-center justify-between md:px-6">
+          <div className="flex items-center">
+            <SidebarTrigger className="md:hidden mr-2" />
+            <h3 className="text-lg font-semibold tracking-tight">Moniteur d'Énergie</h3>
+          </div>
+          <UserMenu />
+        </div>
+
         <Sidebar>
-          <SidebarHeader className="border-b">
+          <SidebarHeader className="border-b mt-12 md:mt-0">
             <div className="px-2 py-2">
-              <h3 className="text-lg font-semibold tracking-tight">Moniteur d'Énergie</h3>
               <p className="text-sm text-muted-foreground">
                 {deviceConfig?.name || 'Appareil Shelly EM'}
               </p>
@@ -271,21 +282,18 @@ const Index = () => {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="border-t">
-            <div className="flex items-center justify-between p-4">
+            <div className="p-4">
               <button 
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md text-sm transition-colors"
                 onClick={() => setShowConfig(true)}
               >
                 Configurer
               </button>
-              <div className="ml-auto">
-                <UserMenu />
-              </div>
             </div>
           </SidebarFooter>
         </Sidebar>
-        <div className="flex-1 p-6 md:p-8">
-          <div className="max-w-7xl mx-auto">
+        <div className="flex-1 p-6 md:p-8 mt-12">
+          <div className="h-[calc(100vh-7rem)] max-w-full mx-auto">
             {renderSection()}
           </div>
         </div>
