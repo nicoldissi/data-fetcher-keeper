@@ -1,5 +1,4 @@
-
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -10,7 +9,15 @@ import { fr } from 'date-fns/locale';
 import { ShellyEMData } from '@/lib/types';
 import { Toggle } from '@/components/ui/toggle';
 import { supabase } from '@/integrations/supabase/client';
-import { Zap } from 'lucide-react';
+import { Zap, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -38,6 +45,12 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
   const [showGrid, setShowGrid] = useState(true);
   const [showVoltage, setShowVoltage] = useState(false);
 
+  // Zoom related states
+  const [zoomLevel, setZoomLevel] = useState(100); // 100% means no zoom (full view)
+  const [zoomRange, setZoomRange] = useState<[number, number]>([0, 100]); // percentage of data to show
+  const [zoomTimeRange, setZoomTimeRange] = useState<string>('1h');
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  
   // Extract configId from the first history item
   useEffect(() => {
     if (history.length > 0 && history[0].shelly_config_id) {
@@ -104,11 +117,94 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     fetchFullDayData();
   }, [configId]);
 
+  // Apply zoom to the data
+  const applyZoom = useCallback(() => {
+    if (fullDayData.length === 0 && history.length === 0) return;
+    
+    const sourceData = fullDayData.length > 0 ? fullDayData : 
+      history.map((item: ShellyEMData) => {
+        const date = new Date(item.timestamp);
+        const grid = Math.round(item.power);
+        const production = Math.round(item.pv_power || 0);
+        const consumption = grid + production;
+        
+        return {
+          time: format(date, 'HH:mm', { locale: fr }),
+          timestamp: date.getTime(),
+          consumption,
+          production,
+          grid,
+          voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined
+        };
+      });
+    
+    // If no zoom is applied, show all data
+    if (zoomRange[0] === 0 && zoomRange[1] === 100) {
+      setChartData(sourceData);
+      return;
+    }
+    
+    // Otherwise, calculate the range to show
+    const startIndex = Math.floor(sourceData.length * zoomRange[0] / 100);
+    const endIndex = Math.ceil(sourceData.length * zoomRange[1] / 100);
+    
+    setChartData(sourceData.slice(startIndex, endIndex));
+  }, [fullDayData, history, zoomRange]);
+
+  // Set zoom based on time range
+  const setZoomByTimeRange = useCallback((range: string) => {
+    setZoomTimeRange(range);
+    
+    if (range === 'all') {
+      setZoomRange([0, 100]);
+      return;
+    }
+    
+    const sourceData = fullDayData.length > 0 ? fullDayData : 
+      history.map((item: ShellyEMData) => ({
+        timestamp: new Date(item.timestamp).getTime()
+      }));
+    
+    if (sourceData.length === 0) return;
+    
+    const now = new Date().getTime();
+    let hoursToShow = 1;
+    
+    switch (range) {
+      case '1h': hoursToShow = 1; break;
+      case '3h': hoursToShow = 3; break;
+      case '6h': hoursToShow = 6; break;
+      case '12h': hoursToShow = 12; break;
+      case '24h': hoursToShow = 24; break;
+      default: hoursToShow = 1;
+    }
+    
+    const rangeMs = hoursToShow * 60 * 60 * 1000;
+    const startTime = now - rangeMs;
+    
+    // Find data index that corresponds to the start time
+    const startIndex = sourceData.findIndex(d => d.timestamp >= startTime);
+    
+    if (startIndex === -1) {
+      // If no data within range, show all data
+      setZoomRange([0, 100]);
+    } else {
+      // Calculate percentage of data to show
+      const startPercentage = (startIndex / sourceData.length) * 100;
+      setZoomRange([startPercentage, 100]);
+    }
+  }, [fullDayData, history]);
+
+  // Apply zoom when zoom parameters change
+  useEffect(() => {
+    applyZoom();
+  }, [applyZoom, zoomRange, fullDayData, history]);
+
   // Use both sources of data
   useEffect(() => {
     if (fullDayData.length > 0) {
       // Use the full day data if available
-      setChartData(fullDayData);
+      applyZoom();
     } else if (history.length > 0) {
       // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
@@ -132,7 +228,46 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
 
       setChartData(transformedData);
     }
-  }, [history, fullDayData]);
+  }, [history, fullDayData, applyZoom]);
+
+  // Handle mouse wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (!chartContainerRef.current) return;
+    
+    e.preventDefault();
+    
+    const delta = e.deltaY;
+    const zoomDirection = delta > 0 ? 1 : -1; // 1 for zoom out, -1 for zoom in
+    
+    const currentRangeWidth = zoomRange[1] - zoomRange[0];
+    const newRangeWidth = Math.max(
+      5, // Minimum zoom range (5%)
+      Math.min(100, currentRangeWidth + (zoomDirection * 5)) // Add or subtract 5% for each wheel tick
+    );
+    
+    if (newRangeWidth === 100) {
+      setZoomRange([0, 100]);
+      return;
+    }
+    
+    // Calculate new range while keeping the mouse position centered
+    const rect = chartContainerRef.current.getBoundingClientRect();
+    const mouseXRatio = (e.clientX - rect.left) / rect.width;
+    
+    const rangeCenter = zoomRange[0] + (currentRangeWidth * mouseXRatio);
+    
+    const newStart = Math.max(0, rangeCenter - (newRangeWidth / 2));
+    const newEnd = Math.min(100, newStart + newRangeWidth);
+    
+    // Adjust if we hit the edges
+    if (newEnd === 100) {
+      setZoomRange([100 - newRangeWidth, 100]);
+    } else if (newStart === 0) {
+      setZoomRange([0, newRangeWidth]);
+    } else {
+      setZoomRange([newStart, newEnd]);
+    }
+  }, [zoomRange]);
 
   // Calculate max and min values for dynamic Y axis based on visible data and enabled lines
   const calculateYAxisDomain = useCallback(() => {
@@ -199,11 +334,11 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
               />
               <span className="text-sm text-muted-foreground">{entry.name}:</span>
               <span className="font-medium">
-                              {`${Math.abs(Math.round(entry.value))}`}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                {`${Math.abs(Math.round(entry.value))}`}
+              </span>
+            </div>
+          ))}
+        </div>
       );
     }
     return null;
@@ -220,6 +355,12 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     ...fontStyle,
     fontSize: 14,
     textAnchor: 'middle',
+  };
+
+  // Handle zoom reset
+  const resetZoom = () => {
+    setZoomRange([0, 100]);
+    setZoomTimeRange('all');
   };
 
   return (
@@ -269,7 +410,52 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] w-full">
+        <div className="mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <ZoomIn size={16} className="text-muted-foreground" />
+            <Select value={zoomTimeRange} onValueChange={setZoomByTimeRange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Période d'affichage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1h">Dernière heure</SelectItem>
+                <SelectItem value="3h">3 dernières heures</SelectItem>
+                <SelectItem value="6h">6 dernières heures</SelectItem>
+                <SelectItem value="12h">12 dernières heures</SelectItem>
+                <SelectItem value="24h">Journée complète</SelectItem>
+                <SelectItem value="all">Tout afficher</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 mx-4 flex gap-2 items-center">
+            <ZoomOut size={16} className="text-muted-foreground" />
+            <Slider 
+              min={0} 
+              max={95} 
+              step={5} 
+              value={[zoomRange[0]]} 
+              onValueChange={(values) => {
+                const rangeWidth = zoomRange[1] - zoomRange[0];
+                setZoomRange([values[0], Math.min(100, values[0] + rangeWidth)]);
+              }} 
+              className="mx-2" 
+            />
+            <ZoomIn size={16} className="text-muted-foreground" />
+          </div>
+          <button 
+            onClick={resetZoom} 
+            className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted hover:bg-muted/80 transition-colors"
+          >
+            <RefreshCw size={14} />
+            <span className="text-sm">Réinitialiser</span>
+          </button>
+        </div>
+
+        <div 
+          className="h-[400px] w-full" 
+          ref={chartContainerRef}
+          onWheel={handleWheel}
+        >
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
@@ -317,11 +503,11 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
                   }}
                 />
                 <YAxis
-                                  yAxisId="power"
-                                  domain={calculateYAxisDomain()}
-                                  tickFormatter={(value) => `${Math.round(value)}`}
-                                  tick={fontStyle}
-                                />
+                  yAxisId="power"
+                  domain={calculateYAxisDomain()}
+                  tickFormatter={(value) => `${Math.round(value)}`}
+                  tick={fontStyle}
+                />
                 {showVoltage && (
                   <YAxis 
                     yAxisId="voltage"
