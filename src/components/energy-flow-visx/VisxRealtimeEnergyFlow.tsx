@@ -26,6 +26,8 @@ interface FluxData {
   target: string;
   kwh: number;
   title?: string;
+  direction: 'in' | 'out'; // Added direction property to control animation
+  watts: number; // Power in watts for labeling
 }
 
 interface DonutData {
@@ -100,7 +102,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
     const isGridImporting = data.power > 0;
     const isGridExporting = data.power < 0;
 
-    // Fix flow direction logic
+    // Flow values
     const pvToHome = isPVProducing ? Math.min(pvPower, realHomeConsumption) : 0;
     const pvToGrid = isPVProducing && isGridExporting ? Math.abs(data.power) : 0;
     const gridToHome = isGridImporting ? gridPower : 0;
@@ -156,34 +158,42 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
       }
     ];
 
-    const fluxData = [];
+    const fluxData: FluxData[] = [];
 
-    // Fix flow direction logic
+    // Fix flow direction logic with new direction property
+    // PV to Home flow - direction is always OUT from PV, IN to MAISON
     if (pvToHome > 0) {
       fluxData.push({ 
         source: "PV", 
         target: "MAISON", 
         kwh: pvToHome / 1000,
-        title: "Autoconsommation"
+        title: "Autoconsommation",
+        direction: 'out',
+        watts: pvToHome
       });
     }
 
+    // Grid to Home flow - direction is always OUT from GRID, IN to MAISON
     if (isGridImporting && gridToHome > 0) {
       fluxData.push({ 
         source: "GRID", 
         target: "MAISON", 
         kwh: gridToHome / 1000,
-        title: "Consommation"
+        title: "Consommation",
+        direction: 'out',
+        watts: gridToHome
       });
     }
 
+    // PV to Grid flow (export) - direction is always OUT from PV, IN to GRID
     if (isGridExporting && pvToGrid > 0) {
-      // Fix: Correct the flow direction for export
       fluxData.push({ 
         source: "PV", 
         target: "GRID", 
         kwh: pvToGrid / 1000,
-        title: "Injection"
+        title: "Injection",
+        direction: 'out',
+        watts: pvToGrid
       });
     }
 
@@ -191,13 +201,13 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
   };
 
   const { donutsData, fluxData } = useMemo(() => processData(), [data, config]);
-
+  
+  // Simplified animation - always moves in the direction of flow
   const flowAnimation = useSpring({
     from: { dashOffset: 0 },
     to: { dashOffset: 16 },
-    loop: { reverse: true },
-    config: { duration: 3000 },
-    delay: 1000
+    loop: true,
+    config: { duration: 2000 }
   });
 
   const createBezierPath = useMemo(() => {
@@ -292,6 +302,7 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
 
           {fluxData.map((flow, i) => (
             <g key={`flow-${i}`}>
+              {/* The path with fixed animation direction */}
               <animated.path
                 d={createBezierPath(flow.source, flow.target)}
                 fill="none"
@@ -299,10 +310,11 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 strokeWidth={strokeScale(Math.max(0.1, flow.kwh))}
                 strokeLinecap="round"
                 strokeDasharray="8 8"
-                strokeDashoffset={flowAnimation.dashOffset}
+                strokeDashoffset={flow.direction === 'out' ? flowAnimation.dashOffset : flowAnimation.dashOffset.to(v => -v)}
                 filter="url(#glow)"
               />
               
+              {/* Flow label */}
               {(() => {
                 const s = centers[flow.source as keyof typeof centers];
                 const t = centers[flow.target as keyof typeof centers];
@@ -324,14 +336,14 @@ export function VisxRealtimeEnergyFlow({ data, className, configId, config }: Vi
                 const bezierY = (1-tParam)*(1-tParam)*y1 + 2*(1-tParam)*tParam*my + tParam*tParam*y2;
                 
                 const title = flow.title || "";
-                const valueText = `${flow.kwh.toFixed(2)} kW`;
-                const labelWidth = Math.max(80, Math.max(title.length, valueText.length) * 7);
+                const valueText = `${flow.watts.toFixed(0)} W`;
+                const labelWidth = Math.max(90, Math.max(title.length, valueText.length) * 7);
                 
                 const borderColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#888";
                 const textColor = flow.source === "PV" ? "#4CAF50" : flow.source === "GRID" ? "#2196F3" : "#555";
                 
                 return (
-                  <g>
+                  <g key={`label-${i}`}>
                     <rect
                       x={bezierX - labelWidth/2}
                       y={bezierY - 25}
