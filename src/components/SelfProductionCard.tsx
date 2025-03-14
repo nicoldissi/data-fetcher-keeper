@@ -15,7 +15,7 @@ interface SelfProductionCardProps {
 export function SelfProductionCard({ data, className, configId }: SelfProductionCardProps) {
   const { dailyTotals } = useDailyEnergyTotals(configId);
 
-  // Calculate self-production rate using daily totals
+  // Calculate self-production rate using daily totals :
   const calculateSelfProductionRate = () => {
     if (!dailyTotals) {
       return 0;
