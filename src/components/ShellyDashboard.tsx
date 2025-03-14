@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api/index';
 import { formatDistanceToNow } from 'date-fns';
 import { DeviceStatus } from './DeviceStatus';
-import { HistoricalEnergyChart } from './HistoricalEnergyChart';
+import { EnergyChartWithDateSelector } from './charts/EnergyChartWithDateSelector';
 import { DataTable } from './DataTable';
 import { ShellyConfigForm } from './ShellyConfigForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -159,7 +158,7 @@ export function ShellyDashboard() {
             <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
-            <HistoricalEnergyChart history={history} configId={activeConfigId} />
+            <EnergyChartWithDateSelector history={history} configId={activeConfigId} />
           </TabsContent>
           <TabsContent value="data" className="mt-6">
             <DataTable data={history} configId={activeConfigId} />

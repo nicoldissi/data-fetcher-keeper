@@ -32,7 +32,7 @@ export function EnergyChartWrapper({
           </div>
           <div className="flex flex-wrap items-center gap-4">
             {dateSelector && (
-              <div className="mr-auto">
+              <div className="flex-shrink-0">
                 {dateSelector}
               </div>
             )}
