@@ -1,6 +1,7 @@
 
-// Export components from charts directory
-export { default as HistoricalEnergyChart } from './EnergyChart';
-export { default as VisxEnergyChart } from './VisxEnergyChart';
-export { ChartSeriesToggle } from './ChartSeriesToggle';
+export { HistoricalEnergyChart } from '../HistoricalEnergyChart';
+export { VisxEnergyChart } from './VisxEnergyChart';
 export { EnergyChartWrapper } from './EnergyChartWrapper';
+export { ChartSeriesToggle } from './ChartSeriesToggle';
+export { CustomChartTooltip } from './CustomChartTooltip';
+export { EnergyChartWithDateSelector } from './EnergyChartWithDateSelector';

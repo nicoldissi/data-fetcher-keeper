@@ -18,12 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateSelector } from '@/components/DateSelector';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
 }
 
-// Define the type for the chart data points
 interface ChartDataPoint {
   time: string;
   timestamp: number;
@@ -38,27 +38,24 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
   const [fullDayData, setFullDayData] = useState<ChartDataPoint[]>([]);
   const [isLoadingFullDay, setIsLoadingFullDay] = useState(false);
   const [configId, setConfigId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  // Toggle visibility of lines
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [showVoltage, setShowVoltage] = useState(false);
 
-  // Zoom related states
-  const [zoomLevel, setZoomLevel] = useState(100); // 100% means no zoom (full view)
-  const [zoomRange, setZoomRange] = useState<[number, number]>([0, 100]); // percentage of data to show
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomRange, setZoomRange] = useState<[number, number]>([0, 100]);
   const [zoomTimeRange, setZoomTimeRange] = useState<string>('1h');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
-  // Extract configId from the first history item
   useEffect(() => {
     if (history.length > 0 && history[0].shelly_config_id) {
       setConfigId(history[0].shelly_config_id);
     }
   }, [history]);
 
-  // Fetch full day data from Supabase
   useEffect(() => {
     const fetchFullDayData = async () => {
       if (!configId) return;
@@ -66,46 +63,48 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       setIsLoadingFullDay(true);
       
       try {
-        // Get start of the current day in ISO format
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const startOfDay = today.toISOString();
+        const dayStart = new Date(selectedDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const startOfDay = dayStart.toISOString();
         
-        console.log('Fetching full day data since:', startOfDay);
+        const dayEnd = new Date(selectedDate);
+        dayEnd.setHours(23, 59, 59, 999);
+        const endOfDay = dayEnd.toISOString();
+        
+        console.log('Fetching data for:', startOfDay, 'to', endOfDay);
         
         const { data, error } = await supabase
           .from('energy_data')
           .select('*')
           .eq('shelly_config_id', configId)
           .gte('timestamp', startOfDay)
+          .lte('timestamp', endOfDay)
           .order('timestamp', { ascending: true });
           
         if (error) throw error;
         
-        console.log(`Fetched ${data?.length || 0} data points for the full day`);
+        console.log(`Fetched ${data?.length || 0} data points for the selected day`);
         
         if (data && data.length > 0) {
-          // Transform the data for the chart
           const transformedData: ChartDataPoint[] = data.map((item: any) => {
-            // Parse ISO string to Date object for proper local time formatting
             const date = new Date(item.timestamp);
-            // Ensure consumption = grid + production with positive values
             const grid = Math.round(item.consumption || 0);
             const production = Math.round(item.production || 0);
             const consumption = grid + production;
             
             return {
-              // Format in local time using the browser's timezone
               time: format(date, 'HH:mm', { locale: fr }),
               timestamp: date.getTime(),
               consumption,
               production,
               grid,
-              voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined // Round to 1 decimal place if available
+              voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined
             };
           });
           
           setFullDayData(transformedData);
+        } else {
+          setFullDayData([]);
         }
       } catch (err) {
         console.error('Error fetching full day data:', err);
@@ -115,9 +114,8 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     };
     
     fetchFullDayData();
-  }, [configId]);
+  }, [configId, selectedDate]);
 
-  // Apply zoom to the data
   const applyZoom = useCallback(() => {
     if (fullDayData.length === 0 && history.length === 0) return;
     
@@ -138,20 +136,17 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
         };
       });
     
-    // If no zoom is applied, show all data
     if (zoomRange[0] === 0 && zoomRange[1] === 100) {
       setChartData(sourceData);
       return;
     }
     
-    // Otherwise, calculate the range to show
     const startIndex = Math.floor(sourceData.length * zoomRange[0] / 100);
     const endIndex = Math.ceil(sourceData.length * zoomRange[1] / 100);
     
     setChartData(sourceData.slice(startIndex, endIndex));
   }, [fullDayData, history, zoomRange]);
 
-  // Set zoom based on time range
   const setZoomByTimeRange = useCallback((range: string) => {
     setZoomTimeRange(range);
     
@@ -182,47 +177,37 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     const rangeMs = hoursToShow * 60 * 60 * 1000;
     const startTime = now - rangeMs;
     
-    // Find data index that corresponds to the start time
     const startIndex = sourceData.findIndex(d => d.timestamp >= startTime);
     
     if (startIndex === -1) {
-      // If no data within range, show all data
       setZoomRange([0, 100]);
     } else {
-      // Calculate percentage of data to show
       const startPercentage = (startIndex / sourceData.length) * 100;
       setZoomRange([startPercentage, 100]);
     }
   }, [fullDayData, history]);
 
-  // Apply zoom when zoom parameters change
   useEffect(() => {
     applyZoom();
   }, [applyZoom, zoomRange, fullDayData, history]);
 
-  // Use both sources of data
   useEffect(() => {
     if (fullDayData.length > 0) {
-      // Use the full day data if available
       applyZoom();
     } else if (history.length > 0) {
-      // Fall back to the history prop if full day data isn't ready
       const transformedData: ChartDataPoint[] = history.map((item: ShellyEMData) => {
-        // Convert timestamp to local time
         const date = new Date(item.timestamp);
-        // Ensure consumption = grid + production
         const grid = Math.round(item.power);
         const production = Math.round(item.pv_power || 0);
         const consumption = grid + production;
         
         return {
-          // Format in local time using the browser's timezone
           time: format(date, 'HH:mm', { locale: fr }),
           timestamp: date.getTime(),
           consumption,
           production,
           grid,
-          voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined // Round to 1 decimal place if available
+          voltage: item.voltage ? Math.round(item.voltage * 10) / 10 : undefined
         };
       });
 
@@ -230,19 +215,18 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     }
   }, [history, fullDayData, applyZoom]);
 
-  // Handle mouse wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (!chartContainerRef.current) return;
     
     e.preventDefault();
     
     const delta = e.deltaY;
-    const zoomDirection = delta > 0 ? 1 : -1; // 1 for zoom out, -1 for zoom in
+    const zoomDirection = delta > 0 ? 1 : -1;
     
     const currentRangeWidth = zoomRange[1] - zoomRange[0];
     const newRangeWidth = Math.max(
-      5, // Minimum zoom range (5%)
-      Math.min(100, currentRangeWidth + (zoomDirection * 5)) // Add or subtract 5% for each wheel tick
+      5,
+      Math.min(100, currentRangeWidth + (zoomDirection * 5))
     );
     
     if (newRangeWidth === 100) {
@@ -250,7 +234,6 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       return;
     }
     
-    // Calculate new range while keeping the mouse position centered
     const rect = chartContainerRef.current.getBoundingClientRect();
     const mouseXRatio = (e.clientX - rect.left) / rect.width;
     
@@ -259,7 +242,6 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     const newStart = Math.max(0, rangeCenter - (newRangeWidth / 2));
     const newEnd = Math.min(100, newStart + newRangeWidth);
     
-    // Adjust if we hit the edges
     if (newEnd === 100) {
       setZoomRange([100 - newRangeWidth, 100]);
     } else if (newStart === 0) {
@@ -269,13 +251,11 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     }
   }, [zoomRange]);
 
-  // Calculate max and min values for dynamic Y axis based on visible data and enabled lines
   const calculateYAxisDomain = useCallback(() => {
     if (chartData.length === 0) {
-      return [-500, 3000]; // Default if no data
+      return [-500, 3000];
     }
     
-    // Find max value based on which lines are shown
     const maxValue = Math.max(
       ...chartData.map(d => Math.max(
         showConsumption ? d.consumption : 0,
@@ -284,21 +264,18 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       ))
     );
     
-    // Find min value (for grid which can be negative)
     const minValue = Math.min(
       ...chartData.map(d => Math.min(
         showGrid ? d.grid : 0
       ))
     );
     
-    // Add 10% padding to max and min for better visualization
     return [minValue < 0 ? 1.1 * minValue : -100, 1.1 * maxValue];
   }, [chartData, showConsumption, showProduction, showGrid]);
 
-  // Calculate voltage Y-axis domain
   const calculateVoltageYAxisDomain = useCallback(() => {
     if (chartData.length === 0 || !showVoltage) {
-      return [220, 240]; // Default voltage range if no data
+      return [220, 240];
     }
 
     const voltageValues = chartData
@@ -306,13 +283,12 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
       .filter(v => v !== undefined) as number[];
     
     if (voltageValues.length === 0) {
-      return [220, 240]; // Default if no voltage data
+      return [220, 240];
     }
     
     const minVoltage = Math.min(...voltageValues);
     const maxVoltage = Math.max(...voltageValues);
     
-    // Add small padding for better visualization
     const padding = (maxVoltage - minVoltage) * 0.1;
     return [
       Math.floor(minVoltage - padding), 
@@ -320,7 +296,6 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     ];
   }, [chartData, showVoltage]);
 
-  // Custom tooltip to handle all series
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -344,7 +319,6 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     return null;
   };
 
-  // Common font styling for the chart
   const fontStyle = {
     fontFamily: 'system-ui, sans-serif',
     fontSize: 12,
@@ -357,10 +331,14 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
     textAnchor: 'middle',
   };
 
-  // Handle zoom reset
   const resetZoom = () => {
     setZoomRange([0, 100]);
     setZoomTimeRange('all');
+  };
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+    resetZoom();
   };
 
   return (
@@ -374,6 +352,11 @@ export default function HistoricalEnergyChart({ history }: HistoricalEnergyChart
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
+            <DateSelector 
+              date={selectedDate}
+              onDateChange={handleDateChange}
+              className="mr-4"
+            />
             <Toggle 
               pressed={showConsumption} 
               onPressedChange={setShowConsumption}
