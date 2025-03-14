@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
 import { getShellyConfig, isShellyConfigValid } from '@/lib/api/index';
@@ -158,7 +159,10 @@ export function ShellyDashboard() {
             <TabsTrigger value="data">Tableau de Données</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="mt-6">
-            <EnergyChartWithDateSelector history={history} configId={activeConfigId} />
+            <EnergyChartWithDateSelector 
+              history={history} 
+              configId={activeConfigId} 
+            />
           </TabsContent>
           <TabsContent value="data" className="mt-6">
             <DataTable data={history} configId={activeConfigId} />

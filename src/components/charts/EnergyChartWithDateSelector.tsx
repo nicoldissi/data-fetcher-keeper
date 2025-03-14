@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
 import { EnergyChartWrapper } from '@/components/charts/EnergyChartWrapper';
@@ -24,6 +24,11 @@ export function EnergyChartWithDateSelector({
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(false);
 
+  // Log to debug
+  useEffect(() => {
+    console.log("EnergyChartWithDateSelector rendered", { selectedDate });
+  }, [selectedDate]);
+
   // Filter history data for the selected date
   const filteredHistory = useMemo(() => {
     if (!history || history.length === 0) return [];
@@ -37,6 +42,11 @@ export function EnergyChartWithDateSelector({
     });
   }, [history, selectedDate]);
 
+  const handleDateChange = (date: Date) => {
+    console.log("Date changed to:", date);
+    setSelectedDate(date);
+  };
+
   return (
     <EnergyChartWrapper
       title={title}
@@ -46,8 +56,8 @@ export function EnergyChartWithDateSelector({
       dateSelector={
         <DateSelector
           date={selectedDate}
-          onDateChange={setSelectedDate}
-          className="w-full sm:w-auto"
+          onDateChange={handleDateChange}
+          className="w-full md:w-auto"
         />
       }
     >

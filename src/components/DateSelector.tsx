@@ -21,13 +21,13 @@ interface DateSelectorProps {
 export function DateSelector({ date, onDateChange, className }: DateSelectorProps) {
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <span className="text-sm text-muted-foreground hidden sm:inline">Date:</span>
+      <span className="text-sm text-muted-foreground inline">Date:</span>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
             className={cn(
-              "w-full sm:w-[180px] justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >

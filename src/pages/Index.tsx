@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { getShellyConfig } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +18,8 @@ import { EnergyFlowChartDark } from "@/components/EnergyFlowChartDark";
 import { SelfConsumptionCard } from "@/components/SelfConsumptionCard";
 import { SelfProductionCard } from "@/components/SelfProductionCard";
 import { PowerTriangleCard } from "@/components/PowerTriangleCard";
-import { HistoricalEnergyChart, VisxEnergyChart } from "@/components/charts";
+import { EnergyChartWithDateSelector } from "@/components/charts/EnergyChartWithDateSelector";
+import { VisxEnergyChart } from "@/components/charts";
 import { UserMenu } from "@/components/UserMenu";
 import { Activity, Zap, BarChart3, Gauge, ChartLine, Triangle, Menu } from "lucide-react";
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime';
@@ -170,7 +170,7 @@ const Index = () => {
         );
       case "chart":
         return (
-          <VisxEnergyChart 
+          <EnergyChartWithDateSelector 
             history={history} 
             configId={configId}
           />
