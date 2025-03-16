@@ -29,10 +29,25 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting fetch-clear-sky-production');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get all Shelly configurations
-    const { data: shellyConfigs, error: configError } = await supabase
+    // Check if we need to process a specific configId
+    let specificConfigId: string | null = null;
+    
+    // If this is a POST request, check if there's a configId in the body
+    if (req.method === 'POST') {
+      try {
+        const bodyJson = await req.json();
+        specificConfigId = bodyJson.configId || null;
+        console.log(`Received request for specific config ID: ${specificConfigId}`);
+      } catch (e) {
+        console.log('No valid JSON body found, processing all configs');
+      }
+    }
+    
+    // Get all Shelly configurations or a specific one if requested
+    const configQuery = supabase
       .from('shelly_configs')
       .select(`
         id,
@@ -45,6 +60,12 @@ serve(async (req) => {
           azimuth
         )
       `);
+    
+    if (specificConfigId) {
+      configQuery.eq('id', specificConfigId);
+    }
+    
+    const { data: shellyConfigs, error: configError } = await configQuery;
 
     if (configError) throw configError;
     
@@ -82,6 +103,20 @@ serve(async (req) => {
           `inclination=${panel.inclination}°`, 
           `azimuth=${panel.azimuth}°`);
       });
+
+      // Delete existing clear sky data for this config if it's being specifically reprocessed
+      if (specificConfigId) {
+        console.log(`Clearing existing clear sky production data for config ${config.id}`);
+        const { error: deleteError } = await supabase
+          .from('clear_sky_production')
+          .delete()
+          .eq('shelly_config_id', config.id);
+          
+        if (deleteError) {
+          console.error(`Error deleting clear sky data for config ${config.id}:`, deleteError);
+          // Continue with the process even if deletion fails
+        }
+      }
 
       // Prepare roof sections data from PV panels
       const roofSections = config.pv_panels.map(panel => ({

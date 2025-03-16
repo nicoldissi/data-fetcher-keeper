@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, RefreshCw } from "lucide-react";
 import { ShellyConfig } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -29,6 +29,7 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>(selectedConfigId);
+  const [refreshingClearSky, setRefreshingClearSky] = useState(false);
 
   useEffect(() => {
     if (selectedConfigId && !selectedConfig) {
@@ -74,8 +75,15 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
     
     try {
       let result;
+      let wasUpdated = false;
       
       if (section.id) {
+        // Check if orientation or inclination was changed
+        const existingSection = roofSections.find(s => s.id === section.id);
+        wasUpdated = existingSection && 
+          (existingSection.inclination !== section.inclination || 
+           existingSection.azimuth !== section.azimuth);
+        
         // Update existing section
         const { data, error } = await supabase
           .from('pv_panels')
@@ -107,6 +115,7 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
           
         if (error) throw error;
         result = data;
+        wasUpdated = true; // New panel means we need to update clear sky data
       }
       
       // Update local state
@@ -118,6 +127,17 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
         title: "Section enregistrée",
         description: "La section de toit a été mise à jour avec succès"
       });
+
+      // If orientation or inclination was changed, refresh clear sky data
+      if (wasUpdated) {
+        const shouldRefresh = window.confirm(
+          "L'orientation ou l'inclinaison a été modifiée. Voulez-vous recalculer les données de production théorique ?"
+        );
+        
+        if (shouldRefresh && section.shelly_config_id) {
+          refreshClearSkyData(section.shelly_config_id);
+        }
+      }
     } catch (error) {
       console.error('Error saving roof section:', error);
       toast({
@@ -186,6 +206,52 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
 
   const handleConfigChange = (configId: string) => {
     setSelectedConfig(configId);
+  };
+
+  const refreshClearSkyData = async (configId: string) => {
+    try {
+      setRefreshingClearSky(true);
+      
+      // First, delete existing clear sky data for this configuration
+      const { error: deleteError } = await supabase
+        .from('clear_sky_production')
+        .delete()
+        .eq('shelly_config_id', configId);
+      
+      if (deleteError) {
+        console.error('Error deleting clear sky data:', deleteError);
+        throw deleteError;
+      }
+      
+      // Then call the edge function to regenerate the data
+      const { data, error } = await supabase.functions.invoke('fetch-clear-sky-production');
+      
+      if (error) {
+        console.error('Error calling fetch-clear-sky-production:', error);
+        throw error;
+      }
+      
+      toast({
+        title: "Données mises à jour",
+        description: "Les données de production théorique ont été recalculées avec succès"
+      });
+      
+      console.log('Edge function response:', data);
+    } catch (error) {
+      console.error('Error refreshing clear sky data:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour les données de production théorique"
+      });
+    } finally {
+      setRefreshingClearSky(false);
+    }
+  };
+
+  const handleRefreshAllClearSkyData = () => {
+    if (!selectedConfig) return;
+    refreshClearSkyData(selectedConfig);
   };
 
   return (
@@ -298,7 +364,7 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
           </>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex justify-between">
         <Button 
           variant="outline" 
           onClick={handleAddSection}
@@ -307,6 +373,16 @@ export function RoofSections({ shellyConfigs, selectedConfigId }: RoofSectionsPr
         >
           <Plus className="mr-2 h-4 w-4" />
           Ajouter une section
+        </Button>
+        
+        <Button
+          variant="secondary"
+          onClick={handleRefreshAllClearSkyData}
+          disabled={!selectedConfig || refreshingClearSky || loading}
+          className="flex items-center"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${refreshingClearSky ? 'animate-spin' : ''}`} />
+          {refreshingClearSky ? 'Rafraîchissement...' : 'Recalculer production théorique'}
         </Button>
       </CardFooter>
     </Card>
