@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShellyEMData } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -15,13 +16,15 @@ export function SelfConsumptionCard({ data, className, configId }: SelfConsumpti
   const { dailyTotals } = useDailyEnergyTotals(configId);
 
   // Calculate self-consumption rate using daily totals
+  // This represents what percentage of PV production is used directly by the home
   const calculateSelfConsumptionRate = () => {
     if (!dailyTotals || dailyTotals.production <= 0) {
       return 0;
     }
     
     // Calculate self-consumption using daily totals
-    const consumedFromProduction = dailyTotals.production - dailyTotals.injection;
+    // Self consumption = (Total production - What was sent to grid) / Total production
+    const consumedFromProduction = Math.max(0, dailyTotals.production - dailyTotals.injection);
     const selfConsumptionRate = (consumedFromProduction / dailyTotals.production) * 100;
     
     // Ensure the rate is between 0 and 100
@@ -33,7 +36,7 @@ export function SelfConsumptionCard({ data, className, configId }: SelfConsumpti
   
   // Calculate energy values in kWh
   const totalProduction = (dailyTotals?.production || 0) / 1000; // Wh to kWh
-  const selfConsumed = (dailyTotals?.production - dailyTotals?.injection || 0) / 1000;
+  const selfConsumed = Math.max(0, (dailyTotals?.production - dailyTotals?.injection || 0)) / 1000;
   const gridInjection = (dailyTotals?.injection || 0) / 1000;
   
   // Determine color based on self-consumption rate

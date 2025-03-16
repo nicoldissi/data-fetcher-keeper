@@ -134,12 +134,12 @@ serve(async (req) => {
           latitude: config.latitude,
           longitude: config.longitude,
           altitude: 200,
-          tz: "UTC" // Changed from "Europe/Paris" to "UTC"
+          tz: "UTC" // Using UTC timezone for consistency
         },
         datetime: {
           start: startDate,
           end: endDate,
-          freq: "20min" // Changed from "1h" to "20min"
+          freq: "20min" // Higher resolution data for better accuracy
         },
         roof_sections: roofSections,
         module_parameters: {

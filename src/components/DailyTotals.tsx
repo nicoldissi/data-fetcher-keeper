@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDailyEnergyTotals } from '@/hooks/useDailyEnergyTotals';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -21,7 +22,8 @@ export function DailyTotals({ data, className, configId }: DailyTotalsProps) {
     }
     
     // Calculate self-consumption using daily totals
-    const consumedFromProduction = dailyTotals.production - dailyTotals.injection;
+    // Self consumption = (Total production - What was sent to grid) / Total production
+    const consumedFromProduction = Math.max(0, dailyTotals.production - dailyTotals.injection);
     const selfConsumptionRate = (consumedFromProduction / dailyTotals.production) * 100;
     
     // Ensure the rate is between 0 and 100
@@ -83,7 +85,7 @@ export function DailyTotals({ data, className, configId }: DailyTotalsProps) {
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">Soutirage Réseau</p>
-                <p className="text-lg font-medium">{(dailyTotals.consumption / 1000).toFixed(2)} kWh</p>
+                <p className="text-lg font-medium">{(dailyTotals.importFromGrid / 1000).toFixed(2)} kWh</p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">Injection Réseau</p>
@@ -91,7 +93,7 @@ export function DailyTotals({ data, className, configId }: DailyTotalsProps) {
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">Consommation Maison</p>
-                <p className="text-lg font-medium">{((dailyTotals.consumption + dailyTotals.production) / 1000).toFixed(2)} kWh</p>
+                <p className="text-lg font-medium">{((dailyTotals.importFromGrid + dailyTotals.production - dailyTotals.injection) / 1000).toFixed(2)} kWh</p>
               </div>
             </div>
           </div>

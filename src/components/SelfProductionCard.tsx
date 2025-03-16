@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShellyEMData } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -15,7 +14,8 @@ interface SelfProductionCardProps {
 export function SelfProductionCard({ data, className, configId }: SelfProductionCardProps) {
   const { dailyTotals } = useDailyEnergyTotals(configId);
 
-  // Calculate self-production rate using daily totals :
+  // Calculate self-production rate using daily totals
+  // This represents what percentage of home consumption is covered by local PV
   const calculateSelfProductionRate = () => {
     if (!dailyTotals) {
       return 0;
@@ -24,11 +24,8 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
     // Direct consumption from PV (PV production that wasn't injected to grid)
     const pvToHome = Math.max(0, dailyTotals.production - dailyTotals.injection);
     
-    // Grid import is directly from dailyTotals
-    const gridImport = dailyTotals.importFromGrid;
-    
-    // Total home consumption is the sum of what was taken from PV and from grid
-    const totalHomeConsumption = pvToHome + gridImport;
+    // Total home consumption is the sum of grid import + direct PV consumption
+    const totalHomeConsumption = dailyTotals.importFromGrid + pvToHome;
     
     if (totalHomeConsumption <= 0) {
       return 0;
