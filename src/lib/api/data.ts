@@ -105,6 +105,7 @@ export async function getDailyTotals(
   if (!configId) return null;
   
   const targetDate = date || new Date().toISOString().split('T')[0];
+  console.log(`Fetching daily totals for date: ${targetDate}, configId: ${configId}`);
   
   // Since there's no daily_energy_totals table, we will aggregate the data from energy_data
   const startOfDay = `${targetDate}T00:00:00`;
@@ -123,6 +124,7 @@ export async function getDailyTotals(
   }
 
   if (!data || data.length === 0) {
+    console.log('No data found for the specified date range');
     // Return default values if no data is found
     return {
       consumption: 0,
@@ -134,25 +136,57 @@ export async function getDailyTotals(
     };
   }
 
-  // Calculate daily totals from energy data
-  let totalConsumption = 0;
-  let totalImportFromGrid = 0;
-  let totalProduction = 0;
-  let totalInjection = 0;
+  console.log(`Found ${data.length} data points for daily totals calculation`);
 
-  // Use the last entry for the day for totals
-  const lastEntry = data[data.length - 1];
-  const firstEntry = data[0];
+  // Calculate values by average power * number of hours
+  const hours = 24; // Full day
+  const averageReadings = (array: any[], field: string) => {
+    return array.reduce((sum, item) => sum + (Number(item[field]) || 0), 0) / array.length;
+  };
+
+  // Calculate average consumption (grid power)
+  const avgConsumption = averageReadings(data, 'consumption');
+  // Some consumption values can be negative (when injecting to grid)
+  const avgImportFromGrid = data
+    .filter(item => Number(item.consumption) > 0)
+    .length > 0
+    ? averageReadings(
+        data.filter(item => Number(item.consumption) > 0),
+        'consumption'
+      )
+    : 0;
+
+  // Average production from PV
+  const avgProduction = averageReadings(data, 'production');
   
-  // Calculate the differences between first and last readings
-  if (lastEntry && firstEntry) {
-    totalConsumption = data.reduce((sum, entry) => sum + entry.consumption, 0) / data.length * 24;
-    totalProduction = data.reduce((sum, entry) => sum + entry.production, 0) / data.length * 24;
-    
-    // Simplistic approximation - in a real app, you would use more sophisticated calculations
-    totalImportFromGrid = Math.max(0, totalConsumption - totalProduction);
-    totalInjection = Math.max(0, totalProduction - totalConsumption);
-  }
+  // Calculate injection to grid (negative consumption values represent injection)
+  const avgInjection = data
+    .filter(item => Number(item.consumption) < 0)
+    .length > 0
+    ? Math.abs(
+        averageReadings(
+          data.filter(item => Number(item.consumption) < 0),
+          'consumption'
+        )
+      )
+    : 0;
+  
+  // Convert from average power (W) to energy (Wh) by multiplying by hours
+  const totalImportFromGrid = avgImportFromGrid * hours;
+  const totalProduction = avgProduction * hours;
+  const totalInjection = avgInjection * hours;
+  const totalConsumption = totalImportFromGrid + (totalProduction - totalInjection);
+
+  console.log('Calculated daily totals:', {
+    consumption: totalConsumption,
+    importFromGrid: totalImportFromGrid,
+    injection: totalInjection,
+    production: totalProduction,
+    avgConsumption,
+    avgImportFromGrid,
+    avgProduction,
+    avgInjection
+  });
 
   return {
     consumption: totalConsumption,

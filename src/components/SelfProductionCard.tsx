@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShellyEMData } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -13,19 +14,27 @@ interface SelfProductionCardProps {
 
 export function SelfProductionCard({ data, className, configId }: SelfProductionCardProps) {
   const { dailyTotals } = useDailyEnergyTotals(configId);
+  
+  // Ensure we have valid dailyTotals to work with
+  const validTotals = dailyTotals || { 
+    production: 0, 
+    importFromGrid: 0, 
+    injection: 0, 
+    consumption: 0 
+  };
 
   // Calculate self-production rate using daily totals
   // This represents what percentage of home consumption is covered by local PV
   const calculateSelfProductionRate = () => {
-    if (!dailyTotals) {
+    if (!validTotals) {
       return 0;
     }
     
     // Direct consumption from PV (PV production that wasn't injected to grid)
-    const pvToHome = Math.max(0, dailyTotals.production - dailyTotals.injection);
+    const pvToHome = Math.max(0, validTotals.production - validTotals.injection);
     
     // Total home consumption is the sum of grid import + direct PV consumption
-    const totalHomeConsumption = dailyTotals.importFromGrid + pvToHome;
+    const totalHomeConsumption = validTotals.importFromGrid + pvToHome;
     
     if (totalHomeConsumption <= 0) {
       return 0;
@@ -42,9 +51,17 @@ export function SelfProductionCard({ data, className, configId }: SelfProduction
   const formattedRate = selfProductionRate.toFixed(1);
   
   // Calculate energy values in kWh correctly using the same logic as in the calculation function
-  const pvToHome = Math.max(0, (dailyTotals?.production - dailyTotals?.injection || 0)) / 1000;
-  const gridImport = (dailyTotals?.importFromGrid || 0) / 1000;
+  const pvToHome = Math.max(0, (validTotals.production - validTotals.injection || 0)) / 1000;
+  const gridImport = (validTotals.importFromGrid || 0) / 1000;
   const totalHomeConsumption = pvToHome + gridImport;
+  
+  console.log('SelfProductionCard values:', { 
+    pvToHome, 
+    gridImport, 
+    totalHomeConsumption, 
+    selfProductionRate,
+    dailyTotals: validTotals
+  });
   
   // Determine color based on self-production rate
   const getColor = (rate: number) => {

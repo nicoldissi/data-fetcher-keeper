@@ -14,18 +14,26 @@ interface SelfConsumptionCardProps {
 
 export function SelfConsumptionCard({ data, className, configId }: SelfConsumptionCardProps) {
   const { dailyTotals } = useDailyEnergyTotals(configId);
+  
+  // Ensure we have valid dailyTotals to work with
+  const validTotals = dailyTotals || { 
+    production: 0, 
+    importFromGrid: 0, 
+    injection: 0, 
+    consumption: 0 
+  };
 
   // Calculate self-consumption rate using daily totals
   // This represents what percentage of PV production is used directly by the home
   const calculateSelfConsumptionRate = () => {
-    if (!dailyTotals || dailyTotals.production <= 0) {
+    if (!validTotals.production || validTotals.production <= 0) {
       return 0;
     }
     
     // Calculate self-consumption using daily totals
     // Self consumption = (Total production - What was sent to grid) / Total production
-    const consumedFromProduction = Math.max(0, dailyTotals.production - dailyTotals.injection);
-    const selfConsumptionRate = (consumedFromProduction / dailyTotals.production) * 100;
+    const consumedFromProduction = Math.max(0, validTotals.production - validTotals.injection);
+    const selfConsumptionRate = (consumedFromProduction / validTotals.production) * 100;
     
     // Ensure the rate is between 0 and 100
     return Math.max(0, Math.min(100, selfConsumptionRate));
@@ -35,9 +43,9 @@ export function SelfConsumptionCard({ data, className, configId }: SelfConsumpti
   const formattedRate = selfConsumptionRate.toFixed(1);
   
   // Calculate energy values in kWh
-  const totalProduction = (dailyTotals?.production || 0) / 1000; // Wh to kWh
-  const selfConsumed = Math.max(0, (dailyTotals?.production - dailyTotals?.injection || 0)) / 1000;
-  const gridInjection = (dailyTotals?.injection || 0) / 1000;
+  const totalProduction = (validTotals.production || 0) / 1000; // Wh to kWh
+  const selfConsumed = Math.max(0, (validTotals.production - validTotals.injection || 0)) / 1000;
+  const gridInjection = (validTotals.injection || 0) / 1000;
   
   // Determine color based on self-consumption rate
   const getColor = (rate: number) => {
@@ -80,6 +88,14 @@ export function SelfConsumptionCard({ data, className, configId }: SelfConsumpti
   const selfConsumedPosition = getSelfConsumedPosition();
   const injectionPosition = getInjectionPosition();
   
+  console.log('SelfConsumptionCard values:', { 
+    totalProduction, 
+    selfConsumed, 
+    gridInjection, 
+    selfConsumptionRate,
+    dailyTotals: validTotals
+  });
+  
   return (
     <Card className={cn("overflow-hidden backdrop-blur-sm bg-white/90 border-0 shadow-md h-full", className)}>
       <CardHeader className="pb-2">
@@ -93,8 +109,8 @@ export function SelfConsumptionCard({ data, className, configId }: SelfConsumpti
           <CircularProgressbar
             value={selfConsumptionRate}
             styles={buildStyles({
-              pathColor: '#10b981', // Green for PV
-              trailColor: '#007bff', // Blue for Grid
+              pathColor: '#10b981', // Green for self-consumed
+              trailColor: '#007bff', // Blue for grid injection
               strokeLinecap: 'butt',
               textSize: '16px',
             })}

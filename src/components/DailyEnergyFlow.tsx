@@ -23,12 +23,26 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
   
   const toKWh = (wh: number) => (wh / 1000).toFixed(2);
   
-  const pvTotal = dailyTotals.production;
-  const gridImportTotal = dailyTotals.consumption - (dailyTotals.production - dailyTotals.injection);
-  const gridExportTotal = dailyTotals.injection;
-  const consumptionTotal = dailyTotals.consumption;
+  // Ensure we have valid dailyTotals to work with
+  const validTotals = dailyTotals || { 
+    production: 0, 
+    importFromGrid: 0, 
+    injection: 0, 
+    consumption: 0 
+  };
   
-  const pvToLoads = pvTotal - gridExportTotal;
+  // Calculate values based on daily totals
+  const pvTotal = validTotals.production;
+  const gridImportTotal = validTotals.importFromGrid;
+  const gridExportTotal = validTotals.injection;
+  
+  // PV to home consumption is what was produced minus what was exported
+  const pvToLoads = Math.max(0, pvTotal - gridExportTotal);
+  
+  // Total home consumption is direct PV consumption plus grid import
+  const consumptionTotal = pvToLoads + gridImportTotal;
+  
+  // Calculate percentage distributions
   const pvToLoadsPercent = pvTotal > 0 ? (pvToLoads / pvTotal * 100).toFixed(2) : "0";
   const pvToGridPercent = pvTotal > 0 ? (gridExportTotal / pvTotal * 100).toFixed(2) : "0";
   
@@ -39,6 +53,19 @@ export function DailyEnergyFlow({ configId, className }: DailyEnergyFlowProps) {
   
   // Determine layout mode based on screen width - adjust bezier curves accordingly
   const isMobile = windowWidth < 768;
+  
+  console.log('DailyEnergyFlow calculated values:', {
+    pvTotal,
+    gridImportTotal,
+    gridExportTotal,
+    pvToLoads,
+    consumptionTotal,
+    pvToLoadsPercent,
+    pvToGridPercent,
+    consumptionFromPvPercent,
+    consumptionFromGridPercent,
+    dailyTotals: validTotals
+  });
   
   if (loading) {
     return (

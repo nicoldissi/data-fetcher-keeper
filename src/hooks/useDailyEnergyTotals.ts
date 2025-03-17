@@ -26,6 +26,13 @@ export function useDailyEnergyTotals(configId?: string, date?: Date) {
     refetchInterval: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Add logging to debug the data
+  useEffect(() => {
+    if (data) {
+      console.log('DailyEnergy Totals fetched:', data);
+    }
+  }, [data]);
+
   return {
     dailyTotals: data,
     loading: isLoading,
