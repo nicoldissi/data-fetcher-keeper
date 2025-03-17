@@ -23,6 +23,7 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false, cl
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [deviceType, setDeviceType] = useState<'ShellyEM' | 'ShellyProEM'>('ShellyEM');
   const [inverseMeters, setInverseMeters] = useState<boolean>(false);
+  const [deviceName, setDeviceName] = useState<string>('My Shelly Device');
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
   
@@ -30,13 +31,20 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false, cl
     // Try to load configuration from localStorage or database
     const loadConfig = async () => {
       try {
+        console.log("Loading existing Shelly config...");
         const config = await getShellyConfig();
+        console.log("Loaded config:", config);
+        
         if (config && config.deviceId) {
           setDeviceId(config.deviceId || '');
           setApiKey(config.apiKey || '');
-          setServerUrl(config.serverUrl || '');
+          setServerUrl(config.serverUrl || 'https://shelly-11-eu.shelly.cloud');
           setDeviceType(config.deviceType || 'ShellyEM');
           setInverseMeters(!!config.inverse_meters);
+          setDeviceName(config.name || 'My Shelly Device');
+          console.log("Config loaded successfully with inverse_meters:", !!config.inverse_meters);
+        } else {
+          console.log("No existing config found, using defaults");
         }
       } catch (error) {
         console.error("Error loading Shelly config:", error);
@@ -45,7 +53,7 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false, cl
     };
     
     loadConfig();
-  }, []); // Remove onConfigured from dependencies
+  }, []);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +74,18 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false, cl
       apiKey: apiKey.trim(),
       serverUrl: serverUrl.trim(),
       deviceType: deviceType,
+      name: deviceName.trim(),
       inverse_meters: inverseMeters
     };
   
+    console.log("Saving Shelly config with values:", JSON.stringify(config, null, 2));
+    
     // Save the configuration and hide the form
     updateShellyConfig(config)
-      .then(() => {
+      .then((savedConfig) => {
         setIsLoading(false);
+        console.log("Configuration saved successfully:", savedConfig);
+        
         toast({
           title: "Configuration saved",
           description: "Your Shelly device is now configured"
@@ -108,6 +121,15 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false, cl
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="deviceName">Device Name</Label>
+            <Input
+              id="deviceName"
+              placeholder="My Shelly Device"
+              value={deviceName}
+              onChange={(e) => setDeviceName(e.target.value)}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="deviceId">Device ID</Label>
             <Input

@@ -13,7 +13,8 @@ const DEFAULT_CONFIG: ShellyConfig = {
   deviceId: '',
   apiKey: '',
   name: 'Default Device',
-  deviceType: 'ShellyEM'
+  deviceType: 'ShellyEM',
+  inverse_meters: false
 };
 
 export const getLocalShellyConfig = (): ShellyConfig => {
@@ -132,7 +133,7 @@ export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
 
     // Map database fields to frontend expected format
     const mappedConfigs = data.map(mapDbConfigToFrontend);
-
+    console.log("Retrieved configs:", mappedConfigs.length);
     return mappedConfigs;
   } catch (error) {
     console.error("Error fetching Shelly configs:", error);
@@ -221,7 +222,9 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
       }
 
       // Map database fields to frontend expected format
-      return mapDbConfigToFrontend(data);
+      const mappedConfig = mapDbConfigToFrontend(data);
+      console.log("Retrieved config:", mappedConfig);
+      return mappedConfig;
     }
   } catch (error) {
     console.error("Error fetching Shelly config:", error);
