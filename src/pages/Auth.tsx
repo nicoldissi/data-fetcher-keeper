@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,44 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Mail } from 'lucide-react';
+import { ShellyConfigForm } from '@/components/ShellyConfigForm';
+import { isShellyConfigValid } from '@/lib/api';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [hasValidConfig, setHasValidConfig] = useState<boolean | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+      
+      if (user) {
+        // Check if user has a valid Shelly config
+        const configValid = await isShellyConfigValid();
+        setHasValidConfig(configValid);
+      }
+    };
+    
+    checkAuth();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setIsAuthenticated(!!session);
+      
+      if (session) {
+        // When user logs in, check if they have a valid config
+        const configValid = await isShellyConfigValid();
+        setHasValidConfig(configValid);
+      }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,9 +105,40 @@ export default function Auth() {
       setLoading(false);
     }
   };
+  
+  // If user is authenticated but doesn't have a valid config
+  if (isAuthenticated === true && hasValidConfig === false) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900 p-4">
+        <div className="w-full max-w-md">
+          <h1 className="text-2xl font-bold text-center mb-6">Configuration nécessaire</h1>
+          <p className="text-center mb-6 text-slate-500 dark:text-slate-400">
+            Veuillez configurer votre appareil Shelly pour continuer
+          </p>
+          <ShellyConfigForm onConfigured={() => navigate("/")} redirectToDashboard={true} />
+        </div>
+      </div>
+    );
+  }
+  
+  // If user is authenticated and has a valid config, redirect to dashboard
+  if (isAuthenticated === true && hasValidConfig === true) {
+    navigate("/");
+    return null;
+  }
 
+  // If still checking authentication status
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900">
+        <p>Vérification de l'authentification...</p>
+      </div>
+    );
+  }
+
+  // Default: show login form
   return (
-    <div className="flex justify-center items-center min-h-screen bg-slate-50">
+    <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900">
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>Connexion</CardTitle>

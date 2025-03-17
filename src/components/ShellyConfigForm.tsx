@@ -8,18 +8,21 @@ import { ShellyConfig } from '@/lib/types';
 import { updateShellyConfig, getShellyConfig, isShellyConfigValid } from '@/lib/api/index';
 import { toast } from '@/components/ui/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { useNavigate } from 'react-router-dom';
 
 interface ShellyConfigFormProps {
   onConfigured: () => void;
+  redirectToDashboard?: boolean;
 }
 
-export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
+export function ShellyConfigForm({ onConfigured, redirectToDashboard = false }: ShellyConfigFormProps) {
   const [deviceId, setDeviceId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
   const [serverUrl, setServerUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [deviceType, setDeviceType] = useState<'ShellyEM' | 'ShellyProEM'>('ShellyEM');
   const [inverseMeters, setInverseMeters] = useState<boolean>(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Try to load configuration from localStorage or database
@@ -60,13 +63,29 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
     };
   
     // Save the configuration and hide the form
-    updateShellyConfig(config);
-    setIsLoading(false);
-    toast({
-      title: "Configuration saved",
-      description: "Your Shelly device is now configured"
-    });
-    onConfigured();
+    updateShellyConfig(config)
+      .then(() => {
+        setIsLoading(false);
+        toast({
+          title: "Configuration saved",
+          description: "Your Shelly device is now configured"
+        });
+        
+        if (redirectToDashboard) {
+          navigate('/');
+        } else {
+          onConfigured();
+        }
+      })
+      .catch(error => {
+        console.error("Error saving configuration:", error);
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Configuration failed",
+          description: "There was an error saving your configuration. Please try again."
+        });
+      });
   };
   
   return (
