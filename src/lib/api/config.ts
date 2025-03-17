@@ -1,3 +1,4 @@
+
 import { ShellyConfig } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,8 +11,8 @@ export const updateLocalShellyConfig = (config: ShellyConfig): void => {
 
 const DEFAULT_CONFIG: ShellyConfig = {
   serverUrl: 'https://shelly-11-eu.shelly.cloud',
-  deviceId: 'ecfabcc7ebe9',
-  apiKey: 'MmIzYzJ1aWQ9E5B47CE0F300842AD58AEC918783E62DADA00AC1D88E8C28721C5CE356A11CA021A43DAE7AE96ED',
+  deviceId: '',
+  apiKey: '',
   name: 'Default Device',
   deviceType: 'ShellyEM'
 };
@@ -42,6 +43,7 @@ interface DbShellyConfig {
   grid_subscription_kva?: number;
   latitude?: number;
   longitude?: number;
+  inverse_meters?: boolean;
 }
 
 // Helper function to map database fields to frontend model
@@ -56,7 +58,8 @@ export const mapDbConfigToFrontend = (dbConfig: DbShellyConfig): ShellyConfig =>
     inverter_power_kva: dbConfig.inverter_power_kva,
     grid_subscription_kva: dbConfig.grid_subscription_kva,
     latitude: dbConfig.latitude,
-    longitude: dbConfig.longitude
+    longitude: dbConfig.longitude,
+    inverse_meters: dbConfig.inverse_meters
   };
 };
 
@@ -72,7 +75,8 @@ export const mapFrontendToDbConfig = (config: ShellyConfig): DbShellyConfig => {
     inverter_power_kva: config.inverter_power_kva,
     grid_subscription_kva: config.grid_subscription_kva,
     latitude: config.latitude,
-    longitude: config.longitude
+    longitude: config.longitude,
+    inverse_meters: config.inverse_meters
   };
 };
 
@@ -93,10 +97,14 @@ export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
       .select('shelly_config_id')
       .eq('user_id', user.id);
 
-    if (shareError) throw shareError;
+    if (shareError) {
+      console.error("Error fetching user device shares:", shareError);
+      return [DEFAULT_CONFIG];
+    }
     
     // If no shares found, return default
     if (!shareData || shareData.length === 0) {
+      console.log("No device shares found for user, returning default config");
       return [DEFAULT_CONFIG];
     }
 
@@ -109,10 +117,14 @@ export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
       .select('*')
       .in('id', configIds);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching shelly configs by IDs:", error);
+      return [DEFAULT_CONFIG];
+    }
 
     if (!data || data.length === 0) {
       // If no configs found, return default
+      console.log("No configs found for the given IDs, returning default config");
       return [DEFAULT_CONFIG];
     }
 
@@ -137,7 +149,10 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return DEFAULT_CONFIG;
+    if (!user) {
+      console.log("No authenticated user, returning default config");
+      return DEFAULT_CONFIG;
+    }
 
     // If ID provided, get specific config
     if (id) {
@@ -150,8 +165,8 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
         .maybeSingle();
 
       if (error) {
-        console.error("Error fetching shelly config:", error);
-        throw error;
+        console.error("Error fetching shelly config by ID:", error);
+        return DEFAULT_CONFIG;
       }
 
       if (!data) {
@@ -172,12 +187,16 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();  // Changed from single() to maybeSingle() to handle no results case
 
-      if (shareError) throw shareError;
+      if (shareError) {
+        console.error("Error fetching user device share:", shareError);
+        return DEFAULT_CONFIG;
+      }
       
       if (!shareData) {
         // If no shares found, return default
+        console.log("No device share found for user, returning default config");
         return DEFAULT_CONFIG;
       }
 
@@ -186,12 +205,16 @@ export const getShellyConfig = async (id?: string): Promise<ShellyConfig> => {
         .from('shelly_configs')
         .select('*')
         .eq('id', shareData.shelly_config_id)
-        .single();
+        .maybeSingle();  // Changed from single() to maybeSingle()
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching shelly config for shared ID:", error);
+        return DEFAULT_CONFIG;
+      }
 
       if (!data) {
         // If no config found, return default
+        console.log("No config found for shared ID, returning default config");
         return DEFAULT_CONFIG;
       }
 

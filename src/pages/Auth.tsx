@@ -16,29 +16,55 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [hasValidConfig, setHasValidConfig] = useState<boolean | null>(null);
+  const [configCheckError, setConfigCheckError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-      
-      if (user) {
-        // Check if user has a valid Shelly config
-        const configValid = await isShellyConfigValid();
-        setHasValidConfig(configValid);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsAuthenticated(!!user);
+        
+        if (user) {
+          console.log("User signed in:", user.email);
+          // Check if user has a valid Shelly config
+          try {
+            const configValid = await isShellyConfigValid();
+            setHasValidConfig(configValid);
+            if (!configValid) {
+              console.log("No valid Shelly configuration found for user");
+            }
+          } catch (error) {
+            console.error("Error checking Shelly config:", error);
+            setConfigCheckError("Unable to check device configuration. Please try again.");
+            setHasValidConfig(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setIsAuthenticated(false);
       }
     };
     
     checkAuth();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("Session set successfully:", session);
       setIsAuthenticated(!!session);
       
       if (session) {
         // When user logs in, check if they have a valid config
-        const configValid = await isShellyConfigValid();
-        setHasValidConfig(configValid);
+        try {
+          const configValid = await isShellyConfigValid();
+          setHasValidConfig(configValid);
+          if (!configValid) {
+            console.log("No valid Shelly configuration found for user after login");
+          }
+        } catch (error) {
+          console.error("Error checking Shelly config after login:", error);
+          setConfigCheckError("Unable to check device configuration. Please try again.");
+          setHasValidConfig(false);
+        }
       }
     });
     
@@ -113,7 +139,7 @@ export default function Auth() {
         <div className="w-full max-w-md">
           <h1 className="text-2xl font-bold text-center mb-6">Configuration nécessaire</h1>
           <p className="text-center mb-6 text-slate-500 dark:text-slate-400">
-            Veuillez configurer votre appareil Shelly pour continuer
+            {configCheckError || "Veuillez configurer votre appareil Shelly pour continuer"}
           </p>
           <ShellyConfigForm onConfigured={() => navigate("/")} redirectToDashboard={true} />
         </div>

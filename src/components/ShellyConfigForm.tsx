@@ -18,22 +18,28 @@ interface ShellyConfigFormProps {
 export function ShellyConfigForm({ onConfigured, redirectToDashboard = false }: ShellyConfigFormProps) {
   const [deviceId, setDeviceId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
-  const [serverUrl, setServerUrl] = useState<string>('');
+  const [serverUrl, setServerUrl] = useState<string>('https://shelly-11-eu.shelly.cloud');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [deviceType, setDeviceType] = useState<'ShellyEM' | 'ShellyProEM'>('ShellyEM');
   const [inverseMeters, setInverseMeters] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
     // Try to load configuration from localStorage or database
     const loadConfig = async () => {
-      const config = await getShellyConfig();
-      if (config) {
-        setDeviceId(config.deviceId || '');
-        setApiKey(config.apiKey || '');
-        setServerUrl(config.serverUrl || '');
-        setDeviceType(config.deviceType || 'ShellyEM');
-        setInverseMeters(!!config.inverse_meters);
+      try {
+        const config = await getShellyConfig();
+        if (config) {
+          setDeviceId(config.deviceId || '');
+          setApiKey(config.apiKey || '');
+          setServerUrl(config.serverUrl || '');
+          setDeviceType(config.deviceType || 'ShellyEM');
+          setInverseMeters(!!config.inverse_meters);
+        }
+      } catch (error) {
+        console.error("Error loading Shelly config:", error);
+        setLoadError("Failed to load existing configuration. You can create a new one.");
       }
     };
     
@@ -94,6 +100,9 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false }: 
         <CardTitle>Configure Shelly Device</CardTitle>
         <CardDescription>
           Enter your Shelly device ID and API key to connect to your device
+          {loadError && (
+            <p className="mt-2 text-amber-500 dark:text-amber-400">{loadError}</p>
+          )}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
