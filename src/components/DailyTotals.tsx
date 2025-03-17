@@ -29,10 +29,9 @@ export function DailyTotals({ data, className, configId }: DailyTotalsProps) {
       return 0;
     }
     
-    // Calculate self-consumption using daily totals
     // Self consumption = (Total production - What was sent to grid) / Total production
-    const consumedFromProduction = Math.max(0, validTotals.production - validTotals.injection);
-    const selfConsumptionRate = (consumedFromProduction / validTotals.production) * 100;
+    const pvConsumedLocally = Math.max(0, validTotals.production - validTotals.injection);
+    const selfConsumptionRate = (pvConsumedLocally / validTotals.production) * 100;
     
     // Ensure the rate is between 0 and 100
     return Math.max(0, Math.min(100, selfConsumptionRate));

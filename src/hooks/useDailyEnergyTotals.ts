@@ -30,6 +30,22 @@ export function useDailyEnergyTotals(configId?: string, date?: Date) {
   useEffect(() => {
     if (data) {
       console.log('DailyEnergy Totals fetched:', data);
+      
+      // Calculate and log derived values for debugging
+      const homeConsumption = data.importFromGrid + Math.max(0, data.production - data.injection);
+      const selfConsumptionRate = data.production > 0 
+        ? ((data.production - data.injection) / data.production) * 100
+        : 0;
+      const selfProductionRate = homeConsumption > 0 
+        ? ((data.production - data.injection) / homeConsumption) * 100
+        : 0;
+        
+      console.log('Derived values:', {
+        homeConsumption: homeConsumption,
+        selfConsumptionRate: selfConsumptionRate,
+        selfProductionRate: selfProductionRate,
+        pvToHome: (data.production - data.injection)
+      });
     }
   }, [data]);
 

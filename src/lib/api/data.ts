@@ -138,61 +138,85 @@ export async function getDailyTotals(
 
   console.log(`Found ${data.length} data points for daily totals calculation`);
 
-  // Calculate values by average power * number of hours
-  const hours = 24; // Full day
-  const averageReadings = (array: any[], field: string) => {
-    return array.reduce((sum, item) => sum + (Number(item[field]) || 0), 0) / array.length;
-  };
-
-  // Calculate average consumption (grid power)
-  const avgConsumption = averageReadings(data, 'consumption');
-  // Some consumption values can be negative (when injecting to grid)
-  const avgImportFromGrid = data
-    .filter(item => Number(item.consumption) > 0)
-    .length > 0
-    ? averageReadings(
-        data.filter(item => Number(item.consumption) > 0),
-        'consumption'
-      )
-    : 0;
-
-  // Average production from PV
-  const avgProduction = averageReadings(data, 'production');
+  // Calculate total energy by integrating the power values over time
+  let totalProduction = 0;
+  let totalGridImport = 0;
+  let totalGridExport = 0;
   
-  // Calculate injection to grid (negative consumption values represent injection)
-  const avgInjection = data
-    .filter(item => Number(item.consumption) < 0)
-    .length > 0
-    ? Math.abs(
-        averageReadings(
-          data.filter(item => Number(item.consumption) < 0),
-          'consumption'
-        )
-      )
-    : 0;
+  // Sort data by timestamp to ensure chronological order
+  const sortedData = [...data].sort((a, b) => 
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
   
-  // Convert from average power (W) to energy (Wh) by multiplying by hours
-  const totalImportFromGrid = avgImportFromGrid * hours;
-  const totalProduction = avgProduction * hours;
-  const totalInjection = avgInjection * hours;
-  const totalConsumption = totalImportFromGrid + (totalProduction - totalInjection);
+  // Group data points by hour to reduce noise and get more stable average values
+  const hourlyGroups: Record<string, any[]> = {};
+  
+  sortedData.forEach(item => {
+    const hour = new Date(item.timestamp).getHours();
+    const key = `hour-${hour}`;
+    
+    if (!hourlyGroups[key]) {
+      hourlyGroups[key] = [];
+    }
+    
+    hourlyGroups[key].push(item);
+  });
+  
+  // Calculate hourly averages and integrate over time
+  Object.values(hourlyGroups).forEach(hourGroup => {
+    if (hourGroup.length === 0) return;
+    
+    // Calculate average values for this hour
+    const avgProduction = hourGroup.reduce((sum, item) => sum + (item.production || 0), 0) / hourGroup.length;
+    
+    // Calculate average grid import (positive consumption values)
+    const importItems = hourGroup.filter(item => (item.consumption || 0) > 0);
+    const avgGridImport = importItems.length > 0 
+      ? importItems.reduce((sum, item) => sum + (item.consumption || 0), 0) / importItems.length
+      : 0;
+    
+    // Calculate average grid export (negative consumption values)
+    const exportItems = hourGroup.filter(item => (item.consumption || 0) < 0);
+    const avgGridExport = exportItems.length > 0
+      ? Math.abs(exportItems.reduce((sum, item) => sum + (item.consumption || 0), 0) / exportItems.length)
+      : 0;
+    
+    // Integrate over one hour (power in W * 1 hour = energy in Wh)
+    totalProduction += avgProduction;
+    totalGridImport += avgGridImport;
+    totalGridExport += avgGridExport;
+  });
+  
+  // Convert to daily values by multiplying by the hours in the period
+  const hoursInPeriod = Object.keys(hourlyGroups).length;
+  const scalingFactor = hoursInPeriod > 0 ? 1 : 0; // Avoid division by zero
+  
+  // Log intermediate calculations for debugging
+  console.log('Daily totals calculation:', {
+    hoursInPeriod,
+    rawTotalProduction: totalProduction,
+    rawTotalGridImport: totalGridImport,
+    rawTotalGridExport: totalGridExport
+  });
+  
+  // Calculate final values
+  const finalProduction = totalProduction * scalingFactor;
+  const finalGridImport = totalGridImport * scalingFactor;
+  const finalGridExport = totalGridExport * scalingFactor;
+  const finalConsumption = finalGridImport + (finalProduction - finalGridExport);
 
   console.log('Calculated daily totals:', {
-    consumption: totalConsumption,
-    importFromGrid: totalImportFromGrid,
-    injection: totalInjection,
-    production: totalProduction,
-    avgConsumption,
-    avgImportFromGrid,
-    avgProduction,
-    avgInjection
+    consumption: finalConsumption,
+    importFromGrid: finalGridImport,
+    injection: finalGridExport,
+    production: finalProduction
   });
 
   return {
-    consumption: totalConsumption,
-    importFromGrid: totalImportFromGrid,
-    injection: totalInjection,
-    production: totalProduction,
+    consumption: finalConsumption,
+    importFromGrid: finalGridImport,
+    injection: finalGridExport,
+    production: finalProduction,
     date: targetDate,
     config_id: configId
   };
