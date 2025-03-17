@@ -13,9 +13,10 @@ import { useNavigate } from 'react-router-dom';
 interface ShellyConfigFormProps {
   onConfigured: () => void;
   redirectToDashboard?: boolean;
+  className?: string;
 }
 
-export function ShellyConfigForm({ onConfigured, redirectToDashboard = false }: ShellyConfigFormProps) {
+export function ShellyConfigForm({ onConfigured, redirectToDashboard = false, className = "" }: ShellyConfigFormProps) {
   const [deviceId, setDeviceId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
   const [serverUrl, setServerUrl] = useState<string>('https://shelly-11-eu.shelly.cloud');
@@ -30,7 +31,7 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false }: 
     const loadConfig = async () => {
       try {
         const config = await getShellyConfig();
-        if (config) {
+        if (config && config.deviceId) {
           setDeviceId(config.deviceId || '');
           setApiKey(config.apiKey || '');
           setServerUrl(config.serverUrl || '');
@@ -95,7 +96,7 @@ export function ShellyConfigForm({ onConfigured, redirectToDashboard = false }: 
   };
   
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className={`w-full max-w-md mx-auto ${className}`}>
       <CardHeader>
         <CardTitle>Configure Shelly Device</CardTitle>
         <CardDescription>
