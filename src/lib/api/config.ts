@@ -1,4 +1,3 @@
-
 import { ShellyConfig } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -89,7 +88,10 @@ export interface SupabaseResponse<T> {
 export const getShellyConfigs = async (): Promise<ShellyConfig[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [DEFAULT_CONFIG];
+    if (!user) {
+      console.log("No authenticated user, returning default config");
+      return [DEFAULT_CONFIG];
+    }
 
     // First, get all shelly_config_ids that the user has access to
     const { data: shareData, error: shareError } = await supabase
