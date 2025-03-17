@@ -55,6 +55,7 @@ export interface ShellyConfig {
   grid_subscription_kva?: number;
   latitude?: number | null;
   longitude?: number | null;
+  inverse_meters?: boolean; // Add this field to handle reversed meter connections
   // Adding aliases for API compatibility
   deviceid?: string; 
   apikey?: string;

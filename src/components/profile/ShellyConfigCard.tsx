@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShellyConfig } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
 
 interface ShellyConfigCardProps {
   config: ShellyConfig;
   index: number;
   saving: boolean;
   deleting: boolean;
-  onUpdateField: (index: number, field: keyof ShellyConfig, value: string | number | null) => void;
+  onUpdateField: (index: number, field: keyof ShellyConfig, value: string | number | boolean | null) => void;
   onSave: () => void;
   onDelete: () => void;
 }
@@ -81,6 +82,17 @@ export function ShellyConfigCard({
               <SelectItem value="ShellyProEM">Shelly Pro EM</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id={`inverse-meters-${index}`}
+            checked={!!config.inverse_meters}
+            onCheckedChange={(checked) => onUpdateField(index, "inverse_meters", checked)}
+          />
+          <Label htmlFor={`inverse-meters-${index}`}>
+            Ports inversés (production sur eMeter 0)
+          </Label>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">

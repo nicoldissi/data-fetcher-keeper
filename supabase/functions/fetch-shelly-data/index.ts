@@ -197,6 +197,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
 
     const deviceStatus = jsonResponse.data.device_status;
     const deviceType = configData.device_type || 'ShellyEM';
+    const inverseMeters = !!configData.inverse_meters; // Check if meters are inverted
 
     // Process the data based on device type
     let gridMeter, productionMeter;
@@ -215,9 +216,13 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
           total_returned: 0
         };
       } else {
+        // Determine which meter is grid and which is production based on inverse_meters
+        const gridIndex = inverseMeters ? 1 : 0;
+        const pvIndex = inverseMeters ? 0 : 1;
+
         // For Shelly Pro EM, extract active power and apparent power to calculate reactive power
-        const activePower = deviceStatus['em1:0'].act_power || 0;
-        const apparentPower = deviceStatus['em1:0'].aprt_power || 0;
+        const activePower = deviceStatus[`em1:${gridIndex}`]?.act_power || 0;
+        const apparentPower = deviceStatus[`em1:${gridIndex}`]?.aprt_power || 0;
         
         // Calculate reactive power using the formula Q = √(S² - P²)
         // where S is apparent power and P is active power
@@ -226,34 +231,35 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
         console.log('Pro EM calculated values:', {
           activePower,
           apparentPower,
-          reactivePower
+          reactivePower,
+          inverseMeters
         });
         
         gridMeter = {
           power: activePower,
           reactive: reactivePower, // Use the calculated reactive power
-          voltage: deviceStatus['em1:0'].voltage || 0,
-          total: deviceStatus['em1data:0']?.total_act_energy || 0,
-          pf: deviceStatus['em1:0'].pf || 0,
+          voltage: deviceStatus[`em1:${gridIndex}`]?.voltage || 0,
+          total: deviceStatus[`em1data:${gridIndex}`]?.total_act_energy || 0,
+          pf: deviceStatus[`em1:${gridIndex}`]?.pf || 0,
           is_valid: true, // Pro EM doesn't have this field, assume true if we get data
-          total_returned: deviceStatus['em1data:0']?.total_act_ret_energy || 0
+          total_returned: deviceStatus[`em1data:${gridIndex}`]?.total_act_ret_energy || 0
         };
-      }
 
-      if (!deviceStatus['em1:1']) {
-        productionMeter = null;
-      } else {
-        // Similarly for PV (production meter)
-        const pvActivePower = deviceStatus['em1:1'].act_power || 0;
-        const pvApparentPower = deviceStatus['em1:1'].aprt_power || 0;
-        const pvReactivePower = calculateReactivePower(pvApparentPower, pvActivePower);
-        
-        productionMeter = {
-          power: pvActivePower,
-          reactive: pvReactivePower, // Use the calculated reactive power
-          total: deviceStatus['em1data:1']?.total_act_energy || 0,
-          pf: deviceStatus['em1:1'].pf || 0 // PV power factor
-        };
+        if (!deviceStatus[`em1:${pvIndex}`]) {
+          productionMeter = null;
+        } else {
+          // Similarly for PV (production meter)
+          const pvActivePower = deviceStatus[`em1:${pvIndex}`]?.act_power || 0;
+          const pvApparentPower = deviceStatus[`em1:${pvIndex}`]?.aprt_power || 0;
+          const pvReactivePower = calculateReactivePower(pvApparentPower, pvActivePower);
+          
+          productionMeter = {
+            power: pvActivePower,
+            reactive: pvReactivePower, // Use the calculated reactive power
+            total: deviceStatus[`em1data:${pvIndex}`]?.total_act_energy || 0,
+            pf: deviceStatus[`em1:${pvIndex}`]?.pf || 0 // PV power factor
+          };
+        }
       }
     } else {
       // Standard Shelly EM processing
@@ -270,8 +276,36 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
         };
         productionMeter = null;
       } else {
-        gridMeter = deviceStatus.emeters[0];
-        productionMeter = deviceStatus.emeters.length > 1 ? deviceStatus.emeters[1] : null;
+        // Determine which emeter is grid and which is production based on inverse_meters setting
+        const gridIndex = inverseMeters ? 1 : 0;
+        const pvIndex = inverseMeters ? 0 : 1;
+        
+        // Log the meter assignment for debugging
+        console.log('Meter assignment:', {
+          inverseMeters,
+          gridIndex,
+          pvIndex,
+          totalMeters: deviceStatus.emeters.length
+        });
+        
+        // Assign meters based on the configuration
+        gridMeter = deviceStatus.emeters.length > gridIndex ? deviceStatus.emeters[gridIndex] : {
+          power: 0,
+          reactive: 0,
+          voltage: 0,
+          total: 0,
+          pf: 0,
+          is_valid: false,
+          total_returned: 0
+        };
+        
+        productionMeter = deviceStatus.emeters.length > pvIndex ? deviceStatus.emeters[pvIndex] : null;
+        
+        // Log the extracted meter data for debugging
+        console.log('Extracted meter data:', {
+          gridMeter,
+          productionMeter
+        });
       }
     }
 
@@ -296,7 +330,7 @@ async function processShellyConfigWithoutResponse(configData, supabaseClient) {
       temperature: deviceStatus.temperature?.tC || 0,
       is_valid: gridMeter.is_valid || false,
       channel: 0,
-      frequency: deviceType === 'ShellyProEM' ? (deviceStatus['em1:0']?.freq || 0) : 0
+      frequency: deviceType === 'ShellyProEM' ? (deviceStatus[inverseMeters ? 'em1:1' : 'em1:0']?.freq || 0) : 0
     };
 
     console.log(`Prepared Shelly data for insertion:`, JSON.stringify(shellyData, null, 2));

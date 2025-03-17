@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ShellyConfig } from '@/lib/types';
 import { updateShellyConfig, getShellyConfig, isShellyConfigValid } from '@/lib/api/index';
 import { toast } from '@/components/ui/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 interface ShellyConfigFormProps {
   onConfigured: () => void;
@@ -17,6 +19,7 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
   const [serverUrl, setServerUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [deviceType, setDeviceType] = useState<'ShellyEM' | 'ShellyProEM'>('ShellyEM');
+  const [inverseMeters, setInverseMeters] = useState<boolean>(false);
   
   useEffect(() => {
     // Try to load configuration from localStorage or database
@@ -27,6 +30,7 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
         setApiKey(config.apiKey || '');
         setServerUrl(config.serverUrl || '');
         setDeviceType(config.deviceType || 'ShellyEM');
+        setInverseMeters(!!config.inverse_meters);
       }
     };
     
@@ -51,7 +55,8 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
       deviceId: deviceId.trim(),
       apiKey: apiKey.trim(),
       serverUrl: serverUrl.trim(),
-      deviceType: deviceType
+      deviceType: deviceType,
+      inverse_meters: inverseMeters
     };
   
     // Save the configuration and hide the form
@@ -117,6 +122,16 @@ export function ShellyConfigForm({ onConfigured }: ShellyConfigFormProps) {
               <option value="ShellyEM">Shelly EM</option>
               <option value="ShellyProEM">Shelly Pro EM</option>
             </select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="inverse-meters" 
+              checked={inverseMeters}
+              onCheckedChange={setInverseMeters}
+            />
+            <Label htmlFor="inverse-meters">
+              Meters inverted (PV production on emeter 0)
+            </Label>
           </div>
         </CardContent>
         <CardFooter>
