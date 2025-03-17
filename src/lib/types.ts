@@ -1,3 +1,4 @@
+
 export interface ShellyEMData {
   timestamp: string;
   power: number;

@@ -152,6 +152,7 @@ export type Database = {
           deviceid: string
           grid_subscription_kva: number | null
           id: string
+          inverse_meters: boolean | null
           inverter_power_kva: number | null
           latitude: number | null
           longitude: number | null
@@ -166,6 +167,7 @@ export type Database = {
           deviceid: string
           grid_subscription_kva?: number | null
           id?: string
+          inverse_meters?: boolean | null
           inverter_power_kva?: number | null
           latitude?: number | null
           longitude?: number | null
@@ -180,6 +182,7 @@ export type Database = {
           deviceid?: string
           grid_subscription_kva?: number | null
           id?: string
+          inverse_meters?: boolean | null
           inverter_power_kva?: number | null
           latitude?: number | null
           longitude?: number | null
