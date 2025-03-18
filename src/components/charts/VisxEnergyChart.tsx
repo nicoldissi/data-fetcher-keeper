@@ -98,7 +98,11 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
     chartData,
     timeScale,
     margin,
-    dimensions
+    dimensions: {
+      ...dimensions,
+      width: innerWidth,
+      height: innerHeight
+    }
   });
 
   return (

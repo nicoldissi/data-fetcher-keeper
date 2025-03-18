@@ -37,7 +37,10 @@ export const useChartTooltip = ({ chartData, timeScale, margin, dimensions }: Us
     throttle((event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
       if (!chartData.length) return;
 
-      const { x, y } = localPoint(event) || { x: 0, y: 0 };
+      const coordinates = localPoint(event) || { x: 0, y: 0 };
+      const x = coordinates.x;
+      const y = coordinates.y;
+      
       const x0 = timeScale.invert(x - margin.left);
       
       let closestIndex = 0;
@@ -53,8 +56,12 @@ export const useChartTooltip = ({ chartData, timeScale, margin, dimensions }: Us
       
       const dataPoint = chartData[closestIndex];
       
-      const tooltipX = x + 20;
-      const tooltipY = Math.min(y - 20, dimensions.height - 200);
+      if (!dataPoint) return;
+      
+      // Adjust tooltip position to stay within the chart area
+      // Place tooltip above the point with a small offset
+      const tooltipY = Math.max(10, Math.min(y - 10, dimensions.height - 120));
+      const tooltipX = Math.max(10, Math.min(x, dimensions.width - 200));
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);

@@ -18,6 +18,8 @@ export const ChartTooltipContent = ({
   showVoltage,
   showClearSky
 }: ChartTooltipContentProps) => {
+  if (!tooltipData) return null;
+  
   return (
     <>
       <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{tooltipData.time}</div>
