@@ -1,6 +1,6 @@
 
 export interface ShellyEMData {
-  timestamp: string;
+  timestamp: number;
   power: number;
   reactive: number;
   pv_power: number;
@@ -16,6 +16,7 @@ export interface ShellyEMData {
   is_valid: boolean;
   channel: number;
   frequency: number;
+  shelly_config_id?: string;
 }
 
 export interface ShellyConfig {

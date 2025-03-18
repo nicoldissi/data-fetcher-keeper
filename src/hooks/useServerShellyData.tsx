@@ -1,3 +1,4 @@
+
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ShellyEMData, ShellyConfig } from '@/lib/types';
@@ -43,10 +44,10 @@ export const useServerShellyData = (config: ShellyConfig | null) => {
       debugLog('useServerShellyData - Config changed:', config.id);
     }
 
-    if ((config?.deviceId || config?.deviceid) &&
-        (config?.apiKey || config?.apikey) &&
-        (config?.serverUrl || config?.serverurl) &&
-        (config?.id)) {
+    if (config?.deviceId &&
+        config?.apiKey &&
+        config?.serverUrl &&
+        config?.id) {
       if (isDevelopment) {
         debugLog('useServerShellyData - Config is valid, setting up realtime subscription');
       }
@@ -147,11 +148,11 @@ export const useServerShellyData = (config: ShellyConfig | null) => {
   };
 
   const queryResult: UseQueryResult<FetchShellyDataResponse> = useQuery({
-    queryKey: ['serverShellyData', config?.deviceId || config?.deviceid],
+    queryKey: ['serverShellyData', config?.deviceId],
     queryFn: fetchShellyData,
-    enabled: !!(config?.deviceId || config?.deviceid) &&
-             !!(config?.apiKey || config?.apikey) &&
-             !!(config?.serverUrl || config?.serverurl),
+    enabled: !!(config?.deviceId) &&
+             !!(config?.apiKey) &&
+             !!(config?.serverUrl),
     refetchInterval: 5000, // Refresh every 5 seconds
     retry: 3,
     staleTime: 0, // Always consider data stale to ensure real-time updates
