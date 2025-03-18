@@ -1,24 +1,22 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { ShellyEMData } from '@/lib/types';
-import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
-import { EnergyChartWrapper } from './EnergyChartWrapper';
-import { ChartSeriesToggle } from './ChartSeriesToggle';
-import { useEnergyChartData } from '@/hooks/energy-chart/useEnergyChartData';
-
-// ViSX imports
+import { ShellyEMData, ShellyConfig } from '@/lib/types';
+import { bisector } from 'd3-array';
+import type { CurveFactory } from 'd3-shape';
 import { Group } from '@visx/group';
-import { LinePath, AreaClosed, Bar } from '@visx/shape';
-import { scaleTime, scaleLinear } from '@visx/scale';
+import { LinePath, Line, Bar, AreaClosed } from '@visx/shape';
+import { scaleLinear, scaleTime } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
 import { curveBasis, curveMonotoneX } from '@visx/curve';
-import { 
-  Tooltip, 
-  TooltipWithBounds, 
-  defaultStyles as defaultTooltipStyles 
-} from '@visx/tooltip';
+import { Tooltip, TooltipWithBounds, defaultStyles as defaultTooltipStyles } from '@visx/tooltip';
+import { ChartDataPoint } from '@/hooks/energy-chart/types';
+import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
+import { EnergyChartWrapper } from './EnergyChartWrapper';
+import { ChartSeriesToggle } from './ChartSeriesToggle';
+import { useEnergyChartData } from '@/hooks/energy-chart/useEnergyChartData';
+import { formatLocalDate } from '@/lib/dateUtils';
 
 interface VisxEnergyChartProps {
   history: ShellyEMData[];
@@ -51,7 +49,7 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
   } = useEnergyChartData(history, configId || null);
 
   // Set up tooltip
-  const [tooltipData, setTooltipData] = useState<any>(null);
+  const [tooltipData, setTooltipData] = useState<ChartDataPoint | null>(null);
   const [tooltipLeft, setTooltipLeft] = useState<number>(0);
   const [tooltipTop, setTooltipTop] = useState<number>(0);
   const [tooltipOpen, setTooltipOpen] = useState<boolean>(false);
@@ -76,12 +74,9 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
 
   // Create scales for time domain from midnight to current time
   const timeScale = useMemo(() => {
-    // Définir la plage de temps de minuit à maintenant
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Définir à minuit
     
-    // Si nous avons des données, utiliser le dernier point temporel des données,
-    // sinon utiliser l'heure actuelle
     const now = chartData.length > 0 
       ? new Date(chartData[chartData.length - 1].timestamp)
       : new Date();
@@ -149,14 +144,12 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
       
       const dataPoint = chartData[closestIndex];
       
-      // Position tooltip to the right of the cursor if possible
       const tooltipX = x + 20; // 20px to the right of cursor
       const tooltipY = Math.min(y - 20, dimensions.height - 200);
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
       setTooltipTop(tooltipY);
-      // Fix: Set the cursor position with the correct coordinates
       setCursorPosition({ 
         x: x, // Use the raw x position for the cursor line
         y: dimensions.height // Use full height for the vertical line
@@ -176,7 +169,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
   
   // Filtrer les données de production idéale pour la journée entière
   const validClearSkyData = useMemo(() => {
-    // Extraire uniquement les points avec clearSkyProduction > 0
     return chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
   }, [chartData]);
 
@@ -188,7 +180,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
       console.log(`Render point ${index}: timestamp=${new Date(point.timestamp).toISOString()}, clearSkyProduction=${point.clearSkyProduction}`);
     });
     
-    // Also log timestamp format to check for any timestamp matching issues
     if (validClearSkyData.length > 0 && chartData.length > 0) {
       console.log('Timestamp comparison example:');
       const clearSkyPoint = validClearSkyData[0];
@@ -209,9 +200,7 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
       const currentPoint = chartData[i];
       const currentIsPositive = currentPoint.grid >= 0;
       
-      // At transition points, add a zero-value point to create proper connection
       if (lastWasPositive !== null && lastWasPositive !== currentIsPositive) {
-        // Add a zero point with the same timestamp to create a clean transition
         const transitionPoint = {
           ...currentPoint,
           grid: 0
@@ -275,15 +264,13 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
   return (
     <EnergyChartWrapper
       title="Historique de Consommation et Production"
-      description="Évolution de la consommation et production d'énergie"
-      controls={renderChartControls()}
-      isLoading={isLoadingFullDay && chartData.length === 0}
+      description="Visualisation des données énergétiques"
       className={className}
+      controls={renderChartControls()}
     >
       <div ref={containerRef} className="w-full h-full relative">
         {dimensions.width > 0 && dimensions.height > 0 && (
           <svg width={dimensions.width} height={dimensions.height}>
-            {/* Define gradients */}
             <LinearGradient
               id="consumption-gradient"
               from="#F97415"
@@ -312,9 +299,15 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               to="#FF5252"
               toOpacity={0.8}
             />
+            <LinearGradient
+              id="colorGridPos"
+              from="#42A5F5"
+              fromOpacity={0.5}
+              to="#42A5F5"
+              toOpacity={0.8}
+            />
             
             <Group left={margin.left} top={margin.top}>
-              {/* Grid */}
               <GridRows
                 scale={powerScale}
                 width={innerWidth}
@@ -330,7 +323,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 strokeDasharray="3,3"
               />
               
-              {/* Zero line */}
               <line
                 x1={0}
                 y1={powerScale(0)}
@@ -341,7 +333,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 strokeDasharray="5,5"
               />
               
-              {/* Axes */}
               <AxisLeft
                 scale={powerScale}
                 stroke="#888"
@@ -379,7 +370,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 numTicks={6}
               />
               
-              {/* Right axis for voltage if enabled */}
               {showVoltage && (
                 <g transform={`translate(${innerWidth}, 0)`}>
                   <AxisLeft
@@ -405,7 +395,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 </g>
               )}
               
-              {/* Area charts - render without animations */}
               {showConsumption && chartData.length > 0 && (
                 <AreaClosed
                   data={chartData.filter(d => getConsumption(d) >= 0)}
@@ -430,20 +419,17 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 />
               )}
               
-              {/* Grid area chart - positive values with proper transition points */}
               {showGrid && gridData.length > 0 && (
                 <AreaClosed
                   data={gridData.filter(d => getGrid(d) >= 0)}
                   x={d => timeScale(getX(d))}
                   y={d => powerScale(Math.max(0, getGrid(d)))}
-                  y0={() => powerScale(0)}
                   yScale={powerScale}
-                  fill="url(#grid-gradient)"
+                  fill="url(#colorGridPos)"
                   curve={curveMonotoneX}
                 />
               )}
               
-              {/* Grid area chart - negative values with proper transition points */}
               {showGrid && gridData.length > 0 && (
                 <AreaClosed
                   data={gridData.filter(d => getGrid(d) <= 0)}
@@ -468,10 +454,8 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 />
               )}
               
-              {/* Clear Sky Production Line - no individual circles */}
               {showClearSky && validClearSkyData.length > 0 && (
                 <>
-                  {/* Only draw the line without individual points */}
                   <LinePath
                     data={validClearSkyData}
                     x={d => timeScale(getX(d))}
@@ -485,7 +469,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 </>
               )}
               
-              {/* Overlay for tooltip */}
               <Bar
                 width={innerWidth}
                 height={innerHeight}
@@ -497,7 +480,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               />
             </Group>
 
-            {/* Add vertical cursor line - Fix: Adjust positioning to match actual cursor */}
             {cursorPosition && (
               <line
                 x1={cursorPosition.x}
@@ -513,14 +495,15 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
           </svg>
         )}
         
-        {/* Tooltip */}
         {tooltipOpen && tooltipData && (
-          <div 
-            className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3 pointer-events-none"
+          <TooltipWithBounds
+            key={Math.random()}
+            top={tooltipTop}
+            left={tooltipLeft}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3"
             style={{
-              left: tooltipLeft,
-              top: tooltipTop - 20, // Position 20px above where the cursor is
-              maxWidth: '220px'
+              minWidth: 180,
+              transform: 'translate(-50%, -100%)'
             }}
           >
             <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{tooltipData.time}</div>
@@ -571,7 +554,7 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 </div>
               )}
             </div>
-          </div>
+          </TooltipWithBounds>
         )}
       </div>
     </EnergyChartWrapper>
