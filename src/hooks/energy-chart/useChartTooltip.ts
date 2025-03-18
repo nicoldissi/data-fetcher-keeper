@@ -43,29 +43,64 @@ export const useChartTooltip = ({ chartData, timeScale, margin, dimensions }: Us
       
       const x0 = timeScale.invert(x - margin.left);
       
+      // Filter out data points with no actual values (all zeros)
+      const validData = chartData.filter(d => 
+        d.consumption > 0 || d.production > 0 || d.grid !== 0 || 
+        (d.voltage !== undefined && d.voltage > 0) || 
+        (d.clearSkyProduction !== undefined && d.clearSkyProduction > 0)
+      );
+      
+      // If no valid data, don't show tooltip
+      if (validData.length === 0) return;
+      
       let closestIndex = 0;
       let minDistance = Infinity;
       
-      for (let i = 0; i < chartData.length; i++) {
-        const distance = Math.abs(new Date(chartData[i].timestamp).getTime() - x0.getTime());
+      for (let i = 0; i < validData.length; i++) {
+        const distance = Math.abs(new Date(validData[i].timestamp).getTime() - x0.getTime());
         if (distance < minDistance) {
           minDistance = distance;
           closestIndex = i;
         }
       }
       
-      const dataPoint = chartData[closestIndex];
+      const dataPoint = validData[closestIndex];
       
       if (!dataPoint) return;
       
-      // Calculate a good tooltip position that won't go outside the container
-      // Using a fixed width of 160px for the tooltip to calculate bounds
-      const tooltipWidth = 160;
+      // Dynamic positioning based on pointer location
+      // If pointer is in the right half of the chart, position tooltip to the left
+      // If pointer is in the left half, position tooltip to the right
+      const isRightHalf = x > dimensions.width / 2;
+      
+      // For height, always try to position above the cursor, unless near the top
+      const isTopHalf = y < dimensions.height / 3;
+      
+      // Base tooltip dimensions - height is approximated
       const tooltipHeight = 120;
       
+      // Calculate position based on cursor location
+      let tooltipX, tooltipY;
+      
+      if (isRightHalf) {
+        // Position to the left of cursor
+        tooltipX = Math.max(10, x - 20);
+      } else {
+        // Position to the right of cursor
+        tooltipX = x + 20;
+      }
+      
+      if (isTopHalf) {
+        // Position below cursor if near top
+        tooltipY = y + 10;
+      } else {
+        // Position above cursor
+        tooltipY = Math.max(10, y - tooltipHeight - 10);
+      }
+      
       // Make sure tooltip stays within chart boundaries
-      const tooltipX = Math.max(10, Math.min(x, dimensions.width - tooltipWidth));
-      const tooltipY = Math.max(10, Math.min(y - 10, dimensions.height - tooltipHeight));
+      tooltipX = Math.max(10, Math.min(tooltipX, dimensions.width - 10));
+      tooltipY = Math.max(10, Math.min(tooltipY, dimensions.height - tooltipHeight));
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);

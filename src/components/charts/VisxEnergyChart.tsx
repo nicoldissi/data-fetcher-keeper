@@ -105,6 +105,17 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
     }
   });
 
+  // Helper function to filter out empty data points for rendering
+  const getValidDataPoints = useCallback((dataArray: ChartDataPoint[], property: keyof ChartDataPoint) => {
+    return dataArray.filter(d => {
+      const value = d[property];
+      if (typeof value === 'number') {
+        return value > 0;
+      }
+      return false;
+    });
+  }, []);
+
   return (
     <EnergyChartWrapper
       title="Historique de Consommation et Production"
@@ -254,9 +265,9 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               
               {showConsumption && chartData.length > 0 && (
                 <AreaClosed
-                  data={chartData.filter(d => d.consumption >= 0)}
+                  data={getValidDataPoints(chartData, 'consumption')}
                   x={d => timeScale(d.timestamp)}
-                  y={d => powerScale(Math.max(0, d.consumption))}
+                  y={d => powerScale(d.consumption)}
                   y0={() => powerScale(0)}
                   yScale={powerScale}
                   fill="url(#consumption-gradient)"
@@ -266,9 +277,9 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               
               {showProduction && chartData.length > 0 && (
                 <AreaClosed
-                  data={chartData.filter(d => d.production >= 0)}
+                  data={getValidDataPoints(chartData, 'production')}
                   x={d => timeScale(d.timestamp)}
-                  y={d => powerScale(Math.max(0, d.production))}
+                  y={d => powerScale(d.production)}
                   y0={() => powerScale(0)}
                   yScale={powerScale}
                   fill="url(#production-gradient)"
@@ -277,31 +288,31 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               )}
               
               {showGrid && chartData.length > 0 && (
-                <AreaClosed
-                  data={chartData.filter(d => d.grid >= 0)}
-                  x={d => timeScale(d.timestamp)}
-                  y={d => powerScale(Math.max(0, d.grid))}
-                  yScale={powerScale}
-                  fill="url(#colorGridPos)"
-                  curve={curveMonotoneX}
-                />
-              )}
-              
-              {showGrid && chartData.length > 0 && (
-                <AreaClosed
-                  data={chartData.filter(d => d.grid <= 0)}
-                  x={d => timeScale(d.timestamp)}
-                  y={d => powerScale(0)}
-                  y0={d => powerScale(d.grid)}
-                  yScale={powerScale}
-                  fill="url(#grid-negative-gradient)"
-                  curve={curveMonotoneX}
-                />
+                <>
+                  <AreaClosed
+                    data={chartData.filter(d => d.grid > 0)}
+                    x={d => timeScale(d.timestamp)}
+                    y={d => powerScale(d.grid)}
+                    y0={() => powerScale(0)}
+                    yScale={powerScale}
+                    fill="url(#colorGridPos)"
+                    curve={curveMonotoneX}
+                  />
+                  <AreaClosed
+                    data={chartData.filter(d => d.grid < 0)}
+                    x={d => timeScale(d.timestamp)}
+                    y={d => powerScale(0)}
+                    y0={d => powerScale(d.grid)}
+                    yScale={powerScale}
+                    fill="url(#grid-negative-gradient)"
+                    curve={curveMonotoneX}
+                  />
+                </>
               )}
               
               {showVoltage && chartData.length > 0 && (
                 <LinePath
-                  data={chartData.filter(d => d.voltage !== undefined && d.voltage > 0)}
+                  data={getValidDataPoints(chartData, 'voltage')}
                   x={d => timeScale(d.timestamp)}
                   y={d => voltageScale(d.voltage || 0)}
                   stroke="#9b87f5"
@@ -312,18 +323,16 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               )}
               
               {showClearSky && chartData.length > 0 && (
-                <>
-                  <LinePath
-                    data={chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0)}
-                    x={d => timeScale(d.timestamp)}
-                    y={d => powerScale(d.clearSkyProduction || 0)}
-                    stroke="#D4E157"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    curve={curveBasis}
-                  />
-                </>
+                <LinePath
+                  data={getValidDataPoints(chartData, 'clearSkyProduction')}
+                  x={d => timeScale(d.timestamp)}
+                  y={d => powerScale(d.clearSkyProduction || 0)}
+                  stroke="#D4E157"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  curve={curveBasis}
+                />
               )}
               
               <Bar
@@ -360,8 +369,8 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3"
             style={{
               width: 'auto',
-              maxWidth: '160px',
-              transform: 'translate(0, -100%)'
+              minWidth: '120px',
+              transform: 'translate(0, 0)'
             }}
           >
             <ChartTooltipContent
