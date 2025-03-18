@@ -8,7 +8,7 @@ interface UseChartTooltipProps {
   chartData: ChartDataPoint[];
   timeScale: ScaleTime<number, number>;
   margin: { left: number };
-  dimensions: { height: number };
+  dimensions: { height: number; width: number };
 }
 
 export const useChartTooltip = ({ chartData, timeScale, margin, dimensions }: UseChartTooltipProps) => {
