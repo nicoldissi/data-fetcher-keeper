@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { AreaClosed, Line, Bar, LinePath } from '@visx/shape';
 import { curveMonotoneX } from '@visx/curve';
@@ -26,32 +25,45 @@ const isDefined = <T,>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;
 };
 
-// Extend the default path types to handle null/undefined values
+// Update component prop types to include all required properties
 type CustomLinePathProps<Datum> = Omit<LinePathProps<Datum>, 'y'> & {
   y: Accessor<Datum>;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeDasharray?: string;
+  curve?: CurveFactory;
 };
 
 type CustomAreaClosedProps<Datum> = Omit<AreaClosedProps<Datum>, 'y'> & {
   y: Accessor<Datum>;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  curve?: CurveFactory;
 };
 
 // Custom LinePathComponent that skips null/undefined values
 function CustomLinePath<Datum>({ 
   data, 
   x, 
-  y, 
+  y,
   curve,
+  stroke,
+  strokeWidth,
+  strokeDasharray,
   ...restProps 
 }: CustomLinePathProps<Datum>) {
-  // Filter out data points with null/undefined y values
   const validData = data.filter(d => isDefined(y(d)));
   
   return (
     <LinePath
       data={validData}
       x={x}
-      y={y as any} // Cast is necessary because we've already filtered out null/undefined values
+      y={y as any}
       curve={curve}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeDasharray={strokeDasharray}
       {...restProps}
     />
   );
@@ -61,20 +73,25 @@ function CustomLinePath<Datum>({
 function CustomAreaClosed<Datum>({ 
   data, 
   x, 
-  y, 
+  y,
   curve,
+  fill,
+  stroke,
+  strokeWidth,
   yScale,
   ...restProps 
 }: CustomAreaClosedProps<Datum>) {
-  // Filter out data points with null/undefined y values
   const validData = data.filter(d => isDefined(y(d)));
   
   return (
     <AreaClosed
       data={validData}
       x={x}
-      y={y as any} // Cast is necessary because we've already filtered out null/undefined values
+      y={y as any}
       curve={curve}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
       yScale={yScale}
       {...restProps}
     />
@@ -520,4 +537,3 @@ const VisxEnergyChart: React.FC<VisxEnergyChartProps> = ({
 };
 
 export default VisxEnergyChart;
-

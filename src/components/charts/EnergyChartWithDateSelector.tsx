@@ -1,10 +1,10 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
 import { EnergyChartWrapper } from '@/components/charts/EnergyChartWrapper';
 import VisxEnergyChart from '@/components/charts/VisxEnergyChart';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { transformToChartData } from '@/lib/dataTransformers';
 
 interface EnergyChartWithDateSelectorProps {
   history: ShellyEMData[];
@@ -48,7 +48,7 @@ export function EnergyChartWithDateSelector({
     });
     
     console.log(`Filtered data: ${filtered.length} points out of ${history.length}`);
-    return filtered;
+    return transformToChartData(filtered);
   }, [history, selectedDate]);
 
   const handleDateChange = (date: Date) => {

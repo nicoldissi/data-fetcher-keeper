@@ -1,10 +1,10 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { ShellyEMData } from '@/lib/types';
 import { DateSelector } from '@/components/DateSelector';
 import VisxEnergyChart from '@/components/charts/VisxEnergyChart';
 import { EnergyChartWrapper } from '@/components/charts/EnergyChartWrapper';
+import { transformToChartData } from '@/lib/dataTransformers';
 
 interface HistoricalEnergyChartProps {
   history: ShellyEMData[];
@@ -14,7 +14,6 @@ interface HistoricalEnergyChartProps {
 export function HistoricalEnergyChart({ history, configId }: HistoricalEnergyChartProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // Filter history data for the selected date
   const filteredHistory = useMemo(() => {
     if (!history || history.length === 0) return [];
     
@@ -30,10 +29,9 @@ export function HistoricalEnergyChart({ history, configId }: HistoricalEnergyCha
     });
     
     console.log(`Filtered history: ${filtered.length} points out of ${history.length}`);
-    return filtered;
+    return transformToChartData(filtered);
   }, [history, selectedDate]);
 
-  // Log when selectedDate changes to verify it's being updated
   useEffect(() => {
     console.log("HistoricalEnergyChart: Selected date changed to:", selectedDate.toISOString());
   }, [selectedDate]);
