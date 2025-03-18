@@ -1,22 +1,19 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { ShellyEMData, ShellyConfig } from '@/lib/types';
-import { bisector } from 'd3-array';
-import type { CurveFactory } from 'd3-shape';
+import { ShellyEMData } from '@/lib/types';
 import { Group } from '@visx/group';
 import { LinePath, Line, Bar, AreaClosed } from '@visx/shape';
 import { scaleLinear, scaleTime } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows, GridColumns } from '@visx/grid';
-import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
 import { curveBasis, curveMonotoneX } from '@visx/curve';
-import { Tooltip, TooltipWithBounds, defaultStyles as defaultTooltipStyles } from '@visx/tooltip';
+import { TooltipWithBounds } from '@visx/tooltip';
 import { ChartDataPoint } from '@/hooks/energy-chart/types';
-import { Zap, Plug, Sun, CircuitBoard } from 'lucide-react';
 import { EnergyChartWrapper } from './EnergyChartWrapper';
-import { ChartSeriesToggle } from './ChartSeriesToggle';
 import { useEnergyChartData } from '@/hooks/energy-chart/useEnergyChartData';
-import { formatLocalDate } from '@/lib/dateUtils';
+import { ChartControls } from './ChartControls';
+import { ChartTooltipContent } from './ChartTooltipContent';
+import { useChartTooltip } from '@/hooks/energy-chart/useChartTooltip';
 
 interface VisxEnergyChartProps {
   history: ShellyEMData[];
@@ -27,33 +24,22 @@ interface VisxEnergyChartProps {
 // Define margin for the chart
 const margin = { top: 20, right: 30, bottom: 50, left: 50 };
 
-// Changed from export default function to just export default
 const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps) => {
-  // Toggle visibility of lines
   const [showConsumption, setShowConsumption] = useState(true);
   const [showProduction, setShowProduction] = useState(true);
   const [showGrid, setShowGrid] = useState(false);
   const [showVoltage, setShowVoltage] = useState(false);
   const [showClearSky, setShowClearSky] = useState(true);
 
-  // Reference for the chart container
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  // Use the extracted hook for data processing
   const { 
     chartData, 
     isLoadingFullDay,
     calculateYAxisDomain,
     calculateVoltageYAxisDomain
   } = useEnergyChartData(history, configId || null);
-
-  // Set up tooltip
-  const [tooltipData, setTooltipData] = useState<ChartDataPoint | null>(null);
-  const [tooltipLeft, setTooltipLeft] = useState<number>(0);
-  const [tooltipTop, setTooltipTop] = useState<number>(0);
-  const [tooltipOpen, setTooltipOpen] = useState<boolean>(false);
-  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Update dimensions when container size changes
   useEffect(() => {
@@ -68,14 +54,13 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Calculate chart area dimensions
   const innerWidth = dimensions.width - margin.left - margin.right;
   const innerHeight = dimensions.height - margin.top - margin.bottom;
 
   // Create scales for time domain from midnight to current time
   const timeScale = useMemo(() => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Définir à minuit
+    today.setHours(0, 0, 0, 0);
     
     const now = chartData.length > 0 
       ? new Date(chartData[chartData.length - 1].timestamp)
@@ -101,172 +86,40 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
     nice: true,
   });
 
-  // Accessor functions
-  const getX = (d: any) => new Date(d.timestamp);
-  const getConsumption = (d: any) => d.consumption;
-  const getProduction = (d: any) => d.production;
-  const getGrid = (d: any) => d.grid;
-  const getVoltage = (d: any) => d.voltage || 0;
-  const getClearSkyProduction = (d: any) => d.clearSkyProduction || 0;
-
-  // Throttle function to limit the rate of tooltip updates
-  const throttle = useCallback((func: Function, limit: number) => {
-    let inThrottle: boolean;
-    let lastResult: any;
-    return function(this: any, ...args: any[]) {
-      if (!inThrottle) {
-        lastResult = func.apply(this, args);
-        inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
-      }
-      return lastResult;
-    };
-  }, []);
-
-  // Handle tooltip with throttling to reduce render load
-  const handleTooltip = useCallback(
-    throttle((event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
-      if (!chartData.length) return;
-
-      const { x, y } = localPoint(event) || { x: 0, y: 0 };
-      const x0 = timeScale.invert(x - margin.left);
-      
-      let closestIndex = 0;
-      let minDistance = Infinity;
-      
-      for (let i = 0; i < chartData.length; i++) {
-        const distance = Math.abs(new Date(chartData[i].timestamp).getTime() - x0.getTime());
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestIndex = i;
-        }
-      }
-      
-      const dataPoint = chartData[closestIndex];
-      
-      const tooltipX = x + 20; // 20px to the right of cursor
-      const tooltipY = Math.min(y - 20, dimensions.height - 200);
-      
-      setTooltipData(dataPoint);
-      setTooltipLeft(tooltipX);
-      setTooltipTop(tooltipY);
-      setCursorPosition({ 
-        x: x, // Use the raw x position for the cursor line
-        y: dimensions.height // Use full height for the vertical line
-      });
-      setTooltipOpen(true);
-    }, 50),
-    [chartData, timeScale, margin, dimensions]
-  );
-
-  const hideTooltip = useCallback(() => {
-    setTooltipOpen(false);
-    setCursorPosition(null);
-  }, []);
-
-  // Filter data for voltage and clear sky production
-  const validVoltageData = chartData.filter(d => d.voltage !== undefined && d.voltage > 0);
-  
-  // Filtrer les données de production idéale pour la journée entière
-  const validClearSkyData = useMemo(() => {
-    return chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0);
-  }, [chartData]);
-
-  // Log clear sky data that will be used for rendering
-  useEffect(() => {
-    console.log(`VisxEnergyChart - validClearSkyData points: ${validClearSkyData.length}`);
-    console.log('First 5 clear sky points that will be rendered:');
-    validClearSkyData.slice(0, 5).forEach((point, index) => {
-      console.log(`Render point ${index}: timestamp=${new Date(point.timestamp).toISOString()}, clearSkyProduction=${point.clearSkyProduction}`);
-    });
-    
-    if (validClearSkyData.length > 0 && chartData.length > 0) {
-      console.log('Timestamp comparison example:');
-      const clearSkyPoint = validClearSkyData[0];
-      const chartPoint = chartData[0];
-      console.log(`clearSky timestamp: ${new Date(clearSkyPoint.timestamp).toISOString()}`);
-      console.log(`chart timestamp: ${new Date(chartPoint.timestamp).toISOString()}`);
-    }
-  }, [validClearSkyData, chartData]);
-
-  // Prepare grid data - create a proper connected series with zeroes at transition points
-  const prepareGridData = useCallback(() => {
-    if (!chartData.length) return [];
-
-    const result = [];
-    let lastWasPositive = null;
-
-    for (let i = 0; i < chartData.length; i++) {
-      const currentPoint = chartData[i];
-      const currentIsPositive = currentPoint.grid >= 0;
-      
-      if (lastWasPositive !== null && lastWasPositive !== currentIsPositive) {
-        const transitionPoint = {
-          ...currentPoint,
-          grid: 0
-        };
-        result.push(transitionPoint);
-      }
-      
-      result.push(currentPoint);
-      lastWasPositive = currentIsPositive;
-    }
-    
-    return result;
-  }, [chartData]);
-
-  // Get the prepared grid data 
-  const gridData = useMemo(() => prepareGridData(), [prepareGridData]);
-
-  // Create the toggle controls for the chart with icons
-  const renderChartControls = useCallback(() => {
-    return (
-      <>
-        <ChartSeriesToggle 
-          label="Consommation"
-          value={showConsumption}
-          onChange={setShowConsumption}
-          color="#F97415"
-          icon={<Plug className="w-3 h-3 text-[#F97415] mr-2" />}
-        />
-        <ChartSeriesToggle 
-          label="Production"
-          value={showProduction}
-          onChange={setShowProduction}
-          color="#00FF59"
-          icon={<Sun className="w-3 h-3 text-[#00FF59] mr-2" />}
-        />
-        <ChartSeriesToggle 
-          label="Réseau"
-          value={showGrid}
-          onChange={setShowGrid}
-          color="blue-500"
-          icon={<CircuitBoard className="w-3 h-3 text-blue-500 mr-2" />}
-        />
-        <ChartSeriesToggle 
-          label="Tension"
-          value={showVoltage}
-          onChange={setShowVoltage}
-          color="#9b87f5"
-          icon={<Zap className="w-3 h-3 text-[#9b87f5] mr-2" />}
-        />
-        <ChartSeriesToggle 
-          label="Production idéale"
-          value={showClearSky}
-          onChange={setShowClearSky}
-          color="#D4E157"
-          icon={<Sun className="w-3 h-3 text-[#D4E157] mr-2" />}
-        />
-      </>
-    );
-  }, [showConsumption, showProduction, showGrid, showVoltage, showClearSky]);
+  const {
+    tooltipData,
+    tooltipLeft,
+    tooltipTop,
+    tooltipOpen,
+    cursorPosition,
+    handleTooltip,
+    hideTooltip
+  } = useChartTooltip({
+    chartData,
+    timeScale,
+    margin,
+    dimensions
+  });
 
   return (
     <EnergyChartWrapper
       title="Historique de Consommation et Production"
       description="Visualisation des données énergétiques"
       className={className}
-      controls={renderChartControls()}
+      controls={
+        <ChartControls
+          showConsumption={showConsumption}
+          showProduction={showProduction}
+          showGrid={showGrid}
+          showVoltage={showVoltage}
+          showClearSky={showClearSky}
+          setShowConsumption={setShowConsumption}
+          setShowProduction={setShowProduction}
+          setShowGrid={setShowGrid}
+          setShowVoltage={setShowVoltage}
+          setShowClearSky={setShowClearSky}
+        />
+      }
     >
       <div ref={containerRef} className="w-full h-full relative">
         {dimensions.width > 0 && dimensions.height > 0 && (
@@ -397,9 +250,9 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               
               {showConsumption && chartData.length > 0 && (
                 <AreaClosed
-                  data={chartData.filter(d => getConsumption(d) >= 0)}
-                  x={d => timeScale(getX(d))}
-                  y={d => powerScale(Math.max(0, getConsumption(d)))}
+                  data={chartData.filter(d => d.consumption >= 0)}
+                  x={d => timeScale(d.timestamp)}
+                  y={d => powerScale(Math.max(0, d.consumption))}
                   y0={() => powerScale(0)}
                   yScale={powerScale}
                   fill="url(#consumption-gradient)"
@@ -409,9 +262,9 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               
               {showProduction && chartData.length > 0 && (
                 <AreaClosed
-                  data={chartData.filter(d => getProduction(d) >= 0)}
-                  x={d => timeScale(getX(d))}
-                  y={d => powerScale(Math.max(0, getProduction(d)))}
+                  data={chartData.filter(d => d.production >= 0)}
+                  x={d => timeScale(d.timestamp)}
+                  y={d => powerScale(Math.max(0, d.production))}
                   y0={() => powerScale(0)}
                   yScale={powerScale}
                   fill="url(#production-gradient)"
@@ -419,34 +272,34 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 />
               )}
               
-              {showGrid && gridData.length > 0 && (
+              {showGrid && chartData.length > 0 && (
                 <AreaClosed
-                  data={gridData.filter(d => getGrid(d) >= 0)}
-                  x={d => timeScale(getX(d))}
-                  y={d => powerScale(Math.max(0, getGrid(d)))}
+                  data={chartData.filter(d => d.grid >= 0)}
+                  x={d => timeScale(d.timestamp)}
+                  y={d => powerScale(Math.max(0, d.grid))}
                   yScale={powerScale}
                   fill="url(#colorGridPos)"
                   curve={curveMonotoneX}
                 />
               )}
               
-              {showGrid && gridData.length > 0 && (
+              {showGrid && chartData.length > 0 && (
                 <AreaClosed
-                  data={gridData.filter(d => getGrid(d) <= 0)}
-                  x={d => timeScale(getX(d))}
+                  data={chartData.filter(d => d.grid <= 0)}
+                  x={d => timeScale(d.timestamp)}
                   y={d => powerScale(0)}
-                  y0={d => powerScale(getGrid(d))}
+                  y0={d => powerScale(d.grid)}
                   yScale={powerScale}
                   fill="url(#grid-negative-gradient)"
                   curve={curveMonotoneX}
                 />
               )}
               
-              {showVoltage && validVoltageData.length > 0 && (
+              {showVoltage && chartData.length > 0 && (
                 <LinePath
-                  data={validVoltageData}
-                  x={d => timeScale(getX(d))}
-                  y={d => voltageScale(getVoltage(d))}
+                  data={chartData.filter(d => d.voltage !== undefined && d.voltage > 0)}
+                  x={d => timeScale(d.timestamp)}
+                  y={d => voltageScale(d.voltage || 0)}
                   stroke="#9b87f5"
                   strokeWidth={2}
                   curve={curveMonotoneX}
@@ -454,12 +307,12 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
                 />
               )}
               
-              {showClearSky && validClearSkyData.length > 0 && (
+              {showClearSky && chartData.length > 0 && (
                 <>
                   <LinePath
-                    data={validClearSkyData}
-                    x={d => timeScale(getX(d))}
-                    y={d => powerScale(getClearSkyProduction(d))}
+                    data={chartData.filter(d => d.clearSkyProduction !== undefined && d.clearSkyProduction > 0)}
+                    x={d => timeScale(d.timestamp)}
+                    y={d => powerScale(d.clearSkyProduction || 0)}
                     stroke="#D4E157"
                     strokeWidth={2}
                     strokeLinecap="round"
@@ -506,54 +359,14 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
               transform: 'translate(-50%, -100%)'
             }}
           >
-            <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">{tooltipData.time}</div>
-            <div className="space-y-1">
-              {showConsumption && tooltipData.consumption > 0 && (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-[#F97415]"></div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Consommation:</span>
-                  </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.consumption} W</span>
-                </div>
-              )}
-              {showProduction && tooltipData.production > 0 && (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-[#00FF59]"></div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Production:</span>
-                  </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.production} W</span>
-                </div>
-              )}
-              {showGrid && tooltipData.grid !== 0 && (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-[#42A5F5]"></div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Réseau:</span>
-                  </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.grid} W</span>
-                </div>
-              )}
-              {showVoltage && tooltipData.voltage && tooltipData.voltage > 0 && (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-[#9b87f5]"></div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Tension:</span>
-                  </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{tooltipData.voltage} V</span>
-                </div>
-              )}
-              {showClearSky && tooltipData.clearSkyProduction !== undefined && tooltipData.clearSkyProduction > 0 && (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-[#D4E157]"></div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Production idéale:</span>
-                  </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{Math.round(tooltipData.clearSkyProduction)} W</span>
-                </div>
-              )}
-            </div>
+            <ChartTooltipContent
+              tooltipData={tooltipData}
+              showConsumption={showConsumption}
+              showProduction={showProduction}
+              showGrid={showGrid}
+              showVoltage={showVoltage}
+              showClearSky={showClearSky}
+            />
           </TooltipWithBounds>
         )}
       </div>
