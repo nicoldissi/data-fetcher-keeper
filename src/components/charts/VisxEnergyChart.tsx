@@ -1,18 +1,9 @@
 import React, { useMemo } from 'react';
-import { AreaClosed, Line, Bar, LinePath, CurveFactory } from '@visx/shape';
+import { AreaClosed, Line, Bar, LinePath } from '@visx/shape';
 import { curveMonotoneX } from '@visx/curve';
+import type { CurveFactory } from 'd3-shape';
 import { scaleLinear, scaleTime } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
-import { GridRows } from '@visx/grid';
-import { useTooltip, TooltipWithBounds } from '@visx/tooltip';
-import { localPoint } from '@visx/event';
-import { bisector } from 'd3-array';
-import { Group } from '@visx/group';
-import { ChartDataPoint } from '@/hooks/energy-chart/types';
-import { formatLocalDate } from '@/lib/dateUtils';
-import { ShellyConfig } from '@/lib/types';
-import { LinePathProps } from '@visx/shape/lib/shapes/LinePath';
-import { AreaClosedProps } from '@visx/shape/lib/shapes/AreaClosed';
 
 // Define a type for data accessors that handles null/undefined values
 type Accessor<T> = (d: T) => number | null | undefined;
