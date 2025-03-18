@@ -1,6 +1,7 @@
+
 import React, { useMemo } from 'react';
 import { AreaClosed, Line, Bar, LinePath } from '@visx/shape';
-import { curveMonotoneX } from '@visx/curve';
+import { curveMonotoneX, CurveFactory } from '@visx/curve';  // Added CurveFactory import
 import { scaleLinear, scaleTime } from '@visx/scale';
 import { AxisLeft, AxisBottom } from '@visx/axis';
 import { GridRows } from '@visx/grid';
