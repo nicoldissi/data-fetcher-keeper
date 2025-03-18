@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { ShellyEMData } from '@/lib/types';
 import { Group } from '@visx/group';
@@ -99,7 +100,6 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
     timeScale,
     margin,
     dimensions: {
-      ...dimensions,
       width: innerWidth,
       height: innerHeight
     }
@@ -359,8 +359,9 @@ const VisxEnergyChart = ({ history, configId, className }: VisxEnergyChartProps)
             left={tooltipLeft}
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3"
             style={{
-              minWidth: 180,
-              transform: 'translate(-50%, -100%)'
+              width: 'auto',
+              maxWidth: '160px',
+              transform: 'translate(0, -100%)'
             }}
           >
             <ChartTooltipContent

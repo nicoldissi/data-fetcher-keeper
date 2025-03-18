@@ -58,10 +58,14 @@ export const useChartTooltip = ({ chartData, timeScale, margin, dimensions }: Us
       
       if (!dataPoint) return;
       
-      // Adjust tooltip position to stay within the chart area
-      // Place tooltip above the point with a small offset
-      const tooltipY = Math.max(10, Math.min(y - 10, dimensions.height - 120));
-      const tooltipX = Math.max(10, Math.min(x, dimensions.width - 200));
+      // Calculate a good tooltip position that won't go outside the container
+      // Using a fixed width of 160px for the tooltip to calculate bounds
+      const tooltipWidth = 160;
+      const tooltipHeight = 120;
+      
+      // Make sure tooltip stays within chart boundaries
+      const tooltipX = Math.max(10, Math.min(x, dimensions.width - tooltipWidth));
+      const tooltipY = Math.max(10, Math.min(y - 10, dimensions.height - tooltipHeight));
       
       setTooltipData(dataPoint);
       setTooltipLeft(tooltipX);
